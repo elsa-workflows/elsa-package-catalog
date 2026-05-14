@@ -24,6 +24,37 @@ public sealed class CompatibilityCheckServiceTests
         result.Findings.Should().Contain(x => x.Code == "package.notApproved");
     }
 
+    [Fact]
+    public async Task Does_not_parse_manifest_json_for_invalid_versions()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var package = PublicCatalogSeedData.CreatePackage(source);
+        var version = PublicCatalogSeedData.AddVersion(package, validationStatus: ValidationStatus.Invalid);
+        version.ManifestJson = "{";
+        var service = new CompatibilityCheckService(new FakeQueries(package.Versions), new VersionRangeEvaluator());
+
+        var result = await service.CheckAsync(new CompatibilityCheckRequest("1.0.0", null, [new("Elsa.Email", "1.0.0")], []));
+
+        result.Compatible.Should().BeFalse();
+        result.Findings.Should().ContainSingle(x => x.Code == "package.invalid");
+        result.Findings.Should().NotContain(x => x.Code == "manifest.invalidJson");
+    }
+
+    [Fact]
+    public async Task Reports_invalid_json_for_valid_versions_defensively()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var package = PublicCatalogSeedData.CreatePackage(source);
+        var version = PublicCatalogSeedData.AddVersion(package);
+        version.ManifestJson = "{";
+        var service = new CompatibilityCheckService(new FakeQueries(package.Versions), new VersionRangeEvaluator());
+
+        var result = await service.CheckAsync(new CompatibilityCheckRequest("1.0.0", null, [new("Elsa.Email", "1.0.0")], []));
+
+        result.Compatible.Should().BeFalse();
+        result.Findings.Should().ContainSingle(x => x.Code == "manifest.invalidJson");
+    }
+
     private sealed class FakeQueries(IReadOnlyList<PackageVersion> versions) : ICompatibilityQueries
     {
         public Task<PackageVersion?> GetPackageVersionAsync(string packageId, string version, CancellationToken cancellationToken = default) =>

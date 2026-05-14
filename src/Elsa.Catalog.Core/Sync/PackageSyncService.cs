@@ -5,6 +5,7 @@ using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Sources;
 using Elsa.PackageManifests;
 using Elsa.PackageManifests.Validation;
+using NuGet.Versioning;
 
 namespace Elsa.Catalog.Core.Sync;
 
@@ -18,24 +19,39 @@ public sealed class PackageSyncService(
     ManifestValidator validator,
     ManifestIngestionService ingestion,
     PackageVersionPolicy versionPolicy,
-    ISyncDiagnostics diagnostics)
+    ISyncDiagnostics diagnostics,
+    SyncConcurrencyGuard concurrencyGuard)
 {
     public async Task<SyncRun> SyncAllAsync(CancellationToken cancellationToken = default)
     {
-        var run = new SyncRun { Trigger = SyncRunTrigger.ManualAll };
-        await ExecuteRunAsync(run, () => sources.ListAsync(cancellationToken), cancellationToken);
-        return run;
+        SyncRun? run = null;
+        var executed = await concurrencyGuard.TryRunAsync("sync", async () =>
+        {
+            run = new SyncRun { Trigger = SyncRunTrigger.ManualAll };
+            await ExecuteRunAsync(run, () => sources.ListAsync(cancellationToken), cancellationToken);
+        });
+
+        return executed
+            ? run!
+            : RejectedRun(SyncRunTrigger.ManualAll, "A sync run is already active for all sources.");
     }
 
     public async Task<SyncRun> SyncSourceAsync(Guid sourceId, CancellationToken cancellationToken = default)
     {
-        var run = new SyncRun { Trigger = SyncRunTrigger.ManualSource };
-        await ExecuteRunAsync(run, async () =>
+        SyncRun? run = null;
+        var executed = await concurrencyGuard.TryRunAsync("sync", async () =>
         {
-            var source = await sources.GetAsync(sourceId, cancellationToken);
-            return source is null ? [] : [source];
-        }, cancellationToken);
-        return run;
+            run = new SyncRun { Trigger = SyncRunTrigger.ManualSource };
+            await ExecuteRunAsync(run, async () =>
+            {
+                var source = await sources.GetAsync(sourceId, cancellationToken);
+                return source is null ? [] : [source];
+            }, cancellationToken);
+        });
+
+        return executed
+            ? run!
+            : RejectedRun(SyncRunTrigger.ManualSource, $"A sync run is already active for source '{sourceId}'.");
     }
 
     private async Task ExecuteRunAsync(SyncRun run, Func<Task<IReadOnlyList<PackageSource>>> getSources, CancellationToken cancellationToken)
@@ -64,7 +80,7 @@ public sealed class PackageSyncService(
         {
             run.CompletedAt = DateTimeOffset.UtcNow;
             run.SummaryCountersJson = JsonSerializer.Serialize(counters);
-            await syncRuns.SaveChangesAsync(cancellationToken);
+            await syncRuns.SaveChangesAsync(CancellationToken.None);
             diagnostics.SyncRunCompleted(run.Id, run.Status);
         }
     }
@@ -114,6 +130,7 @@ public sealed class PackageSyncService(
                 return;
             }
 
+            UpdateLatestVersion(package, discovered.Version);
             if (existingVersion is not null)
             {
                 var change = versionPolicy.CompareManifest(existingVersion, read.ManifestHash);
@@ -158,8 +175,6 @@ public sealed class PackageSyncService(
                 ingestion.Ingest(packageVersion, read.ManifestJson);
 
             package.Versions.Add(packageVersion);
-            if (package.LatestVersion is null)
-                package.LatestVersion = packageVersion.Version;
 
             if (await catalog.GetPackageAsync(source.Id, discovered.PackageId, cancellationToken) is null)
                 await catalog.AddPackageAsync(package, cancellationToken);
@@ -190,7 +205,7 @@ public sealed class PackageSyncService(
         finally
         {
             runItem.CompletedAt = DateTimeOffset.UtcNow;
-            await catalog.SaveChangesAsync(cancellationToken);
+            await catalog.SaveChangesAsync(CancellationToken.None);
         }
     }
 
@@ -232,6 +247,29 @@ public sealed class PackageSyncService(
             ? schemaVersion.GetString()
             : null;
     }
+
+    private static void UpdateLatestVersion(Package package, string version)
+    {
+        if (package.LatestVersion is null || CompareVersions(version, package.LatestVersion) > 0)
+            package.LatestVersion = version;
+    }
+
+    private static int CompareVersions(string left, string right)
+    {
+        if (NuGetVersion.TryParse(left, out var leftVersion) && NuGetVersion.TryParse(right, out var rightVersion))
+            return leftVersion.CompareTo(rightVersion);
+
+        return StringComparer.OrdinalIgnoreCase.Compare(left, right);
+    }
+
+    private static SyncRun RejectedRun(SyncRunTrigger trigger, string error) =>
+        new()
+        {
+            Trigger = trigger,
+            Status = SyncRunStatus.Failed,
+            CompletedAt = DateTimeOffset.UtcNow,
+            Error = error
+        };
 
     private static void Increment(Dictionary<string, int> counters, string name) =>
         counters[name] = counters.GetValueOrDefault(name) + 1;

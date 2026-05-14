@@ -48,6 +48,45 @@ public sealed class PackageSyncServiceTests
         version.SuspiciousChangeDetected.Should().BeTrue();
     }
 
+    [Fact]
+    public async Task Updates_latest_version_when_newer_version_is_indexed()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        source.ApprovalPolicy = PackageSourceApprovalPolicy.AutoApprove;
+        var package = PublicCatalogSeedData.CreatePackage(source);
+        PublicCatalogSeedData.AddVersion(package, "1.0.0");
+        package.LatestVersion = "1.0.0";
+        var sources = new InMemorySourceStore([source]);
+        var catalog = new InMemorySyncCatalogStore([package]);
+        var syncRuns = new InMemorySyncRunStore();
+        var manifestJson = new ManifestFixtureBuilder().WithPackage("Elsa.Email", "2.0.0").WithFeature().BuildJson();
+        var service = CreateService(sources, catalog, syncRuns, new FakeDiscovery([new("Elsa.Email", "2.0.0")]), new FakeDownloader(manifestJson));
+
+        var run = await service.SyncAllAsync();
+
+        run.Status.Should().Be(SyncRunStatus.Completed);
+        package.LatestVersion.Should().Be("2.0.0");
+    }
+
+    [Fact]
+    public async Task Rejects_overlapping_all_source_syncs()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var discovery = new GatedDiscovery();
+        var service = CreateService(new InMemorySourceStore([source]), new InMemorySyncCatalogStore(), new InMemorySyncRunStore(), discovery, new FakeDownloader("{}"));
+
+        var running = service.SyncAllAsync();
+        await discovery.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        var rejected = await service.SyncAllAsync();
+        discovery.Release.SetResult();
+        var completed = await running;
+
+        rejected.Status.Should().Be(SyncRunStatus.Failed);
+        rejected.Error.Should().Contain("already active");
+        completed.Status.Should().Be(SyncRunStatus.Completed);
+    }
+
     private static PackageSyncService CreateService(
         IPackageSourceStore sources,
         ISyncCatalogStore catalog,
@@ -64,7 +103,8 @@ public sealed class PackageSyncServiceTests
             new ManifestValidator(),
             new ManifestIngestionService(),
             new PackageVersionPolicy(),
-            new NoopSyncDiagnostics());
+            new NoopSyncDiagnostics(),
+            new SyncConcurrencyGuard());
 
     private sealed class InMemorySourceStore(IReadOnlyList<PackageSource> sources) : IPackageSourceStore
     {
@@ -114,6 +154,19 @@ public sealed class PackageSyncServiceTests
     private sealed class FakeDiscovery(IReadOnlyList<DiscoveredPackageVersion> versions) : IPackageVersionDiscoveryClient
     {
         public Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default) => Task.FromResult(versions);
+    }
+
+    private sealed class GatedDiscovery : IPackageVersionDiscoveryClient
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default)
+        {
+            Started.TrySetResult();
+            await Release.Task.WaitAsync(cancellationToken);
+            return [];
+        }
     }
 
     private sealed class FakeDownloader(string manifestJson) : IPackageArchiveDownloader

@@ -19,4 +19,11 @@ public sealed class CompatibilityRangeTests
     {
         _ranges.Includes(">=3.0.0", "3.0").Should().BeTrue();
     }
+
+    [Fact]
+    public void Rejects_malformed_bracket_bounds()
+    {
+        _ranges.Includes("[abc,)", "3.0.0").Should().BeFalse();
+        _ranges.Includes("[1.0.0,abc)", "3.0.0").Should().BeFalse();
+    }
 }

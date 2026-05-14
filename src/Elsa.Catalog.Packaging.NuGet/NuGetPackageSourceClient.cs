@@ -13,7 +13,7 @@ public sealed class NuGetPackageSourceClient(PackageSourcePatternMatcher pattern
     {
         var exactPackageIds = source.IncludePatterns.Where(IsExactPackageId).ToList();
         if (exactPackageIds.Count == 0)
-            return [];
+            throw new NotSupportedException("NuGet source discovery requires at least one exact package ID include pattern. Wildcard-only sources are not crawled.");
 
         var repository = Repository.Factory.GetCoreV3(source.Url);
         var resource = await repository.GetResourceAsync<FindPackageByIdResource>(cancellationToken);

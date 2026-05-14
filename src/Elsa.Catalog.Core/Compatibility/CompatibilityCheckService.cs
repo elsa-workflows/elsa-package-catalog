@@ -9,7 +9,7 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
     public async Task<CompatibilityCheckResult> CheckAsync(CompatibilityCheckRequest request, CancellationToken cancellationToken = default)
     {
         var findings = new List<CompatibilityFinding>();
-        var selected = new List<PackageVersion>();
+        var selected = new List<(PackageVersion Version, ElsaPackageManifest Manifest)>();
 
         foreach (var package in request.Packages)
         {
@@ -20,17 +20,26 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
                 continue;
             }
 
-            selected.Add(version);
             if (version.Package is not { Approved: true, Listed: true } || !version.IsListed || version.ApprovalStatus != PackageApprovalStatus.Approved)
                 findings.Add(CompatibilityFinding.Error("package.notApproved", $"{package.PackageId} {package.Version} is not approved and listed."));
-
-            if (version.ValidationStatus != ValidationStatus.Valid)
-                findings.Add(CompatibilityFinding.Error("package.invalid", $"{package.PackageId} {package.Version} does not have a valid manifest."));
 
             if (version.SuspiciousChangeDetected)
                 findings.Add(CompatibilityFinding.Error("package.suspicious", $"{package.PackageId} {package.Version} has a suspicious manifest change."));
 
-            var manifest = JsonSerializer.Deserialize<ElsaPackageManifest>(version.ManifestJson, ManifestJsonSerializerOptions.Default);
+            if (version.ValidationStatus != ValidationStatus.Valid)
+            {
+                findings.Add(CompatibilityFinding.Error("package.invalid", $"{package.PackageId} {package.Version} does not have a valid manifest."));
+                continue;
+            }
+
+            if (!TryParseManifest(version.ManifestJson, out var manifest))
+            {
+                findings.Add(CompatibilityFinding.Error("manifest.invalidJson", $"{package.PackageId} {package.Version} has invalid manifest JSON."));
+                continue;
+            }
+
+            selected.Add((version, manifest!));
+
             if (manifest?.Compatibility?.ElsaVersionRange is { } elsaRange && !ranges.Includes(elsaRange, request.ElsaVersion))
                 findings.Add(CompatibilityFinding.Error("compatibility.elsa", $"{package.PackageId} {package.Version} is not compatible with Elsa {request.ElsaVersion}."));
 
@@ -41,12 +50,8 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
         var selectedVersions = request.Packages
             .GroupBy(x => x.PackageId, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(x => x.Key, x => x.Select(package => package.Version).ToList(), StringComparer.OrdinalIgnoreCase);
-        foreach (var version in selected)
+        foreach (var (_, manifest) in selected)
         {
-            var manifest = JsonSerializer.Deserialize<ElsaPackageManifest>(version.ManifestJson, ManifestJsonSerializerOptions.Default);
-            if (manifest is null)
-                continue;
-
             foreach (var conflict in manifest.Conflicts)
             {
                 if (conflict.PackageId is not null
@@ -59,6 +64,20 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
         }
 
         return new CompatibilityCheckResult(findings.Count == 0, findings);
+    }
+
+    private static bool TryParseManifest(string manifestJson, out ElsaPackageManifest? manifest)
+    {
+        try
+        {
+            manifest = JsonSerializer.Deserialize<ElsaPackageManifest>(manifestJson, ManifestJsonSerializerOptions.Default);
+            return manifest is not null;
+        }
+        catch (JsonException)
+        {
+            manifest = null;
+            return false;
+        }
     }
 }
 

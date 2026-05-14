@@ -35,6 +35,49 @@ public sealed class SyncPersistenceTests
     }
 
     [Fact]
+    public async Task Initial_migration_creates_catalog_tables()
+    {
+        var options = new DbContextOptionsBuilder<CatalogDbContext>()
+            .UseSqlite("Data Source=:memory:")
+            .Options;
+
+        await using var db = new CatalogDbContext(options);
+        await db.Database.OpenConnectionAsync();
+        await db.Database.MigrateAsync();
+
+        db.PackageSources.Add(PublicCatalogSeedData.CreatePackageSource());
+        await db.SaveChangesAsync();
+
+        (await db.PackageSources.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Lists_most_recent_sync_runs_before_limiting()
+    {
+        var options = new DbContextOptionsBuilder<CatalogDbContext>()
+            .UseSqlite("Data Source=:memory:")
+            .Options;
+
+        await using var db = new CatalogDbContext(options);
+        await db.Database.OpenConnectionAsync();
+        await db.Database.EnsureCreatedAsync();
+
+        var oldest = DateTimeOffset.UtcNow.AddDays(-101);
+        for (var i = 0; i < 101; i++)
+            db.SyncRuns.Add(new SyncRun { Trigger = SyncRunTrigger.Scheduled, StartedAt = oldest.AddMinutes(i) });
+
+        var newest = new SyncRun { Trigger = SyncRunTrigger.ManualAll, StartedAt = DateTimeOffset.UtcNow.AddDays(1) };
+        db.SyncRuns.Add(newest);
+        await db.SaveChangesAsync();
+
+        var runs = await new SyncRunStore(db).ListAsync();
+
+        runs.Should().HaveCount(100);
+        runs[0].Id.Should().Be(newest.Id);
+        runs.Should().NotContain(x => x.StartedAt == oldest);
+    }
+
+    [Fact]
     public async Task Sync_service_persists_new_run_items_without_concurrency_failure()
     {
         var options = new DbContextOptionsBuilder<CatalogDbContext>()
@@ -64,7 +107,8 @@ public sealed class SyncPersistenceTests
             new ManifestValidator(),
             new ManifestIngestionService(),
             new PackageVersionPolicy(),
-            new NoopSyncDiagnostics());
+            new NoopSyncDiagnostics(),
+            new SyncConcurrencyGuard());
 
         var run = await service.SyncAllAsync();
 
@@ -97,7 +141,8 @@ public sealed class SyncPersistenceTests
             new ManifestValidator(),
             new ManifestIngestionService(),
             new PackageVersionPolicy(),
-            new NoopSyncDiagnostics());
+            new NoopSyncDiagnostics(),
+            new SyncConcurrencyGuard());
 
         await service.SyncAllAsync();
 

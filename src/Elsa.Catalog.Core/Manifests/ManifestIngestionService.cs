@@ -30,7 +30,7 @@ public sealed class ManifestIngestionService
                 RequiredCapabilitiesJson = JsonSerializer.Serialize(feature.RequiredCapabilities),
                 DependenciesJson = JsonSerializer.Serialize(feature.Dependencies, ManifestJsonSerializerOptions.Default),
                 ConflictsJson = JsonSerializer.Serialize(feature.Conflicts, ManifestJsonSerializerOptions.Default),
-                ExtensionsJson = JsonSerializer.Serialize(feature.Extensions, ManifestJsonSerializerOptions.Default)
+                ExtensionsJson = SerializeExtensions(feature.Extensions, feature.ExtensionData)
             };
 
             foreach (var setting in feature.Settings)
@@ -52,7 +52,7 @@ public sealed class ManifestIngestionService
                     RestartRequired = setting.RestartRequired,
                     EnvironmentVariable = setting.EnvironmentVariable,
                     UiJson = JsonSerializer.Serialize(setting.Ui, ManifestJsonSerializerOptions.Default),
-                    ExtensionsJson = JsonSerializer.Serialize(setting.Extensions, ManifestJsonSerializerOptions.Default)
+                    ExtensionsJson = SerializeExtensions(setting.Extensions, setting.ExtensionData)
                 });
             }
 
@@ -60,6 +60,18 @@ public sealed class ManifestIngestionService
         }
 
         return new IngestedManifest(manifest);
+    }
+
+    private static string SerializeExtensions(IReadOnlyDictionary<string, object?> extensions, IReadOnlyDictionary<string, JsonElement> extensionData)
+    {
+        if (extensionData.Count == 0)
+            return JsonSerializer.Serialize(extensions, ManifestJsonSerializerOptions.Default);
+
+        var merged = new Dictionary<string, object?>(extensions, StringComparer.OrdinalIgnoreCase);
+        foreach (var item in extensionData)
+            merged[item.Key] = item.Value;
+
+        return JsonSerializer.Serialize(merged, ManifestJsonSerializerOptions.Default);
     }
 }
 

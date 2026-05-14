@@ -25,15 +25,21 @@ public sealed class VersionRangeEvaluator
             if (parts.Length != 2)
                 return false;
 
-            if (!string.IsNullOrWhiteSpace(parts[0]) && Version.TryParse(Normalize(parts[0]), out var min))
+            if (!string.IsNullOrWhiteSpace(parts[0]))
             {
+                if (!Version.TryParse(Normalize(parts[0]), out var min))
+                    return false;
+
                 var minOk = inclusiveMin ? candidate >= min : candidate > min;
                 if (!minOk)
                     return false;
             }
 
-            if (!string.IsNullOrWhiteSpace(parts[1]) && Version.TryParse(Normalize(parts[1]), out var max))
+            if (!string.IsNullOrWhiteSpace(parts[1]))
             {
+                if (!Version.TryParse(Normalize(parts[1]), out var max))
+                    return false;
+
                 var maxOk = inclusiveMax ? candidate <= max : candidate < max;
                 if (!maxOk)
                     return false;

@@ -16,8 +16,9 @@ public sealed class NuGetPackageSourceClientTests
             IncludePatterns = ["Elsa.*"]
         };
 
-        var versions = await client.FindPackageVersionsAsync(source);
+        var act = () => client.FindPackageVersionsAsync(source);
 
-        versions.Should().BeEmpty();
+        await act.Should().ThrowAsync<NotSupportedException>()
+            .WithMessage("*exact package ID include pattern*");
     }
 }

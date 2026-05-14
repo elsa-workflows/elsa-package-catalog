@@ -6,12 +6,11 @@ namespace Elsa.Catalog.Persistence.EntityFrameworkCore;
 public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
 {
     public async Task<IReadOnlyList<SyncRun>> ListAsync(CancellationToken cancellationToken = default) =>
-        (await dbContext.SyncRuns
+        await dbContext.SyncRuns
             .AsNoTracking()
-            .Take(100)
-            .ToListAsync(cancellationToken))
             .OrderByDescending(x => x.StartedAt)
-            .ToList();
+            .Take(100)
+            .ToListAsync(cancellationToken);
 
     public Task<SyncRun?> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
         dbContext.SyncRuns

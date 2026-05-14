@@ -19,7 +19,7 @@ public sealed class ApiKeyAuthenticationHandler(
 
         var configuredApiKey = configuration[ApiKeyAuthenticationDefaults.ConfigurationKey];
         if (string.IsNullOrWhiteSpace(configuredApiKey))
-            configuredApiKey = "local-dev-key";
+            return Task.FromResult(AuthenticateResult.Fail("API key authentication is not configured."));
 
         var suppliedApiKey = values.FirstOrDefault();
         if (!string.Equals(configuredApiKey, suppliedApiKey, StringComparison.Ordinal))

@@ -76,7 +76,7 @@ curl -X POST http://localhost:5000/api/admin/sync \
 
 Expected result:
 
-- Response is `202 Accepted` with a `syncRunId`.
+- Response is `200 OK` with the full sync run payload, including the run `id`.
 - Sync run history shows discovered, skipped, indexed, invalid, failed, and
   suspicious counters.
 - Failed package versions do not fail the whole run unless the source cannot be
