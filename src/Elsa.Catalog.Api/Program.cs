@@ -57,6 +57,12 @@ builder.Services.AddHostedService<ScheduledSyncHostedService>();
 
 var app = builder.Build();
 
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+    await dbContext.Database.EnsureCreatedAsync();
+}
+
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();

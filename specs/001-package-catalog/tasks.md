@@ -248,17 +248,17 @@
 
 **Purpose**: Complete documentation, operational checks, quickstart validation, and whole-solution verification.
 
-- [ ] T128 [P] Update project README with overview, local development, sync safety, and API key instructions in `README.md`
-- [ ] T129 [P] Add appsettings template for SQLite, API key auth, and sync scheduling in `src/Elsa.Catalog.Api/appsettings.Development.json`
-- [ ] T130 [P] Add structured logging configuration for sync, validation, approval, and suspicious changes in `src/Elsa.Catalog.Api/appsettings.json`
-- [ ] T131 Add startup database migration or initialization behavior in `src/Elsa.Catalog.Api/Program.cs`
-- [ ] T132 Add quickstart validation script for build, test, run, source creation, sync, approval, public discovery, and compatibility check in `scripts/quickstart-verify.sh`
-- [ ] T133 Verify no package-processing code loads assemblies by reviewing `src/Elsa.Catalog.Packaging.NuGet/PackageArchiveManifestReader.cs` and test coverage in `tests/Elsa.Catalog.Packaging.NuGet.Tests/PackageArchiveManifestReaderSafetyTests.cs`
-- [ ] T134 Verify public APIs hide invalid, unapproved, rejected, suspicious, and unlisted records with `dotnet test --filter Public` in `Elsa.PackageCatalog.sln`
-- [ ] T135 Verify manifest schema versioning, extension metadata, and 1 MB limit with `dotnet test --filter Manifest` in `Elsa.PackageCatalog.sln`
-- [ ] T136 Verify admin diagnostics expose sync runs, validation errors, approval decisions, and suspicious changes with `dotnet test --filter Admin` in `Elsa.PackageCatalog.sln`
-- [ ] T137 Run full solution verification with `dotnet test` in `Elsa.PackageCatalog.sln`
-- [ ] T138 Run quickstart verification script in `scripts/quickstart-verify.sh`
+- [X] T128 [P] Update project README with overview, local development, sync safety, and API key instructions in `README.md`
+- [X] T129 [P] Add appsettings template for SQLite, API key auth, and sync scheduling in `src/Elsa.Catalog.Api/appsettings.Development.json`
+- [X] T130 [P] Add structured logging configuration for sync, validation, approval, and suspicious changes in `src/Elsa.Catalog.Api/appsettings.json`
+- [X] T131 Add startup database migration or initialization behavior in `src/Elsa.Catalog.Api/Program.cs`
+- [X] T132 Add quickstart validation script for build, test, run, source creation, sync, approval, public discovery, and compatibility check in `scripts/quickstart-verify.sh`
+- [X] T133 Verify no package-processing code loads assemblies by reviewing `src/Elsa.Catalog.Packaging.NuGet/PackageArchiveManifestReader.cs` and test coverage in `tests/Elsa.Catalog.Packaging.NuGet.Tests/PackageArchiveManifestReaderSafetyTests.cs`
+- [X] T134 Verify public APIs hide invalid, unapproved, rejected, suspicious, and unlisted records with `dotnet test --filter Public` in `Elsa.PackageCatalog.sln`
+- [X] T135 Verify manifest schema versioning, extension metadata, and 1 MB limit with `dotnet test --filter Manifest` in `Elsa.PackageCatalog.sln`
+- [X] T136 Verify admin diagnostics expose sync runs, validation errors, approval decisions, and suspicious changes with `dotnet test --filter Admin` in `Elsa.PackageCatalog.sln`
+- [X] T137 Run full solution verification with `dotnet test` in `Elsa.PackageCatalog.sln`
+- [X] T138 Run quickstart verification script in `scripts/quickstart-verify.sh`
 
 ## Dependencies & Execution Order
 
