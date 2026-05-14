@@ -38,7 +38,9 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
                 findings.Add(CompatibilityFinding.Error("compatibility.docker", $"{package.PackageId} {package.Version} is not compatible with Docker image {request.DockerImageVersion}."));
         }
 
-        var selectedIds = request.Packages.Select(x => x.PackageId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var selectedVersions = request.Packages
+            .GroupBy(x => x.PackageId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(x => x.Key, x => x.Select(package => package.Version).ToList(), StringComparer.OrdinalIgnoreCase);
         foreach (var version in selected)
         {
             var manifest = JsonSerializer.Deserialize<ElsaPackageManifest>(version.ManifestJson, ManifestJsonSerializerOptions.Default);
@@ -47,8 +49,12 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
 
             foreach (var conflict in manifest.Conflicts)
             {
-                if (conflict.PackageId is not null && selectedIds.Contains(conflict.PackageId))
+                if (conflict.PackageId is not null
+                    && selectedVersions.TryGetValue(conflict.PackageId, out var conflictingVersions)
+                    && conflictingVersions.Any(selectedVersion => ranges.Includes(conflict.VersionRange, selectedVersion)))
+                {
                     findings.Add(CompatibilityFinding.Error("package.conflict", $"{manifest.Package.Id} conflicts with {conflict.PackageId}."));
+                }
             }
         }
 

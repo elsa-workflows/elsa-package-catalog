@@ -13,4 +13,10 @@ public sealed class CompatibilityRangeTests
         _ranges.Includes("[1.0.0,2.0.0)", "1.5.0").Should().BeTrue();
         _ranges.Includes("[1.0.0,2.0.0)", "2.0.0").Should().BeFalse();
     }
+
+    [Fact]
+    public void Treats_two_part_and_three_part_versions_as_same_release()
+    {
+        _ranges.Includes(">=3.0.0", "3.0").Should().BeTrue();
+    }
 }

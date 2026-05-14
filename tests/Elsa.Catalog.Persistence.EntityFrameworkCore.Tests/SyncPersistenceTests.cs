@@ -72,6 +72,38 @@ public sealed class SyncPersistenceTests
         (await db.SyncRunItems.CountAsync()).Should().Be(1);
     }
 
+    [Fact]
+    public async Task Bulk_sync_persists_source_last_synced_timestamp()
+    {
+        var options = new DbContextOptionsBuilder<CatalogDbContext>()
+            .UseSqlite("Data Source=:memory:")
+            .Options;
+
+        await using var db = new CatalogDbContext(options);
+        await db.Database.OpenConnectionAsync();
+        await db.Database.EnsureCreatedAsync();
+
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        db.PackageSources.Add(source);
+        await db.SaveChangesAsync();
+
+        var service = new PackageSyncService(
+            new PackageSourceStore(db),
+            new SyncCatalogStore(db),
+            new SyncRunStore(db),
+            new FakeDiscovery([]),
+            new FakeDownloader("{}"),
+            new FakeManifestReader(),
+            new ManifestValidator(),
+            new ManifestIngestionService(),
+            new PackageVersionPolicy(),
+            new NoopSyncDiagnostics());
+
+        await service.SyncAllAsync();
+
+        (await db.PackageSources.SingleAsync()).LastSyncedAt.Should().NotBeNull();
+    }
+
     private sealed class FakeDiscovery(IReadOnlyList<DiscoveredPackageVersion> versions) : IPackageVersionDiscoveryClient
     {
         public Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default) => Task.FromResult(versions);

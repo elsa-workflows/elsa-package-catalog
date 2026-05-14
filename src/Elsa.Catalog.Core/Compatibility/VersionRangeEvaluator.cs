@@ -48,9 +48,11 @@ public sealed class VersionRangeEvaluator
     private static string Normalize(string value)
     {
         var core = value.Trim().Split('-', 2)[0];
-        return core.Count(x => x == '.') switch
+        var parts = core.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
         {
-            0 => core + ".0",
+            1 => $"{parts[0]}.0.0",
+            2 => $"{parts[0]}.{parts[1]}.0",
             _ => core
         };
     }
