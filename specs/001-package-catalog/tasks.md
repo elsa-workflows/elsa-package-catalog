@@ -89,23 +89,23 @@
 
 ### Tests
 
-- [ ] T049 [P] [US1] Add public package listing contract tests for `GET /api/packages` in `tests/Elsa.Catalog.Api.Tests/PublicPackagesApiTests.cs`
-- [ ] T050 [P] [US1] Add public package details and versions contract tests for `GET /api/packages/{packageId}` and `GET /api/packages/{packageId}/versions` in `tests/Elsa.Catalog.Api.Tests/PublicPackageDetailsApiTests.cs`
-- [ ] T051 [P] [US1] Add public package version details contract tests for `GET /api/packages/{packageId}/versions/{version}` in `tests/Elsa.Catalog.Api.Tests/PublicPackageVersionApiTests.cs`
-- [ ] T052 [P] [US1] Add public feature listing and details contract tests for `GET /api/features` and `GET /api/features/{featureId}` in `tests/Elsa.Catalog.Api.Tests/PublicFeaturesApiTests.cs`
-- [ ] T053 [P] [US1] Add query projection tests for package, version, feature, and setting summaries in `tests/Elsa.Catalog.Core.Tests/PublicCatalogQueryServiceTests.cs`
+- [X] T049 [P] [US1] Add public package listing contract tests for `GET /api/packages` in `tests/Elsa.Catalog.Api.Tests/PublicPackagesApiTests.cs`
+- [X] T050 [P] [US1] Add public package details and versions contract tests for `GET /api/packages/{packageId}` and `GET /api/packages/{packageId}/versions` in `tests/Elsa.Catalog.Api.Tests/PublicPackageDetailsApiTests.cs`
+- [X] T051 [P] [US1] Add public package version details contract tests for `GET /api/packages/{packageId}/versions/{version}` in `tests/Elsa.Catalog.Api.Tests/PublicPackageVersionApiTests.cs`
+- [X] T052 [P] [US1] Add public feature listing and details contract tests for `GET /api/features` and `GET /api/features/{featureId}` in `tests/Elsa.Catalog.Api.Tests/PublicFeaturesApiTests.cs`
+- [X] T053 [P] [US1] Add query projection tests for package, version, feature, and setting summaries in `tests/Elsa.Catalog.Core.Tests/PublicCatalogQueryServiceTests.cs`
 
 ### Implementation
 
-- [ ] T054 [P] [US1] Implement public package response models in `src/Elsa.Catalog.Api/Public/Packages/PublicPackageContracts.cs`
-- [ ] T055 [P] [US1] Implement public feature response models in `src/Elsa.Catalog.Api/Public/Features/PublicFeatureContracts.cs`
-- [ ] T056 [US1] Implement public catalog query service in `src/Elsa.Catalog.Core/Packages/PublicCatalogQueryService.cs`
-- [ ] T057 [US1] Implement package projection queries in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/PublicCatalogQueries.cs`
-- [ ] T058 [US1] Implement public package endpoints in `src/Elsa.Catalog.Api/Public/Packages/PublicPackageEndpoints.cs`
-- [ ] T059 [US1] Implement public feature endpoints in `src/Elsa.Catalog.Api/Public/Features/PublicFeatureEndpoints.cs`
-- [ ] T060 [US1] Register public endpoint modules in `src/Elsa.Catalog.Api/Program.cs`
-- [ ] T061 [US1] Add public API seed helpers for visible and hidden package states in `tests/Elsa.Catalog.Testing/PublicCatalogSeedData.cs`
-- [ ] T062 [US1] Verify US1 public discovery tests with `dotnet test --filter Public` in `Elsa.PackageCatalog.sln`
+- [X] T054 [P] [US1] Implement public package response models in `src/Elsa.Catalog.Api/Public/Packages/PublicPackageContracts.cs`
+- [X] T055 [P] [US1] Implement public feature response models in `src/Elsa.Catalog.Api/Public/Features/PublicFeatureContracts.cs`
+- [X] T056 [US1] Implement public catalog query service in `src/Elsa.Catalog.Core/Packages/PublicCatalogQueryService.cs`
+- [X] T057 [US1] Implement package projection queries in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/PublicCatalogQueries.cs`
+- [X] T058 [US1] Implement public package endpoints in `src/Elsa.Catalog.Api/Public/Packages/PublicPackageEndpoints.cs`
+- [X] T059 [US1] Implement public feature endpoints in `src/Elsa.Catalog.Api/Public/Features/PublicFeatureEndpoints.cs`
+- [X] T060 [US1] Register public endpoint modules in `src/Elsa.Catalog.Api/Program.cs`
+- [X] T061 [US1] Add public API seed helpers for visible and hidden package states in `tests/Elsa.Catalog.Testing/PublicCatalogSeedData.cs`
+- [X] T062 [US1] Verify US1 public discovery tests with `dotnet test --filter Public` in `Elsa.PackageCatalog.sln`
 
 **Checkpoint**: Public package and feature discovery works independently with seeded catalog data.
 

@@ -1,4 +1,6 @@
 using Elsa.Catalog.Api.Authentication;
+using Elsa.Catalog.Api.Public.Features;
+using Elsa.Catalog.Api.Public.Packages;
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Persistence;
 using Elsa.Catalog.Core.Sync;
@@ -16,6 +18,8 @@ builder.Services.AddCatalogAuthorization();
 builder.Services.AddDbContext<CatalogDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("Catalog") ?? "Data Source=elsa-catalog.db"));
 builder.Services.AddScoped<ICatalogStore, EfCoreCatalogStore>();
+builder.Services.AddScoped<IPublicCatalogQueries, PublicCatalogQueries>();
+builder.Services.AddScoped<PublicCatalogQueryService>();
 builder.Services.AddSingleton<PublicCatalogVisibilityPolicy>();
 builder.Services.AddSingleton<PackageVersionPolicy>();
 builder.Services.AddSingleton<ISyncDiagnostics, NoopSyncDiagnostics>();
@@ -29,6 +33,8 @@ app.UseAuthorization();
 app.MapOpenApi();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/", () => "Elsa Package Catalog");
+app.MapPublicPackageEndpoints();
+app.MapPublicFeatureEndpoints();
 
 app.Run();
 
