@@ -1,0 +1,41 @@
+using System.Net;
+using Elsa.Catalog.Api.Authentication;
+using Elsa.Catalog.Core.Packages;
+using Elsa.Catalog.Persistence.EntityFrameworkCore;
+using Elsa.Catalog.Testing;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Elsa.Catalog.Api.Tests;
+
+public sealed class AdminApprovalApiTests
+{
+    [Fact]
+    public async Task Admin_can_approve_package_and_version()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            var package = PublicCatalogSeedData.CreatePackage(source, approved: false);
+            PublicCatalogSeedData.AddVersion(package, approvalStatus: PackageApprovalStatus.Pending);
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+
+        var packageResponse = await client.PostAsync("/api/admin/packages/Elsa.Email/approve", null);
+        var versionResponse = await client.PostAsync("/api/admin/packages/Elsa.Email/versions/1.0.0/approve", null);
+
+        packageResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        versionResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        await using var scope = app.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+        var package = await db.Packages.Include(x => x.Versions).SingleAsync();
+        package.Approved.Should().BeTrue();
+        package.Versions[0].ApprovalStatus.Should().Be(PackageApprovalStatus.Approved);
+    }
+}

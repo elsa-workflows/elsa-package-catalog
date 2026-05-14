@@ -175,22 +175,22 @@
 
 ### Tests
 
-- [ ] T093 [P] [US4] Add approval policy tests for manual and auto-approve sources in `tests/Elsa.Catalog.Core.Tests/ApprovalPolicyTests.cs`
-- [ ] T094 [P] [US4] Add admin package review API tests for `GET /api/admin/packages` and `GET /api/admin/packages/{packageId}` in `tests/Elsa.Catalog.Api.Tests/AdminPackagesApiTests.cs`
-- [ ] T095 [P] [US4] Add package and version approve/reject API tests in `tests/Elsa.Catalog.Api.Tests/AdminApprovalApiTests.cs`
-- [ ] T096 [P] [US4] Add admin validation details API tests for `GET /api/admin/packages/{packageId}/versions/{version}/validation` in `tests/Elsa.Catalog.Api.Tests/AdminValidationApiTests.cs`
+- [X] T093 [P] [US4] Add approval policy tests for manual and auto-approve sources in `tests/Elsa.Catalog.Core.Tests/ApprovalPolicyTests.cs`
+- [X] T094 [P] [US4] Add admin package review API tests for `GET /api/admin/packages` and `GET /api/admin/packages/{packageId}` in `tests/Elsa.Catalog.Api.Tests/AdminPackagesApiTests.cs`
+- [X] T095 [P] [US4] Add package and version approve/reject API tests in `tests/Elsa.Catalog.Api.Tests/AdminApprovalApiTests.cs`
+- [X] T096 [P] [US4] Add admin validation details API tests for `GET /api/admin/packages/{packageId}/versions/{version}/validation` in `tests/Elsa.Catalog.Api.Tests/AdminValidationApiTests.cs`
 
 ### Implementation
 
-- [ ] T097 [P] [US4] Implement approval request and admin package response contracts in `src/Elsa.Catalog.Api/Admin/Packages/AdminPackageContracts.cs`
-- [ ] T098 [US4] Implement approval service for package-level and version-level decisions in `src/Elsa.Catalog.Core/Approvals/ApprovalService.cs`
-- [ ] T099 [US4] Implement manual-source new-version pending behavior in `src/Elsa.Catalog.Core/Approvals/ApprovalPolicy.cs`
-- [ ] T100 [US4] Implement EF Core approval record persistence and current-state queries in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/ApprovalStore.cs`
-- [ ] T101 [US4] Implement admin package review endpoints in `src/Elsa.Catalog.Api/Admin/Packages/AdminPackageEndpoints.cs`
-- [ ] T102 [US4] Implement admin approval and rejection endpoints in `src/Elsa.Catalog.Api/Admin/Packages/AdminApprovalEndpoints.cs`
-- [ ] T103 [US4] Implement admin validation details endpoint in `src/Elsa.Catalog.Api/Admin/Packages/AdminValidationEndpoints.cs`
-- [ ] T104 [US4] Register admin package endpoints in `src/Elsa.Catalog.Api/Program.cs`
-- [ ] T105 [US4] Verify US4 approval tests with `dotnet test --filter Approval` in `Elsa.PackageCatalog.sln`
+- [X] T097 [P] [US4] Implement approval request and admin package response contracts in `src/Elsa.Catalog.Api/Admin/Packages/AdminPackageContracts.cs`
+- [X] T098 [US4] Implement approval service for package-level and version-level decisions in `src/Elsa.Catalog.Core/Approvals/ApprovalService.cs`
+- [X] T099 [US4] Implement manual-source new-version pending behavior in `src/Elsa.Catalog.Core/Approvals/ApprovalPolicy.cs`
+- [X] T100 [US4] Implement EF Core approval record persistence and current-state queries in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/ApprovalStore.cs`
+- [X] T101 [US4] Implement admin package review endpoints in `src/Elsa.Catalog.Api/Admin/Packages/AdminPackageEndpoints.cs`
+- [X] T102 [US4] Implement admin approval and rejection endpoints in `src/Elsa.Catalog.Api/Admin/Packages/AdminApprovalEndpoints.cs`
+- [X] T103 [US4] Implement admin validation details endpoint in `src/Elsa.Catalog.Api/Admin/Packages/AdminValidationEndpoints.cs`
+- [X] T104 [US4] Register admin package endpoints in `src/Elsa.Catalog.Api/Program.cs`
+- [X] T105 [US4] Verify US4 approval tests with `dotnet test --filter Approval` in `Elsa.PackageCatalog.sln`
 
 **Checkpoint**: Admin review and approval workflows work independently from manifest validity.
 

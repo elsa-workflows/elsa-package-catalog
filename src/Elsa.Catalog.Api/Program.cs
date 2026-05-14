@@ -1,6 +1,8 @@
 using Elsa.Catalog.Api.Authentication;
+using Elsa.Catalog.Api.Admin.Packages;
 using Elsa.Catalog.Api.Admin.Sources;
 using Elsa.Catalog.Api.Admin.Sync;
+using Elsa.Catalog.Core.Approvals;
 using Elsa.Catalog.Api.Public.Features;
 using Elsa.Catalog.Api.Public.Packages;
 using Elsa.Catalog.Core.Manifests;
@@ -31,6 +33,8 @@ builder.Services.AddScoped<IPackageSourceStore, PackageSourceStore>();
 builder.Services.AddScoped<PackageSourceService>();
 builder.Services.AddScoped<ISyncCatalogStore, SyncCatalogStore>();
 builder.Services.AddScoped<ISyncRunStore, SyncRunStore>();
+builder.Services.AddScoped<IApprovalStore, ApprovalStore>();
+builder.Services.AddScoped<ApprovalService>();
 builder.Services.AddScoped<IPackageVersionDiscoveryClient, NuGetPackageSourceClient>();
 builder.Services.AddScoped<IPackageArchiveDownloader, NuGetSyncPackageDownloader>();
 builder.Services.AddScoped<IPackageArchiveManifestReader, PackageArchiveManifestReader>();
@@ -39,6 +43,7 @@ builder.Services.AddScoped<PackageSyncService>();
 builder.Services.AddSingleton<PackageSourceValidator>();
 builder.Services.AddSingleton<PackageSourcePatternMatcher>();
 builder.Services.AddSingleton<ManifestValidator>();
+builder.Services.AddSingleton<ApprovalPolicy>();
 builder.Services.AddSingleton<SyncConcurrencyGuard>();
 builder.Services.AddSingleton<PublicCatalogVisibilityPolicy>();
 builder.Services.AddSingleton<PackageVersionPolicy>();
@@ -58,6 +63,9 @@ app.MapPublicPackageEndpoints();
 app.MapPublicFeatureEndpoints();
 app.MapAdminSourceEndpoints();
 app.MapAdminSyncEndpoints();
+app.MapAdminPackageEndpoints();
+app.MapAdminApprovalEndpoints();
+app.MapAdminValidationEndpoints();
 
 app.Run();
 
