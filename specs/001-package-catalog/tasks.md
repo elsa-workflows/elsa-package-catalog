@@ -227,20 +227,20 @@
 
 ### Tests
 
-- [ ] T117 [P] [US6] Add public DTO API shape tests for all manifest contract types in `tests/Elsa.PackageManifests.Tests/ManifestContractShapeTests.cs`
-- [ ] T118 [P] [US6] Add extension metadata round-trip tests at package, feature, setting, compatibility, license, documentation, dependency, conflict, and validation levels in `tests/Elsa.PackageManifests.Tests/ExtensionDataRoundTripTests.cs`
-- [ ] T119 [P] [US6] Add schema resource discovery tests for `schemas/elsa-package-manifest.v1.json` in `tests/Elsa.PackageManifests.Tests/EmbeddedSchemaResourceTests.cs`
-- [ ] T120 [P] [US6] Add dependency boundary tests ensuring `Elsa.PackageManifests` does not reference catalog persistence or runtime internals in `tests/Elsa.PackageManifests.Tests/ManifestPackageDependencyTests.cs`
+- [X] T117 [P] [US6] Add public DTO API shape tests for all manifest contract types in `tests/Elsa.PackageManifests.Tests/ManifestContractShapeTests.cs`
+- [X] T118 [P] [US6] Add extension metadata round-trip tests at package, feature, setting, compatibility, license, documentation, dependency, conflict, and validation levels in `tests/Elsa.PackageManifests.Tests/ExtensionDataRoundTripTests.cs`
+- [X] T119 [P] [US6] Add schema resource discovery tests for `schemas/elsa-package-manifest.v1.json` in `tests/Elsa.PackageManifests.Tests/EmbeddedSchemaResourceTests.cs`
+- [X] T120 [P] [US6] Add dependency boundary tests ensuring `Elsa.PackageManifests` does not reference catalog persistence or runtime internals in `tests/Elsa.PackageManifests.Tests/ManifestPackageDependencyTests.cs`
 
 ### Implementation
 
-- [ ] T121 [US6] Refine all manifest DTO XML documentation and examples in `src/Elsa.PackageManifests/ElsaPackageManifest.cs`
-- [ ] T122 [US6] Refine feature and setting DTO XML documentation and examples in `src/Elsa.PackageManifests/FeatureManifest.cs`
-- [ ] T123 [US6] Refine compatibility, dependency, conflict, license, and documentation DTO XML documentation in `src/Elsa.PackageManifests/Compatibility/CompatibilityManifest.cs`
-- [ ] T124 [US6] Add representative valid manifest sample in `src/Elsa.PackageManifests/Schemas/examples/elsa-package.valid.v1.json`
-- [ ] T125 [US6] Add representative invalid manifest sample in `src/Elsa.PackageManifests/Schemas/examples/elsa-package.invalid.v1.json`
-- [ ] T126 [US6] Add package README with schema versioning and extension metadata guidance in `src/Elsa.PackageManifests/README.md`
-- [ ] T127 [US6] Verify US6 manifest contract tests with `dotnet test --filter Manifest` in `Elsa.PackageCatalog.sln`
+- [X] T121 [US6] Refine all manifest DTO XML documentation and examples in `src/Elsa.PackageManifests/ElsaPackageManifest.cs`
+- [X] T122 [US6] Refine feature and setting DTO XML documentation and examples in `src/Elsa.PackageManifests/FeatureManifest.cs`
+- [X] T123 [US6] Refine compatibility, dependency, conflict, license, and documentation DTO XML documentation in `src/Elsa.PackageManifests/Compatibility/CompatibilityManifest.cs`
+- [X] T124 [US6] Add representative valid manifest sample in `src/Elsa.PackageManifests/Schemas/examples/elsa-package.valid.v1.json`
+- [X] T125 [US6] Add representative invalid manifest sample in `src/Elsa.PackageManifests/Schemas/examples/elsa-package.invalid.v1.json`
+- [X] T126 [US6] Add package README with schema versioning and extension metadata guidance in `src/Elsa.PackageManifests/README.md`
+- [X] T127 [US6] Verify US6 manifest contract tests with `dotnet test --filter Manifest` in `Elsa.PackageCatalog.sln`
 
 **Checkpoint**: The shared manifest contract package is stable, documented, dependency-light, and independently testable.
 
