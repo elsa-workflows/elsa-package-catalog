@@ -106,6 +106,8 @@ public sealed class PackageSyncServiceTests
             return Task.CompletedTask;
         }
 
+        public Task AddItemAsync(SyncRunItem item, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
         public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 

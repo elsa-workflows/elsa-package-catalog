@@ -78,7 +78,7 @@ public sealed class PackageSyncService(
         }
         catch (Exception ex)
         {
-            AddItem(run, source.Id, null, null, SyncRunItemStatus.Failed, error: ex.Message);
+            await AddItemAsync(run, source.Id, null, null, SyncRunItemStatus.Failed, cancellationToken, error: ex.Message);
             Increment(counters, "failed");
             return;
         }
@@ -91,21 +91,17 @@ public sealed class PackageSyncService(
 
     private async Task SyncPackageVersionAsync(SyncRun run, PackageSource source, DiscoveredPackageVersion discovered, Dictionary<string, int> counters, CancellationToken cancellationToken)
     {
-        var runItem = AddItem(run, source.Id, discovered.PackageId, discovered.Version, SyncRunItemStatus.Discovered);
+        var runItem = await AddItemAsync(run, source.Id, discovered.PackageId, discovered.Version, SyncRunItemStatus.Discovered, cancellationToken);
         try
         {
             var package = await catalog.GetPackageAsync(source.Id, discovered.PackageId, cancellationToken)
                 ?? new Package
                 {
                     SourceId = source.Id,
-                    Source = source,
                     PackageId = discovered.PackageId,
                     Approved = source.ApprovalPolicy == PackageSourceApprovalPolicy.AutoApprove,
                     Listed = true
                 };
-
-            if (package.Id != Guid.Empty && package.Source is null)
-                package.Source = source;
 
             var existingVersion = await catalog.GetPackageVersionAsync(package.Id, discovered.Version, cancellationToken);
             await using var packageStream = await downloader.DownloadPackageAsync(source, discovered.PackageId, discovered.Version, cancellationToken);
@@ -198,7 +194,14 @@ public sealed class PackageSyncService(
         }
     }
 
-    private static SyncRunItem AddItem(SyncRun run, Guid? sourceId, string? packageId, string? version, SyncRunItemStatus status, string? error = null)
+    private async Task<SyncRunItem> AddItemAsync(
+        SyncRun run,
+        Guid? sourceId,
+        string? packageId,
+        string? version,
+        SyncRunItemStatus status,
+        CancellationToken cancellationToken,
+        string? error = null)
     {
         var item = new SyncRunItem
         {
@@ -211,6 +214,7 @@ public sealed class PackageSyncService(
             Error = error
         };
         run.Items.Add(item);
+        await syncRuns.AddItemAsync(item, cancellationToken);
         return item;
     }
 
@@ -247,5 +251,6 @@ public interface ISyncRunStore
     Task<IReadOnlyList<SyncRun>> ListAsync(CancellationToken cancellationToken = default);
     Task<SyncRun?> GetAsync(Guid id, CancellationToken cancellationToken = default);
     Task AddAsync(SyncRun run, CancellationToken cancellationToken = default);
+    Task AddItemAsync(SyncRunItem item, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

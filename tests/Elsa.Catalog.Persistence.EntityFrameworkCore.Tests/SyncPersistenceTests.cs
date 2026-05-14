@@ -1,7 +1,12 @@
+using Elsa.Catalog.Core.Manifests;
+using Elsa.Catalog.Core.Packaging;
 using Elsa.Catalog.Core.Packages;
+using Elsa.Catalog.Core.Sources;
 using Elsa.Catalog.Core.Sync;
 using Elsa.Catalog.Persistence.EntityFrameworkCore;
 using FluentAssertions;
+using Elsa.Catalog.Testing;
+using Elsa.PackageManifests.Validation;
 using Microsoft.EntityFrameworkCore;
 
 namespace Elsa.Catalog.Persistence.EntityFrameworkCore.Tests;
@@ -27,5 +32,65 @@ public sealed class SyncPersistenceTests
         var stored = await db.SyncRuns.Include(x => x.Items).SingleAsync();
 
         stored.Items.Should().ContainSingle(x => x.Error == "No manifest");
+    }
+
+    [Fact]
+    public async Task Sync_service_persists_new_run_items_without_concurrency_failure()
+    {
+        var options = new DbContextOptionsBuilder<CatalogDbContext>()
+            .UseSqlite("Data Source=:memory:")
+            .Options;
+
+        await using var db = new CatalogDbContext(options);
+        await db.Database.OpenConnectionAsync();
+        await db.Database.EnsureCreatedAsync();
+
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        source.ApprovalPolicy = PackageSourceApprovalPolicy.AutoApprove;
+        db.PackageSources.Add(source);
+        await db.SaveChangesAsync();
+
+        var manifestJson = new ManifestFixtureBuilder()
+            .WithPackage("Elsa.Email", "1.0.0")
+            .WithFeature()
+            .BuildJson();
+        var service = new PackageSyncService(
+            new PackageSourceStore(db),
+            new SyncCatalogStore(db),
+            new SyncRunStore(db),
+            new FakeDiscovery([new DiscoveredPackageVersion("Elsa.Email", "1.0.0")]),
+            new FakeDownloader(manifestJson),
+            new FakeManifestReader(),
+            new ManifestValidator(),
+            new ManifestIngestionService(),
+            new PackageVersionPolicy(),
+            new NoopSyncDiagnostics());
+
+        var run = await service.SyncAllAsync();
+
+        run.Status.Should().Be(SyncRunStatus.Completed);
+        (await db.SyncRunItems.CountAsync()).Should().Be(1);
+    }
+
+    private sealed class FakeDiscovery(IReadOnlyList<DiscoveredPackageVersion> versions) : IPackageVersionDiscoveryClient
+    {
+        public Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default) => Task.FromResult(versions);
+    }
+
+    private sealed class FakeDownloader(string manifestJson) : IPackageArchiveDownloader
+    {
+        public Task<Stream> DownloadPackageAsync(PackageSource source, string packageId, string version, CancellationToken cancellationToken = default) =>
+            Task.FromResult<Stream>(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(manifestJson)));
+    }
+
+    private sealed class FakeManifestReader : IPackageArchiveManifestReader
+    {
+        public async Task<PackageManifestReadResult> ReadAsync(Stream packageStream, CancellationToken cancellationToken = default)
+        {
+            using var reader = new StreamReader(packageStream);
+            var json = await reader.ReadToEndAsync(cancellationToken);
+            var hash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(json))).ToLowerInvariant();
+            return PackageManifestReadResult.Found("elsa-package.json", json, hash, []);
+        }
     }
 }

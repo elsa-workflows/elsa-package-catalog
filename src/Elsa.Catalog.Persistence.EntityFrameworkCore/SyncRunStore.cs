@@ -21,6 +21,9 @@ public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
     public async Task AddAsync(SyncRun run, CancellationToken cancellationToken = default) =>
         await dbContext.SyncRuns.AddAsync(run, cancellationToken);
 
+    public async Task AddItemAsync(SyncRunItem item, CancellationToken cancellationToken = default) =>
+        await dbContext.SyncRunItems.AddAsync(item, cancellationToken);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
         dbContext.SaveChangesAsync(cancellationToken);
 }
