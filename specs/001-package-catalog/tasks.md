@@ -202,20 +202,20 @@
 
 ### Tests
 
-- [ ] T106 [P] [US5] Add compatibility service tests for missing, unapproved, invalid, unlisted, and suspicious package versions in `tests/Elsa.Catalog.Core.Tests/CompatibilityCheckServiceTests.cs`
-- [ ] T107 [P] [US5] Add version range compatibility tests for Elsa and Docker image versions in `tests/Elsa.Catalog.Core.Tests/CompatibilityRangeTests.cs`
-- [ ] T108 [P] [US5] Add direct package and feature conflict tests in `tests/Elsa.Catalog.Core.Tests/CompatibilityConflictTests.cs`
-- [ ] T109 [P] [US5] Add public compatibility API contract tests for `POST /api/compatibility/check` in `tests/Elsa.Catalog.Api.Tests/PublicCompatibilityApiTests.cs`
+- [X] T106 [P] [US5] Add compatibility service tests for missing, unapproved, invalid, unlisted, and suspicious package versions in `tests/Elsa.Catalog.Core.Tests/CompatibilityCheckServiceTests.cs`
+- [X] T107 [P] [US5] Add version range compatibility tests for Elsa and Docker image versions in `tests/Elsa.Catalog.Core.Tests/CompatibilityRangeTests.cs`
+- [X] T108 [P] [US5] Add direct package and feature conflict tests in `tests/Elsa.Catalog.Core.Tests/CompatibilityConflictTests.cs`
+- [X] T109 [P] [US5] Add public compatibility API contract tests for `POST /api/compatibility/check` in `tests/Elsa.Catalog.Api.Tests/PublicCompatibilityApiTests.cs`
 
 ### Implementation
 
-- [ ] T110 [P] [US5] Implement compatibility request and response contracts in `src/Elsa.Catalog.Api/Public/Compatibility/CompatibilityContracts.cs`
-- [ ] T111 [US5] Implement version range evaluator for Elsa and Docker image ranges in `src/Elsa.Catalog.Core/Compatibility/VersionRangeEvaluator.cs`
-- [ ] T112 [US5] Implement compatibility check service with package existence, approval, listing, validity, warning, and conflict findings in `src/Elsa.Catalog.Core/Compatibility/CompatibilityCheckService.cs`
-- [ ] T113 [US5] Implement EF Core compatibility read queries in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/CompatibilityQueries.cs`
-- [ ] T114 [US5] Implement public compatibility endpoint in `src/Elsa.Catalog.Api/Public/Compatibility/CompatibilityEndpoints.cs`
-- [ ] T115 [US5] Register compatibility endpoint in `src/Elsa.Catalog.Api/Program.cs`
-- [ ] T116 [US5] Verify US5 compatibility tests with `dotnet test --filter Compatibility` in `Elsa.PackageCatalog.sln`
+- [X] T110 [P] [US5] Implement compatibility request and response contracts in `src/Elsa.Catalog.Api/Public/Compatibility/CompatibilityContracts.cs`
+- [X] T111 [US5] Implement version range evaluator for Elsa and Docker image ranges in `src/Elsa.Catalog.Core/Compatibility/VersionRangeEvaluator.cs`
+- [X] T112 [US5] Implement compatibility check service with package existence, approval, listing, validity, warning, and conflict findings in `src/Elsa.Catalog.Core/Compatibility/CompatibilityCheckService.cs`
+- [X] T113 [US5] Implement EF Core compatibility read queries in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/CompatibilityQueries.cs`
+- [X] T114 [US5] Implement public compatibility endpoint in `src/Elsa.Catalog.Api/Public/Compatibility/CompatibilityEndpoints.cs`
+- [X] T115 [US5] Register compatibility endpoint in `src/Elsa.Catalog.Api/Program.cs`
+- [X] T116 [US5] Verify US5 compatibility tests with `dotnet test --filter Compatibility` in `Elsa.PackageCatalog.sln`
 
 **Checkpoint**: Compatibility checks return actionable findings without full dependency resolution.
 
