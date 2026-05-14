@@ -1,0 +1,168 @@
+@baseUrl = http://localhost:5005
+@apiKey = local-dev-key
+@sourceId = 00000000-0000-0000-0000-000000000000
+@syncRunId = 00000000-0000-0000-0000-000000000000
+@packageId = Elsa.Email
+@packageVersion = 1.0.0
+@featureId = email
+
+### Root
+GET {{baseUrl}}/
+
+### Health
+GET {{baseUrl}}/health
+
+### OpenAPI document
+GET {{baseUrl}}/openapi/v1.json
+
+### Public: list packages
+GET {{baseUrl}}/api/packages
+
+### Public: package details
+GET {{baseUrl}}/api/packages/{{packageId}}
+
+### Public: package versions
+GET {{baseUrl}}/api/packages/{{packageId}}/versions
+
+### Public: package version details
+GET {{baseUrl}}/api/packages/{{packageId}}/versions/{{packageVersion}}
+
+### Public: list features
+GET {{baseUrl}}/api/features
+
+### Public: feature details
+GET {{baseUrl}}/api/features/{{featureId}}
+
+### Public: compatibility check
+POST {{baseUrl}}/api/compatibility/check
+Content-Type: application/json
+
+{
+  "elsaVersion": "3.0.0",
+  "dockerImageVersion": "3.0.0",
+  "packages": [
+    {
+      "packageId": "{{packageId}}",
+      "version": "{{packageVersion}}"
+    }
+  ],
+  "features": [
+    "{{featureId}}"
+  ]
+}
+
+### Admin: list package sources
+GET {{baseUrl}}/api/admin/sources
+X-Api-Key: {{apiKey}}
+
+### Admin: create package source
+# approvalPolicy: 0 = AutoApprove, 1 = Manual
+POST {{baseUrl}}/api/admin/sources
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "name": "NuGet",
+  "url": "https://api.nuget.org/v3/index.json",
+  "enabled": true,
+  "includePatterns": [
+    "Elsa.Email"
+  ],
+  "excludePatterns": [
+    "Elsa.Experimental.*"
+  ],
+  "approvalPolicy": 1
+}
+
+### Admin: update package source
+# Replace @sourceId with the ID returned by "create package source".
+PUT {{baseUrl}}/api/admin/sources/{{sourceId}}
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "name": "NuGet",
+  "url": "https://api.nuget.org/v3/index.json",
+  "enabled": true,
+  "includePatterns": [
+    "Elsa.Email"
+  ],
+  "excludePatterns": [
+    "Elsa.Experimental.*"
+  ],
+  "approvalPolicy": 1
+}
+
+### Admin: delete package source
+# Replace @sourceId with the source ID to delete.
+DELETE {{baseUrl}}/api/admin/sources/{{sourceId}}
+X-Api-Key: {{apiKey}}
+
+### Admin: trigger sync for all enabled sources
+POST {{baseUrl}}/api/admin/sync
+X-Api-Key: {{apiKey}}
+
+### Admin: trigger sync for one source
+POST {{baseUrl}}/api/admin/sync/sources/{{sourceId}}
+X-Api-Key: {{apiKey}}
+
+### Admin: trigger sync for one package
+# Currently returns 400 until package source ownership is known.
+POST {{baseUrl}}/api/admin/sync/packages/{{packageId}}
+X-Api-Key: {{apiKey}}
+
+### Admin: list sync runs
+GET {{baseUrl}}/api/admin/sync-runs
+X-Api-Key: {{apiKey}}
+
+### Admin: sync run details
+GET {{baseUrl}}/api/admin/sync-runs/{{syncRunId}}
+X-Api-Key: {{apiKey}}
+
+### Admin: list packages, including hidden or invalid states
+GET {{baseUrl}}/api/admin/packages
+X-Api-Key: {{apiKey}}
+
+### Admin: package review details
+GET {{baseUrl}}/api/admin/packages/{{packageId}}
+X-Api-Key: {{apiKey}}
+
+### Admin: approve package
+POST {{baseUrl}}/api/admin/packages/{{packageId}}/approve
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "reason": "Approved for catalog listing."
+}
+
+### Admin: reject package
+POST {{baseUrl}}/api/admin/packages/{{packageId}}/reject
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "reason": "Rejected during catalog review."
+}
+
+### Admin: approve package version
+POST {{baseUrl}}/api/admin/packages/{{packageId}}/versions/{{packageVersion}}/approve
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "reason": "Version approved for catalog listing."
+}
+
+### Admin: reject package version
+POST {{baseUrl}}/api/admin/packages/{{packageId}}/versions/{{packageVersion}}/reject
+X-Api-Key: {{apiKey}}
+Content-Type: application/json
+
+{
+  "reason": "Version rejected during catalog review."
+}
+
+### Admin: package version validation details
+GET {{baseUrl}}/api/admin/packages/{{packageId}}/versions/{{packageVersion}}/validation
+X-Api-Key: {{apiKey}}
