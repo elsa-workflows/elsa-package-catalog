@@ -117,21 +117,21 @@
 
 ### Tests
 
-- [ ] T063 [P] [US2] Add admin package source contract tests for `GET /api/admin/sources` and `POST /api/admin/sources` in `tests/Elsa.Catalog.Api.Tests/AdminSourcesApiTests.cs`
-- [ ] T064 [P] [US2] Add admin source update and delete contract tests for `PUT /api/admin/sources/{id}` and `DELETE /api/admin/sources/{id}` in `tests/Elsa.Catalog.Api.Tests/AdminSourceMutationApiTests.cs`
-- [ ] T065 [P] [US2] Add source validation tests for URL, required include patterns, approval policy, and unauthenticated-only feeds in `tests/Elsa.Catalog.Core.Tests/PackageSourceValidationTests.cs`
-- [ ] T066 [P] [US2] Add case-insensitive glob matching tests with exclude precedence in `tests/Elsa.Catalog.Core.Tests/PackageSourcePatternMatcherTests.cs`
+- [X] T063 [P] [US2] Add admin package source contract tests for `GET /api/admin/sources` and `POST /api/admin/sources` in `tests/Elsa.Catalog.Api.Tests/AdminSourcesApiTests.cs`
+- [X] T064 [P] [US2] Add admin source update and delete contract tests for `PUT /api/admin/sources/{id}` and `DELETE /api/admin/sources/{id}` in `tests/Elsa.Catalog.Api.Tests/AdminSourceMutationApiTests.cs`
+- [X] T065 [P] [US2] Add source validation tests for URL, required include patterns, approval policy, and unauthenticated-only feeds in `tests/Elsa.Catalog.Core.Tests/PackageSourceValidationTests.cs`
+- [X] T066 [P] [US2] Add case-insensitive glob matching tests with exclude precedence in `tests/Elsa.Catalog.Core.Tests/PackageSourcePatternMatcherTests.cs`
 
 ### Implementation
 
-- [ ] T067 [P] [US2] Implement admin source request and response contracts in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceContracts.cs`
-- [ ] T068 [US2] Implement package source validation rules in `src/Elsa.Catalog.Core/Sources/PackageSourceValidator.cs`
-- [ ] T069 [US2] Implement case-insensitive glob matcher with exclude precedence in `src/Elsa.Catalog.Core/Sources/PackageSourcePatternMatcher.cs`
-- [ ] T070 [US2] Implement source management service in `src/Elsa.Catalog.Core/Sources/PackageSourceService.cs`
-- [ ] T071 [US2] Implement EF Core source repository methods in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/PackageSourceStore.cs`
-- [ ] T072 [US2] Implement admin source endpoints in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceEndpoints.cs`
-- [ ] T073 [US2] Register admin source endpoints in `src/Elsa.Catalog.Api/Program.cs`
-- [ ] T074 [US2] Verify US2 source management tests with `dotnet test --filter Sources` in `Elsa.PackageCatalog.sln`
+- [X] T067 [P] [US2] Implement admin source request and response contracts in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceContracts.cs`
+- [X] T068 [US2] Implement package source validation rules in `src/Elsa.Catalog.Core/Sources/PackageSourceValidator.cs`
+- [X] T069 [US2] Implement case-insensitive glob matcher with exclude precedence in `src/Elsa.Catalog.Core/Sources/PackageSourcePatternMatcher.cs`
+- [X] T070 [US2] Implement source management service in `src/Elsa.Catalog.Core/Sources/PackageSourceService.cs`
+- [X] T071 [US2] Implement EF Core source repository methods in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/PackageSourceStore.cs`
+- [X] T072 [US2] Implement admin source endpoints in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceEndpoints.cs`
+- [X] T073 [US2] Register admin source endpoints in `src/Elsa.Catalog.Api/Program.cs`
+- [X] T074 [US2] Verify US2 source management tests with `dotnet test --filter Sources` in `Elsa.PackageCatalog.sln`
 
 **Checkpoint**: Admin source management works independently and source scope is explicit.
 
