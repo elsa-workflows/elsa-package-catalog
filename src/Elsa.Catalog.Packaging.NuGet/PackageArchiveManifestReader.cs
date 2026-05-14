@@ -1,9 +1,10 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using Elsa.Catalog.Core.Packaging;
 
 namespace Elsa.Catalog.Packaging.NuGet;
 
-public sealed class PackageArchiveManifestReader
+public sealed class PackageArchiveManifestReader : IPackageArchiveManifestReader
 {
     public const string RootManifestPath = "elsa-package.json";
     public const string FallbackManifestPath = "build/elsa-package.json";
@@ -26,7 +27,7 @@ public sealed class PackageArchiveManifestReader
         using var memory = new MemoryStream();
         await manifestStream.CopyToAsync(memory, cancellationToken);
         var bytes = memory.ToArray();
-        var json = System.Text.Encoding.UTF8.GetString(bytes);
+        var json = System.Text.Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF');
         var hash = Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
         var warnings = entries.Count > 1
             ? new[] { "Multiple manifest files found; selected the root manifest when available." }
@@ -36,17 +37,4 @@ public sealed class PackageArchiveManifestReader
     }
 
     private static string Normalize(string path) => path.Replace('\\', '/').TrimStart('/');
-}
-
-public sealed record PackageManifestReadResult(
-    bool Exists,
-    string? Path,
-    string? ManifestJson,
-    string? ManifestHash,
-    IReadOnlyList<string> Warnings)
-{
-    public static PackageManifestReadResult Missing() => new(false, null, null, null, []);
-
-    public static PackageManifestReadResult Found(string path, string manifestJson, string manifestHash, IReadOnlyList<string> warnings) =>
-        new(true, path, manifestJson, manifestHash, warnings);
 }

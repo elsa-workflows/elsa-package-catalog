@@ -143,27 +143,27 @@
 
 ### Tests
 
-- [ ] T075 [P] [US3] Add package archive manifest extraction tests for root and fallback manifest paths in `tests/Elsa.Catalog.Packaging.NuGet.Tests/PackageArchiveManifestReaderTests.cs`
-- [ ] T076 [P] [US3] Add missing, multiple, oversized, malformed, and identity-mismatch manifest tests in `tests/Elsa.Catalog.Packaging.NuGet.Tests/PackageArchiveManifestValidationTests.cs`
-- [ ] T077 [P] [US3] Add NuGet source version discovery tests with include/exclude filtering in `tests/Elsa.Catalog.Packaging.NuGet.Tests/NuGetPackageSourceClientTests.cs`
-- [ ] T078 [P] [US3] Add sync orchestration tests for valid, invalid, failed, unchanged, and suspicious items in `tests/Elsa.Catalog.Core.Tests/PackageSyncServiceTests.cs`
-- [ ] T079 [P] [US3] Add admin sync trigger and sync history API tests in `tests/Elsa.Catalog.Api.Tests/AdminSyncApiTests.cs`
-- [ ] T080 [P] [US3] Add persistence tests for immutable version records and sync run item diagnostics in `tests/Elsa.Catalog.Persistence.EntityFrameworkCore.Tests/SyncPersistenceTests.cs`
+- [X] T075 [P] [US3] Add package archive manifest extraction tests for root and fallback manifest paths in `tests/Elsa.Catalog.Packaging.NuGet.Tests/PackageArchiveManifestReaderTests.cs`
+- [X] T076 [P] [US3] Add missing, multiple, oversized, malformed, and identity-mismatch manifest tests in `tests/Elsa.Catalog.Packaging.NuGet.Tests/PackageArchiveManifestValidationTests.cs`
+- [X] T077 [P] [US3] Add NuGet source version discovery tests with include/exclude filtering in `tests/Elsa.Catalog.Packaging.NuGet.Tests/NuGetPackageSourceClientTests.cs`
+- [X] T078 [P] [US3] Add sync orchestration tests for valid, invalid, failed, unchanged, and suspicious items in `tests/Elsa.Catalog.Core.Tests/PackageSyncServiceTests.cs`
+- [X] T079 [P] [US3] Add admin sync trigger and sync history API tests in `tests/Elsa.Catalog.Api.Tests/AdminSyncApiTests.cs`
+- [X] T080 [P] [US3] Add persistence tests for immutable version records and sync run item diagnostics in `tests/Elsa.Catalog.Persistence.EntityFrameworkCore.Tests/SyncPersistenceTests.cs`
 
 ### Implementation
 
-- [ ] T081 [P] [US3] Implement package archive manifest reader without assembly loading in `src/Elsa.Catalog.Packaging.NuGet/PackageArchiveManifestReader.cs`
-- [ ] T082 [P] [US3] Implement NuGet feed version discovery client in `src/Elsa.Catalog.Packaging.NuGet/NuGetPackageSourceClient.cs`
-- [ ] T083 [P] [US3] Implement NuGet package downloader for new versions only in `src/Elsa.Catalog.Packaging.NuGet/NuGetSyncPackageDownloader.cs`
-- [ ] T084 [US3] Implement manifest ingestion and projection mapper in `src/Elsa.Catalog.Core/Manifests/ManifestIngestionService.cs`
-- [ ] T085 [US3] Implement package sync service with item-level error isolation and summary counters in `src/Elsa.Catalog.Core/Sync/PackageSyncService.cs`
-- [ ] T086 [US3] Implement sync run concurrency guard for source/package scopes in `src/Elsa.Catalog.Core/Sync/SyncConcurrencyGuard.cs`
-- [ ] T087 [US3] Implement scheduled sync hosted service in `src/Elsa.Catalog.Api/Admin/Sync/ScheduledSyncHostedService.cs`
-- [ ] T088 [US3] Implement manual sync request contracts in `src/Elsa.Catalog.Api/Admin/Sync/AdminSyncContracts.cs`
-- [ ] T089 [US3] Implement admin sync trigger and sync-run endpoints in `src/Elsa.Catalog.Api/Admin/Sync/AdminSyncEndpoints.cs`
-- [ ] T090 [US3] Implement EF Core sync run and sync item persistence methods in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/SyncRunStore.cs`
-- [ ] T091 [US3] Register NuGet packaging and sync services in `src/Elsa.Catalog.Api/Program.cs`
-- [ ] T092 [US3] Verify US3 sync tests with `dotnet test --filter Sync` in `Elsa.PackageCatalog.sln`
+- [X] T081 [P] [US3] Implement package archive manifest reader without assembly loading in `src/Elsa.Catalog.Packaging.NuGet/PackageArchiveManifestReader.cs`
+- [X] T082 [P] [US3] Implement NuGet feed version discovery client in `src/Elsa.Catalog.Packaging.NuGet/NuGetPackageSourceClient.cs`
+- [X] T083 [P] [US3] Implement NuGet package downloader for new versions only in `src/Elsa.Catalog.Packaging.NuGet/NuGetSyncPackageDownloader.cs`
+- [X] T084 [US3] Implement manifest ingestion and projection mapper in `src/Elsa.Catalog.Core/Manifests/ManifestIngestionService.cs`
+- [X] T085 [US3] Implement package sync service with item-level error isolation and summary counters in `src/Elsa.Catalog.Core/Sync/PackageSyncService.cs`
+- [X] T086 [US3] Implement sync run concurrency guard for source/package scopes in `src/Elsa.Catalog.Core/Sync/SyncConcurrencyGuard.cs`
+- [X] T087 [US3] Implement scheduled sync hosted service in `src/Elsa.Catalog.Api/Admin/Sync/ScheduledSyncHostedService.cs`
+- [X] T088 [US3] Implement manual sync request contracts in `src/Elsa.Catalog.Api/Admin/Sync/AdminSyncContracts.cs`
+- [X] T089 [US3] Implement admin sync trigger and sync-run endpoints in `src/Elsa.Catalog.Api/Admin/Sync/AdminSyncEndpoints.cs`
+- [X] T090 [US3] Implement EF Core sync run and sync item persistence methods in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/SyncRunStore.cs`
+- [X] T091 [US3] Register NuGet packaging and sync services in `src/Elsa.Catalog.Api/Program.cs`
+- [X] T092 [US3] Verify US3 sync tests with `dotnet test --filter Sync` in `Elsa.PackageCatalog.sln`
 
 **Checkpoint**: Sync can ingest manifests safely and produce durable diagnostics.
 
