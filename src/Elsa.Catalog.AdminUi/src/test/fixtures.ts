@@ -33,8 +33,19 @@ export const syncRunFixture = {
   status: "CompletedWithErrors",
   startedAt: "2026-05-15T08:00:00Z",
   completedAt: "2026-05-15T08:02:14Z",
-  packagesScanned: 52,
-  packagesUpdated: 4,
-  failures: 1,
-  items: []
+  error: null,
+  summaryCountersJson: JSON.stringify({ scanned: 52, indexed: 4, failed: 1 }),
+  items: [
+    {
+      id: "item-1",
+      sourceId: "source-1",
+      packageId: "Elsa.Persistence.PostgreSql",
+      version: "1.0.2",
+      status: "Failed",
+      message: null,
+      error: "Package download failed.",
+      startedAt: "2026-05-15T08:00:05Z",
+      completedAt: "2026-05-15T08:00:07Z"
+    }
+  ]
 };

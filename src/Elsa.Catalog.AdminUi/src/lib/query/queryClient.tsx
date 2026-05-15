@@ -18,6 +18,7 @@ export const queryKeys = {
   sources: ["sources"] as const,
   packages: ["packages"] as const,
   syncRuns: ["sync-runs"] as const,
+  syncRun: (runId: string) => ["sync-runs", runId] as const,
   overview: ["overview"] as const
 };
 

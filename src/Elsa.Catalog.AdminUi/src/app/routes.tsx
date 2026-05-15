@@ -4,6 +4,8 @@ import { RequestStateView } from "@/components/states/RequestStateViews";
 import { NewSourcePage, EditSourcePage } from "@/features/sources/SourceFormPage";
 import { SourceDetailsPage } from "@/features/sources/SourceDetailsPage";
 import { SourcesPage } from "@/features/sources/SourcesPage";
+import { SyncRunDetailsPage } from "@/features/sync-runs/SyncRunDetailsPage";
+import { SyncRunsPage } from "@/features/sync-runs/SyncRunsPage";
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -33,8 +35,8 @@ export const router = createBrowserRouter([
       { path: "packages", element: <PlaceholderPage title="Packages" /> },
       { path: "packages/:packageId", element: <PlaceholderPage title="Package Details" /> },
       { path: "packages/:packageId/versions/:version", element: <PlaceholderPage title="Package Version" /> },
-      { path: "sync-runs", element: <PlaceholderPage title="Sync Runs" /> },
-      { path: "sync-runs/:runId", element: <PlaceholderPage title="Sync Run Details" /> }
+      { path: "sync-runs", element: <SyncRunsPage /> },
+      { path: "sync-runs/:runId", element: <SyncRunDetailsPage /> }
     ]
   }
 ]);
