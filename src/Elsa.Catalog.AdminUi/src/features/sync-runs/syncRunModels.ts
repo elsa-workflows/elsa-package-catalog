@@ -1,0 +1,177 @@
+export type SyncRunTrigger = "Scheduled" | "ManualAll" | "ManualSource" | "ManualPackage";
+export type SyncRunStatus = "Running" | "Completed" | "Failed" | "CompletedWithErrors";
+export type SyncRunItemStatus = "Discovered" | "Skipped" | "Downloaded" | "Indexed" | "Unchanged" | "Invalid" | "Failed" | "Suspicious";
+
+export type SummaryCounters = Record<string, number>;
+
+export type SyncRunItem = {
+  id: string;
+  sourceId?: string | null;
+  packageId?: string | null;
+  version?: string | null;
+  status: SyncRunItemStatus;
+  message?: string | null;
+  error?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
+};
+
+export type SyncRun = {
+  id: string;
+  trigger: SyncRunTrigger;
+  status: SyncRunStatus;
+  startedAt: string;
+  completedAt?: string | null;
+  error?: string | null;
+  summaryCounters: SummaryCounters;
+  items: SyncRunItem[];
+};
+
+type SyncRunResponse = Omit<SyncRun, "summaryCounters" | "items"> & {
+  summaryCounters?: SummaryCounters | string | null;
+  summaryCountersJson?: string | null;
+  packagesScanned?: number;
+  packagesUpdated?: number;
+  failures?: number;
+  items?: SyncRunItem[] | null;
+};
+
+const scannedKeys = ["scanned", "packagesscanned", "discovered", "downloaded", "indexed", "unchanged", "skipped", "invalid", "suspicious", "failed"];
+const updatedKeys = ["updated", "packagesupdated", "indexed"];
+const failureKeys = ["failures", "failed"];
+const scannedGuardKeys = ["scanned", "packagesscanned"];
+const warningStatuses: SyncRunItemStatus[] = ["Invalid", "Suspicious"];
+
+export function normalizeSyncRuns(response: unknown): SyncRun[] {
+  if (Array.isArray(response)) return response.map(normalizeSyncRun);
+  if (hasItems(response)) return response.items.map(normalizeSyncRun);
+  return [];
+}
+
+export function normalizeSyncRun(response: unknown): SyncRun {
+  const run = response as SyncRunResponse;
+  return {
+    id: run.id,
+    trigger: run.trigger,
+    status: run.status,
+    startedAt: run.startedAt,
+    completedAt: run.completedAt,
+    error: run.error,
+    summaryCounters: withLegacyCounterFallbacks(parseSummaryCounters(run), run),
+    items: run.items ?? []
+  };
+}
+
+export function isActiveSyncRun(run: SyncRun) {
+  return run.status === "Running";
+}
+
+export function syncRunHasAttention(run: SyncRun) {
+  return run.status === "Failed" || run.status === "CompletedWithErrors";
+}
+
+export function syncRunTriggerLabel(trigger: SyncRunTrigger) {
+  switch (trigger) {
+    case "ManualAll":
+      return "Manual all";
+    case "ManualSource":
+      return "Manual source";
+    case "ManualPackage":
+      return "Manual package";
+    default:
+      return "Scheduled";
+  }
+}
+
+export function syncRunStatusLabel(status: SyncRunStatus) {
+  switch (status) {
+    case "CompletedWithErrors":
+      return "Completed with errors";
+    default:
+      return status;
+  }
+}
+
+export function syncRunItemStatusLabel(status: SyncRunItemStatus) {
+  return status;
+}
+
+export function packagesScanned(run: SyncRun) {
+  return typeof run.summaryCounters.scanned === "number"
+    ? run.summaryCounters.scanned
+    : sumCounters(run.summaryCounters, scannedKeys);
+}
+
+export function packagesUpdated(run: SyncRun) {
+  return counterValue(run.summaryCounters, updatedKeys);
+}
+
+export function syncFailures(run: SyncRun) {
+  return counterValue(run.summaryCounters, failureKeys);
+}
+
+export function warningItems(run: SyncRun) {
+  return run.items.filter((item) => warningStatuses.includes(item.status));
+}
+
+export function failedItems(run: SyncRun) {
+  return run.items.filter((item) => item.status === "Failed");
+}
+
+export function shortId(id: string) {
+  return id.length > 8 ? id.slice(0, 8) : id;
+}
+
+function parseSummaryCounters(run: SyncRunResponse): SummaryCounters {
+  if (typeof run.summaryCountersJson === "string") return parseCounterJson(run.summaryCountersJson);
+  if (typeof run.summaryCounters === "string") return parseCounterJson(run.summaryCounters);
+  if (run.summaryCounters && typeof run.summaryCounters === "object") return normalizeCounterObject(run.summaryCounters);
+  return {};
+}
+
+function parseCounterJson(value: string): SummaryCounters {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return normalizeCounterObject(parsed);
+  } catch {
+    return {};
+  }
+}
+
+function withLegacyCounterFallbacks(counters: SummaryCounters, run: SyncRunResponse): SummaryCounters {
+  return {
+    ...(typeof run.packagesScanned === "number" && !hasNumericCounter(counters, scannedGuardKeys) ? { scanned: run.packagesScanned } : {}),
+    ...(typeof run.packagesUpdated === "number" && !hasNumericCounter(counters, updatedKeys) ? { updated: run.packagesUpdated } : {}),
+    ...(typeof run.failures === "number" && !hasNumericCounter(counters, failureKeys) ? { failed: run.failures } : {}),
+    ...counters
+  };
+}
+
+function counterValue(counters: SummaryCounters, keys: string[]) {
+  const exactMatch = keys.find((key) => typeof counters[key] === "number");
+  if (exactMatch) return counters[exactMatch];
+  return sumCounters(counters, keys);
+}
+
+function sumCounters(counters: SummaryCounters, keys: string[]) {
+  return Object.entries(counters)
+    .filter(([key, value]) => keys.includes(key.toLowerCase()) && typeof value === "number")
+    .reduce((total, [, value]) => total + value, 0);
+}
+
+function hasNumericCounter(counters: SummaryCounters, keys: string[]) {
+  return Object.entries(counters).some(([key, value]) => keys.includes(key.toLowerCase()) && typeof value === "number");
+}
+
+function normalizeCounterObject(value: unknown): SummaryCounters {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, counter]) => typeof counter === "number")
+      .map(([key, counter]) => [key.toLowerCase(), counter as number])
+  );
+}
+
+function hasItems(response: unknown): response is { items: unknown[] } {
+  return Boolean(response && typeof response === "object" && "items" in response && Array.isArray(response.items));
+}
