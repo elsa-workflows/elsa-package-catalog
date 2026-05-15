@@ -17,7 +17,7 @@ export const sourceFixture = {
 
 export const packageFixture = {
   packageId: "Elsa.Persistence.PostgreSql",
-  sourceId: "source-1",
+  sourceId: "00000000-0000-0000-0000-000000000001",
   approved: false,
   listed: true,
   latestVersion: "1.0.2",
@@ -32,7 +32,7 @@ export const packageFixture = {
       validationStatus: "Valid",
       isListed: true,
       suspiciousChangeDetected: false,
-      schemaVersion: "1"
+      schemaVersion: "1.0"
     }
   ]
 };

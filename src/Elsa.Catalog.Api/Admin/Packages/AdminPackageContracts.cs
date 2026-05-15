@@ -6,7 +6,12 @@ public sealed record AdminPackageResponse(
     string PackageId,
     bool Approved,
     bool Listed,
+    Guid SourceId,
     string? LatestVersion,
+    PackageApprovalStatus ApprovalStatus,
+    ValidationStatus ValidationStatus,
+    int FeaturesCount,
+    DateTimeOffset UpdatedAt,
     IReadOnlyList<AdminPackageVersionResponse> Versions);
 
 public sealed record AdminPackageVersionResponse(

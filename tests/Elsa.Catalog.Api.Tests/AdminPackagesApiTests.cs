@@ -1,5 +1,6 @@
 using Elsa.Catalog.Api.Admin.Packages;
 using Elsa.Catalog.Api.Authentication;
+using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Testing;
 using FluentAssertions;
 
@@ -25,5 +26,11 @@ public sealed class AdminPackagesApiTests
         var packages = await client.GetCatalogJsonAsync<List<AdminPackageResponse>>("/api/admin/packages");
 
         packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email" && !x.Approved);
+        var package = packages.Single(x => x.PackageId == "Elsa.Email");
+        package.SourceId.Should().NotBeEmpty();
+        package.ApprovalStatus.Should().Be(PackageApprovalStatus.Pending);
+        package.ValidationStatus.Should().Be(ValidationStatus.Valid);
+        package.FeaturesCount.Should().Be(0);
+        package.UpdatedAt.Should().NotBe(default);
     }
 }

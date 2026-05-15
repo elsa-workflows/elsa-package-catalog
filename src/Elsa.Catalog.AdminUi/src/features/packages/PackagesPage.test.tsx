@@ -49,7 +49,7 @@ describe("PackagesPage", () => {
     expect(screen.getByText("1.0.2")).toBeInTheDocument();
     expect(screen.getAllByText("Pending").length).toBeGreaterThan(0);
     expect(screen.getByText("Valid")).toBeInTheDocument();
-    expect(screen.getByText("source-1")).toBeInTheDocument();
+    expect(screen.getByText("00000000-0000-0000-0000-000000000001")).toBeInTheDocument();
     expect(screen.getByText("Listed")).toBeInTheDocument();
     expect(screen.getByText("3")).toBeInTheDocument();
   });
@@ -72,6 +72,8 @@ describe("PackagesPage", () => {
         expect.objectContaining({ method: "POST" })
       );
     });
+    const approveCall = fetchMock.mock.calls.find(([url]) => url.toString().endsWith("/approve"));
+    expect(approveCall?.[1]).not.toHaveProperty("body");
   });
 
   it("requires a rejection reason before rejecting selected versions", async () => {

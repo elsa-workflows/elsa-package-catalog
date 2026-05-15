@@ -60,7 +60,7 @@ export function isPackageListed(packageItem: CatalogPackage) {
 }
 
 export function hasSuspiciousChange(packageItem: CatalogPackage) {
-  return packageItem.versions.some((version) => version.suspiciousChangeDetected);
+  return latestVersionSummary(packageItem)?.suspiciousChangeDetected ?? false;
 }
 
 export function selectableLatestVersion(packageItem: CatalogPackage): SelectablePackageVersion | null {

@@ -17,6 +17,7 @@ export function sourceStatusTone(status?: string): StatusTone {
     case "invalid":
     case "rejected":
     case "suspicious":
+    case "unsupportedschema":
       return "destructive";
     default:
       return "neutral";

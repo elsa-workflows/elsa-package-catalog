@@ -48,15 +48,21 @@ export function PackagesPage() {
   }, [filter, packages.data, query, sort]);
 
   const approveSelected = useMutation({
-    mutationFn: () => Promise.all(selectedItems.map((item) => approvePackageVersion(item))),
-    onSuccess: () => resetAfterMutation(queryClient, setSelected)
+    mutationFn: () => runBatch(selectedItems.map((item) => approvePackageVersion(item))),
+    onSuccess: () => resetAfterMutation(queryClient, setSelected),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.packages });
+    }
   });
 
   const rejectSelected = useMutation({
-    mutationFn: () => Promise.all(selectedItems.map((item) => rejectPackageVersion(item, rejectionReason))),
+    mutationFn: () => runBatch(selectedItems.map((item) => rejectPackageVersion(item, rejectionReason))),
     onSuccess: () => {
       setRejectionReason("");
       resetAfterMutation(queryClient, setSelected);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.packages });
     }
   });
 
@@ -193,7 +199,10 @@ function PackageRow({
         <Badge className={statusToneClass(sourceStatusTone(approval))}>{approval}</Badge>
       </td>
       <td className="px-3 py-3">
-        <Badge className={statusToneClass(sourceStatusTone(suspicious ? "Suspicious" : validation))}>{suspicious ? "Suspicious" : validation}</Badge>
+        <div className="flex flex-wrap gap-1">
+          <Badge className={statusToneClass(sourceStatusTone(validation))}>{validation}</Badge>
+          {suspicious ? <Badge className={statusToneClass(sourceStatusTone("Suspicious"))}>Suspicious</Badge> : null}
+        </div>
       </td>
       <td className="px-3 py-3 text-muted-foreground">{packageItem.sourceId ?? "-"}</td>
       <td className="px-3 py-3">{isPackageListed(packageItem) ? "Listed" : "Unlisted"}</td>
@@ -270,4 +279,12 @@ function updateSearchParams(
 function resetAfterMutation(queryClient: ReturnType<typeof useQueryClient>, setSelected: (value: Record<string, SelectablePackageVersion>) => void) {
   setSelected({});
   void queryClient.invalidateQueries({ queryKey: queryKeys.packages });
+}
+
+async function runBatch(promises: Promise<unknown>[]) {
+  const results = await Promise.allSettled(promises);
+  const failures = results.filter((result) => result.status === "rejected");
+  if (failures.length > 0) {
+    throw new Error(`${failures.length} package action${failures.length === 1 ? "" : "s"} failed.`);
+  }
 }

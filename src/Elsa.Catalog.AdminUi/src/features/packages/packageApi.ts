@@ -6,9 +6,10 @@ export function listPackages() {
 }
 
 export function approvePackageVersion(item: SelectablePackageVersion, reason?: string) {
+  const trimmedReason = reason?.trim();
   return apiRequest<void>(`/api/admin/packages/${encodeURIComponent(item.packageId)}/versions/${encodeURIComponent(item.version)}/approve`, {
     method: "POST",
-    body: JSON.stringify({ reason: reason?.trim() || null })
+    ...(trimmedReason ? { body: JSON.stringify({ reason: trimmedReason }) } : {})
   });
 }
 
