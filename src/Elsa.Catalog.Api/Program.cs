@@ -17,17 +17,17 @@ using Elsa.Catalog.Packaging.NuGet;
 using Elsa.Catalog.Persistence.EntityFrameworkCore;
 using Elsa.PackageManifests.Validation;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.AddServiceDefaults();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.Scheme, _ => { });
 builder.Services.AddCatalogAuthorization();
-builder.Services.AddDbContext<CatalogDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Catalog") ?? "Data Source=elsa-catalog.db"));
+builder.Services.AddCatalogDbContext(builder.Configuration);
 builder.Services.AddScoped<ICatalogStore, EfCoreCatalogStore>();
 builder.Services.AddScoped<IPublicCatalogQueries, PublicCatalogQueries>();
 builder.Services.AddScoped<PublicCatalogQueryService>();

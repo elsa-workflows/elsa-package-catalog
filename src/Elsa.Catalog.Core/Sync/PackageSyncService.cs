@@ -136,6 +136,8 @@ public sealed class PackageSyncService(
                 var change = versionPolicy.CompareManifest(existingVersion, read.ManifestHash);
                 if (change.IsSuspicious)
                 {
+                    existingVersion.SuspiciousChangeDetected = true;
+                    existingVersion.SuspiciousManifestHash = change.ObservedHash;
                     existingVersion.ValidationStatus = ValidationStatus.Suspicious;
                     runItem.Status = SyncRunItemStatus.Suspicious;
                     runItem.PackageVersion = existingVersion;

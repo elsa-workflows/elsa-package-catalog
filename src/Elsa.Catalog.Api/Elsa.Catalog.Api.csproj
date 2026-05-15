@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Elsa.Catalog.Core\Elsa.Catalog.Core.csproj" />
     <ProjectReference Include="..\Elsa.Catalog.Persistence.EntityFrameworkCore\Elsa.Catalog.Persistence.EntityFrameworkCore.csproj" />
     <ProjectReference Include="..\Elsa.Catalog.Packaging.NuGet\Elsa.Catalog.Packaging.NuGet.csproj" />
+    <ProjectReference Include="..\Elsa.Catalog.ServiceDefaults\Elsa.Catalog.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>

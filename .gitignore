@@ -10,6 +10,7 @@
 *.userosscache
 *.sln.docstates
 *.env
+.azure/
 .DS_Store
 Thumbs.db
 
@@ -22,7 +23,7 @@ mono_crash.*
 # Build results
 bin/
 obj/
-packages/
+/packages/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
@@ -96,6 +97,7 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 .artifacts/
+src/Elsa.Catalog.AppHost/artifacts/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
@@ -236,9 +238,9 @@ PublishScripts/
 # NuGet Symbol Packages
 *.snupkg
 # The packages folder can be ignored because of Package Restore
-**/[Pp]ackages/*
+/[Pp]ackages/*
 # except build/, which is used as an MSBuild target.
-!**/[Pp]ackages/build/
+!/[Pp]ackages/build/
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/[Pp]ackages/repositories.config
 # NuGet v3's project.json files produces more ignorable files
