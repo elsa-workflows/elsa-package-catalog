@@ -1,6 +1,5 @@
-using System.Text.Json;
+using Elsa.Catalog.Api.Public;
 using Elsa.Catalog.Core.Packages;
-using Elsa.PackageManifests;
 
 namespace Elsa.Catalog.Api.Public.Features;
 
@@ -38,10 +37,10 @@ public static class PublicFeatureEndpoints
             feature.RequiredCapabilities,
             feature.Dependencies.Select(x => new PublicFeatureDependencyResponse(x.PackageId, x.VersionRange, x.FeatureId, x.Optional, x.Reason)).ToList(),
             feature.Conflicts.Select(x => new PublicFeatureConflictResponse(x.PackageId, x.VersionRange, x.FeatureId, x.Reason)).ToList(),
-            feature.Infrastructure.Select(x => new PublicFeatureInfrastructureRequirementResponse(x.Id, x.Kind, x.Optional, x.Reason, x.Capabilities, x.Providers, x.ConfigurationKeys, ParseObject(x.ExtensionsJson))).ToList(),
+            feature.Infrastructure.Select(x => new PublicFeatureInfrastructureRequirementResponse(x.Id, x.Kind, x.Optional, x.Reason, x.Capabilities, x.Providers, x.ConfigurationKeys, PublicJsonMetadata.ParseObject(x.ExtensionsJson))).ToList(),
             feature.Advanced,
             feature.Experimental,
-            ParseObject(feature.ExtensionsJson),
+            PublicJsonMetadata.ParseObject(feature.ExtensionsJson),
             feature.Settings.Select(ToResponse).ToList());
 
     private static PublicFeatureSettingResponse ToResponse(PublicFeatureSettingProjection setting) =>
@@ -50,38 +49,14 @@ public static class PublicFeatureEndpoints
             setting.ClrType,
             setting.JsonType,
             setting.Required,
-            ParseValue(setting.DefaultValueJson),
+            PublicJsonMetadata.ParseValue(setting.DefaultValueJson),
             setting.DisplayName,
             setting.Description,
             setting.Category,
-            ParseObject(setting.ValidationJson),
+            PublicJsonMetadata.ParseObject(setting.ValidationJson),
             setting.Secret,
             setting.RestartRequired,
             setting.EnvironmentVariable,
-            ParseObject(setting.UiJson),
-            ParseObject(setting.ExtensionsJson));
-
-    private static JsonElement? ParseValue(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return null;
-
-        using var document = JsonDocument.Parse(json);
-        return document.RootElement.Clone();
-    }
-
-    private static IReadOnlyDictionary<string, JsonElement> ParseObject(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return new Dictionary<string, JsonElement>();
-
-        try
-        {
-            return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json, ManifestJsonSerializerOptions.Default) ?? new Dictionary<string, JsonElement>();
-        }
-        catch (JsonException)
-        {
-            return new Dictionary<string, JsonElement>();
-        }
-    }
+            PublicJsonMetadata.ParseObject(setting.UiJson),
+            PublicJsonMetadata.ParseObject(setting.ExtensionsJson));
 }

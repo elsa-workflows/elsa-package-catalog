@@ -43,4 +43,24 @@ public sealed class PublicFeaturesApiTests
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task Get_feature_ignores_malformed_default_value_json()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            var package = PublicCatalogSeedData.CreatePackage(source);
+            var feature = PublicCatalogSeedData.AddFeature(PublicCatalogSeedData.AddVersion(package));
+            feature.Settings[0].DefaultValueJson = "{bad";
+
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+
+        var feature = await app.CreateClient().GetFromJsonAsync<PublicFeatureResponse>("/api/features/email");
+
+        feature!.Settings[0].DefaultValue.Should().BeNull();
+    }
 }
