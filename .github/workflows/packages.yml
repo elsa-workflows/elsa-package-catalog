@@ -111,7 +111,7 @@ jobs:
     name: Deploy to Feedz.io
     runs-on: ubuntu-latest
     needs: build
-    if: always() && needs.build.result == 'success'
+    if: needs.build.result == 'success'
     permissions:
       contents: read
     env:
