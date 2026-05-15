@@ -17,6 +17,7 @@ using Elsa.Catalog.Packaging.NuGet;
 using Elsa.Catalog.Persistence.EntityFrameworkCore;
 using Elsa.PackageManifests.Validation;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,10 +58,11 @@ builder.Services.AddHostedService<ScheduledSyncHostedService>();
 
 var app = builder.Build();
 
-await using (var scope = app.Services.CreateAsyncScope())
+if (!app.Environment.IsEnvironment("Testing"))
 {
+    await using var scope = app.Services.CreateAsyncScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-    await dbContext.Database.EnsureCreatedAsync();
+    await dbContext.Database.MigrateAsync();
 }
 
 app.UseExceptionHandler();

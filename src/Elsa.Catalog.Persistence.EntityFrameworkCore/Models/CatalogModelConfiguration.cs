@@ -3,21 +3,29 @@ using Elsa.Catalog.Core.Manifests;
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Sync;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Elsa.Catalog.Persistence.EntityFrameworkCore.Models;
 
 internal sealed class PackageSourceConfiguration : IEntityTypeConfiguration<PackageSource>
 {
+    private static readonly ValueComparer<List<string>> StringListComparer = new(
+        (left, right) => ReferenceEquals(left, right) || (left != null && right != null && left.SequenceEqual(right)),
+        value => value == null ? 0 : value.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode(StringComparison.Ordinal))),
+        value => value == null ? new List<string>() : value.ToList());
+
     public void Configure(EntityTypeBuilder<PackageSource> builder)
     {
         builder.HasKey(x => x.Id);
         builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
         builder.Property(x => x.Url).HasMaxLength(2048).IsRequired();
         builder.Property(x => x.IncludePatterns)
-            .HasConversion(value => JsonSerializer.Serialize(value, (JsonSerializerOptions?)null), value => JsonSerializer.Deserialize<List<string>>(value, (JsonSerializerOptions?)null) ?? new List<string>());
+            .HasConversion(value => JsonSerializer.Serialize(value, (JsonSerializerOptions?)null), value => JsonSerializer.Deserialize<List<string>>(value, (JsonSerializerOptions?)null) ?? new List<string>())
+            .Metadata.SetValueComparer(StringListComparer);
         builder.Property(x => x.ExcludePatterns)
-            .HasConversion(value => JsonSerializer.Serialize(value, (JsonSerializerOptions?)null), value => JsonSerializer.Deserialize<List<string>>(value, (JsonSerializerOptions?)null) ?? new List<string>());
+            .HasConversion(value => JsonSerializer.Serialize(value, (JsonSerializerOptions?)null), value => JsonSerializer.Deserialize<List<string>>(value, (JsonSerializerOptions?)null) ?? new List<string>())
+            .Metadata.SetValueComparer(StringListComparer);
         builder.HasMany(x => x.Packages).WithOne(x => x.Source).HasForeignKey(x => x.SourceId).OnDelete(DeleteBehavior.Cascade);
     }
 }

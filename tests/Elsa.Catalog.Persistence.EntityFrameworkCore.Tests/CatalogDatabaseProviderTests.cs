@@ -1,6 +1,8 @@
 using Elsa.Catalog.Persistence.EntityFrameworkCore;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -17,6 +19,8 @@ public sealed class CatalogDatabaseProviderTests
         var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
 
         db.Database.ProviderName.Should().Be("Microsoft.EntityFrameworkCore.Sqlite");
+        db.GetService<IMigrationsAssembly>().Assembly.GetName().Name
+            .Should().Be(CatalogDatabaseServiceCollectionExtensions.SqliteMigrationsAssembly);
     }
 
     [Fact]
@@ -34,6 +38,8 @@ public sealed class CatalogDatabaseProviderTests
         var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
 
         db.Database.ProviderName.Should().Be("Microsoft.EntityFrameworkCore.SqlServer");
+        db.GetService<IMigrationsAssembly>().Assembly.GetName().Name
+            .Should().Be(CatalogDatabaseServiceCollectionExtensions.SqlServerMigrationsAssembly);
     }
 
     [Fact]

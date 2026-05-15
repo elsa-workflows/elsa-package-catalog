@@ -14,6 +14,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Elsa.Catalog.Persistence.EntityFrameworkCore\Elsa.Catalog.Persistence.EntityFrameworkCore.csproj" />
+    <ProjectReference Include="..\..\src\Elsa.Catalog.Persistence.SqliteMigrations\Elsa.Catalog.Persistence.SqliteMigrations.csproj" />
+    <ProjectReference Include="..\..\src\Elsa.Catalog.Persistence.SqlServerMigrations\Elsa.Catalog.Persistence.SqlServerMigrations.csproj" />
     <ProjectReference Include="..\Elsa.Catalog.Testing\Elsa.Catalog.Testing.csproj" />
   </ItemGroup>
 

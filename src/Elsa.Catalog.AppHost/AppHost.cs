@@ -1,13 +1,12 @@
 var builder = DistributedApplication.CreateBuilder(args);
-var adminApiKey = builder.AddParameter("admin-api-key", secret: true);
+var adminApiKey = builder.AddParameter("adminApiKey", secret: true);
 
 builder.AddAzureAppServiceEnvironment("elsa-package-catalog");
 
 var api = builder.AddProject<Projects.Elsa_Catalog_Api>("api")
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health")
-    .WithEnvironment("Authentication__ApiKey", adminApiKey)
-    .WithEnvironment("WEBSITES_PORT", "8080");
+    .WithEnvironment("Authentication__ApiKey", adminApiKey);
 
 if (builder.ExecutionContext.IsPublishMode)
 {
@@ -15,6 +14,7 @@ if (builder.ExecutionContext.IsPublishMode)
     var database = sql.AddDatabase("Catalog");
 
     api.WithReference(database)
+        .WithEnvironment("AZURE_TOKEN_CREDENTIALS", "prod")
         .WithEnvironment("Database__Provider", "SqlServer");
 }
 else

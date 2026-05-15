@@ -8,6 +8,8 @@ namespace Elsa.Catalog.Persistence.EntityFrameworkCore;
 public static class CatalogDatabaseServiceCollectionExtensions
 {
     public const string DefaultSqliteConnectionString = "Data Source=elsa-catalog.db";
+    public const string SqliteMigrationsAssembly = "Elsa.Catalog.Persistence.SqliteMigrations";
+    public const string SqlServerMigrationsAssembly = "Elsa.Catalog.Persistence.SqlServerMigrations";
 
     public static IServiceCollection AddCatalogDbContext(
         this IServiceCollection services,
@@ -38,7 +40,10 @@ public static class CatalogDatabaseServiceCollectionExtensions
                     : connectionString;
 
                 EnsureSqliteDirectoryExists(sqliteConnectionString);
-                options.UseSqlite(sqliteConnectionString);
+                options.UseSqlite(sqliteConnectionString, sqlite =>
+                {
+                    sqlite.MigrationsAssembly(SqliteMigrationsAssembly);
+                });
                 break;
 
             case CatalogDatabaseProvider.SqlServer:
@@ -47,6 +52,7 @@ public static class CatalogDatabaseServiceCollectionExtensions
 
                 options.UseSqlServer(connectionString, sqlServer =>
                 {
+                    sqlServer.MigrationsAssembly(SqlServerMigrationsAssembly);
                     sqlServer.EnableRetryOnFailure();
                 });
                 break;

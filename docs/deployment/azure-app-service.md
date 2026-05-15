@@ -31,7 +31,7 @@ prints an older version, move `~/.dotnet/tools` before `~/.aspire/bin` in
 ```bash
 azd auth login
 azd init
-azd env set admin-api-key <strong-secret>
+azd env set adminApiKey <strong-secret>
 azd up
 ```
 
@@ -59,6 +59,14 @@ The API supports two EF Core providers:
 
 Local development defaults to SQLite. Aspire publish mode provisions Azure SQL,
 injects `ConnectionStrings__Catalog`, and sets `Database__Provider=SqlServer`.
+
+Each provider has its own EF Core migration assembly:
+
+- SQLite: `Elsa.Catalog.Persistence.SqliteMigrations`
+- SQL Server/Azure SQL: `Elsa.Catalog.Persistence.SqlServerMigrations`
+
+The API selects the matching migration assembly with the provider and applies
+migrations at startup outside the `Testing` environment.
 
 SQLite remains fine for local development and single-process test runs. For
 production and App Service scale-out, use Azure SQL. SQLite on shared App
