@@ -31,7 +31,7 @@ Rationale: Elsa shell features use callbacks, service factories, HTTP client
 configuration hooks, and delegate-valued collections as application-code
 extension points. These values cannot be represented as deployment
 configuration. Filtering them before schema generation prevents unsupported-type
-failures while keeping normal unsupported complex object settings visible.
+failures while keeping normal deploy-time settings visible.
 
 Alternatives considered:
 
@@ -43,6 +43,30 @@ Alternatives considered:
   per-property workarounds.
 - Serialize delegate hooks as opaque settings: rejected because Runtime Builder
   and deployment configuration cannot use them safely.
+
+## Decision: Omit Unsupported Non-Delegate Setting Candidates
+
+Unsupported non-delegate property shapes such as `System.Type` and complex
+option objects should be classified as non-manifestable setting candidates
+during discovery, excluded from the generated manifest, and reported only as
+low-importance non-warning diagnostics.
+
+Rationale: Unsupported CLR-only shapes cannot be represented as deploy-time
+configuration. Failing the build for these properties blocks adoption across
+otherwise valid shell modules and creates the same operational problem as
+delegate-shaped hooks. Omitting them keeps the manifest truthful: it contains
+only settings Runtime Builder can configure.
+
+Alternatives considered:
+
+- Keep unsupported non-delegate settings as build errors: rejected because
+  ordinary shell-feature modules can expose CLR-only implementation hooks such
+  as provider `Type` values.
+- Log default warnings for unsupported omissions: rejected because
+  `FailOnWarnings=true` would still block builds for omitted non-manifestable
+  properties.
+- Serialize unsupported shapes as opaque object settings: rejected because the
+  manifest contract has no actionable schema for them.
 
 ## Decision: Do Not Warn By Default For Ignored Delegate Hooks
 

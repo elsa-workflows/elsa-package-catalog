@@ -67,11 +67,11 @@
 
 ---
 
-## Phase 4: User Story 2 - Treat Code Configuration Hooks as Non-Configurable (Priority: P1)
+## Phase 4: User Story 2 - Treat Non-Manifestable Properties as Non-Configurable (Priority: P1)
 
-**Goal**: Delegate-shaped shell-feature hooks are ignored as code configuration hooks without unsupported-setting failures or default warnings.
+**Goal**: Delegate-shaped shell-feature hooks and unsupported CLR-only setting candidates are ignored without unsupported-setting failures or default warnings.
 
-**Independent Test**: Generate a manifest for a feature with normal settings plus direct delegates and delegate-valued collections/dictionaries, then verify only normal settings appear.
+**Independent Test**: Generate a manifest for a feature with normal settings plus direct delegates, delegate-valued collections/dictionaries, and unsupported non-delegate settings such as `System.Type`, then verify only normal settings appear.
 
 ### Tests for User Story 2
 
@@ -81,12 +81,12 @@
 - [X] T023 [US2] Add no-code-execution safety test for ignored delegates, factories, constructors, and property getters in `tests/Elsa.PackageManifest.Generator.Core.Tests/MetadataInspectionSafetyTests.cs`
 - [X] T024 [US2] Add core test that ignored delegate hooks do not emit warning diagnostics in `tests/Elsa.PackageManifest.Generator.Core.Tests/UnsupportedSettingTypeTests.cs`
 - [X] T025 [US2] Add core test that ignored delegate hooks can emit low-importance or verbose diagnostics when verbose diagnostics are enabled in `tests/Elsa.PackageManifest.Generator.Core.Tests/UnsupportedSettingTypeTests.cs`
-- [X] T026 [US2] Add core regression test that non-delegate complex object settings still produce unsupported diagnostics in `tests/Elsa.PackageManifest.Generator.Core.Tests/UnsupportedSettingTypeTests.cs`
+- [X] T026 [US2] Add core regression test that non-delegate complex object settings are omitted with low-importance diagnostics in `tests/Elsa.PackageManifest.Generator.Core.Tests/UnsupportedSettingTypeTests.cs`
 
 ### Implementation for User Story 2
 
 - [X] T027 [US2] Filter delegate-shaped direct and nested container properties before schema generation in `src/Elsa.PackageManifest.Generator.Core/Generation/SettingDiscoveryService.cs`
-- [X] T028 [US2] Keep non-delegate unsupported setting validation unchanged in `src/Elsa.PackageManifest.Generator.Core/Generation/ManifestGenerator.cs`
+- [X] T028 [US2] Omit non-delegate unsupported setting candidates before manifest generation in `src/Elsa.PackageManifest.Generator.Core/Generation/SettingDiscoveryService.cs`
 - [X] T029 [US2] Add verbose-only ignored code hook diagnostics in `src/Elsa.PackageManifest.Generator.Core/Validation/GenerationDiagnostics.cs`
 - [X] T030 [US2] Run `dotnet test tests/Elsa.PackageManifest.Generator.Core.Tests/Elsa.PackageManifest.Generator.Core.Tests.csproj --filter \"SettingDiscoveryTests|UnsupportedSettingTypeTests|MetadataInspectionSafetyTests\"`
 
@@ -129,7 +129,7 @@
 - [X] T039 [P] [US4] Add core test proving default policy fails required manifest validation errors in `tests/Elsa.PackageManifest.Generator.Core.Tests/GeneratedManifestValidationTests.cs`
 - [X] T040 [P] [US4] Add core test proving warning severity does not downgrade invalid override input failures in `tests/Elsa.PackageManifest.Generator.Core.Tests/ManifestOverrideValidationTests.cs`
 - [X] T041 [P] [US4] Add MSBuild task test proving infrastructure failures fail under warning severity in `tests/Elsa.PackageManifest.Generator.MSBuild.Tests/GenerateElsaPackageManifestTaskDiagnosticTests.cs`
-- [X] T042 [P] [US4] Add integration test proving non-delegate unsupported settings still fail under default policy in `tests/Elsa.PackageManifest.Generator.IntegrationTests/ValidationSeverityBuildTests.cs`
+- [X] T042 [P] [US4] Add integration test proving non-delegate unsupported settings do not fail under default policy in `tests/Elsa.PackageManifest.Generator.IntegrationTests/ValidationSeverityBuildTests.cs`
 
 ### Implementation for User Story 4
 
@@ -154,6 +154,21 @@
 - [X] T052 Run quickstart validation commands from `specs/003-generator-adoption-fixes/quickstart.md`
 - [X] T053 Run full regression suite with `dotnet test Elsa.PackageCatalog.sln`
 - [X] T054 Review new abstractions and dependencies against constitution simplicity rules in `specs/003-generator-adoption-fixes/plan.md`
+
+---
+
+## Phase 8: Amendment - Unsupported CLR-Only Setting Omission
+
+**Purpose**: Align the generator adoption policy with real CShells modules that expose unsupported non-delegate CLR-only properties such as provider `System.Type` references.
+
+- [X] T055 [US2] Add core regression coverage for `System.Type` setting omission in `tests/Elsa.PackageManifest.Generator.Core.Tests/UnsupportedSettingTypeTests.cs`
+- [X] T056 [US2] Add MSBuild task regression coverage proving omitted unsupported settings do not warn or fail when fail-on-warnings is enabled in `tests/Elsa.PackageManifest.Generator.MSBuild.Tests/GenerateElsaPackageManifestTaskDiagnosticTests.cs`
+- [X] T057 [US2] Update setting discovery, diagnostic policy, data model, and research contracts in `specs/003-generator-adoption-fixes/`
+- [X] T058 [US2] Update project workflow guidance in `AGENTS.md` to require Spec Kit alignment for major features and follow-up adjustments
+- [X] T059 [US2] Run `dotnet test tests/Elsa.PackageManifest.Generator.Core.Tests/Elsa.PackageManifest.Generator.Core.Tests.csproj --filter "UnsupportedSettingTypeTests|FeatureDiscoveryTests"`
+- [X] T060 [US2] Run `dotnet test tests/Elsa.PackageManifest.Generator.MSBuild.Tests/Elsa.PackageManifest.Generator.MSBuild.Tests.csproj --filter GenerateElsaPackageManifestTaskDiagnosticTests`
+- [X] T061 [US2] Run `dotnet test tests/Elsa.PackageManifest.Generator.IntegrationTests/Elsa.PackageManifest.Generator.IntegrationTests.csproj --filter ValidationSeverityBuildTests`
+- [X] T062 [US2] Run `dotnet test tests/Elsa.PackageManifest.Generator.Core.Tests/Elsa.PackageManifest.Generator.Core.Tests.csproj`
 
 ---
 

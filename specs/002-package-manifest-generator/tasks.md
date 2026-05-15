@@ -100,7 +100,7 @@
 - [ ] T042 [P] [US2] Add unit tests for `ShellFeatureAttribute` name, display name, description, dependency, and metadata enrichment in `tests/Elsa.PackageManifest.Generator.Core.Tests/ShellFeatureMetadataTests.cs`
 - [X] T043 [P] [US2] Add unit tests for setting inclusion and exclusions in `tests/Elsa.PackageManifest.Generator.Core.Tests/SettingDiscoveryTests.cs`
 - [X] T044 [P] [US2] Add unit tests for supported type-to-schema mapping in `tests/Elsa.PackageManifest.Generator.Core.Tests/SettingSchemaGeneratorTests.cs`
-- [ ] T045 [P] [US2] Add unit tests for unsupported complex object diagnostics in `tests/Elsa.PackageManifest.Generator.Core.Tests/UnsupportedSettingTypeTests.cs`
+- [ ] T045 [P] [US2] Add unit tests for unsupported complex object omission diagnostics in `tests/Elsa.PackageManifest.Generator.Core.Tests/UnsupportedSettingTypeTests.cs`
 - [X] T046 [P] [US2] Add safety test proving constructors and property getters are not invoked in `tests/Elsa.PackageManifest.Generator.Core.Tests/MetadataInspectionSafetyTests.cs`
 
 ### Implementation for User Story 2
@@ -115,7 +115,7 @@
 - [ ] T053a [P] [US2] Add unit tests for non-executing default value discovery from supported metadata in `tests/Elsa.PackageManifest.Generator.Core.Tests/SettingDefaultValueTests.cs`
 - [X] T053b [US2] Implement default value metadata extraction without constructors, property getters, or runtime feature activation in `src/Elsa.PackageManifest.Generator.Core/Generation/SettingDefaultValueResolver.cs`
 - [X] T054 [US2] Implement JSON Schema Draft 2020-12 setting schema generator for primitives, enums, nullable values, arrays/lists, and dictionaries in `src/Elsa.PackageManifest.Generator.Core/SchemaGeneration/SettingSchemaGenerator.cs`
-- [X] T055 [US2] Implement unsupported complex object diagnostics in `src/Elsa.PackageManifest.Generator.Core/SchemaGeneration/UnsupportedTypeDiagnosticFactory.cs`
+- [X] T055 [US2] Implement unsupported complex object omission diagnostics in `src/Elsa.PackageManifest.Generator.Core/SchemaGeneration/UnsupportedTypeDiagnosticFactory.cs`
 - [X] T056 [US2] Integrate discovered features and settings into manifest generation in `src/Elsa.PackageManifest.Generator.Core/Generation/ManifestGenerator.cs`
 - [X] T057 [US2] Add MSBuild property for `ElsaPackageManifestAdditionalFeatureInterfaceTypes` in `src/Elsa.PackageManifest.Generator/build/Elsa.PackageManifest.Generator.props`
 - [X] T058 [US2] Run `dotnet test --filter Elsa.PackageManifest.Generator.Core.Tests` and fix US2 failures
