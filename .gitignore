@@ -97,6 +97,7 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 .artifacts/
+src/Elsa.Catalog.AppHost/artifacts/
 
 # ASP.NET Scaffolding
 ScaffoldingReadMe.txt
