@@ -30,7 +30,9 @@ obj/{configuration}/{targetframework}/elsa-package.json
 ```
 
 Per-target intermediate manifests may be generated for comparison, but package
-inclusion produces one canonical root manifest by default.
+inclusion produces one canonical root manifest by default. When per-target
+manifest surfaces are equivalent, the first declared target framework supplies
+the canonical package manifest.
 
 ## NuGet Package Output
 
@@ -44,6 +46,8 @@ Rules:
 
 - The root package path is canonical.
 - The package contains exactly one root `elsa-package.json` by default.
+- Multi-targeted packages choose the first declared target framework as the
+  canonical package manifest source when manifest surfaces are equivalent.
 - Alternate paths are allowed only through explicit configuration.
 - Generated manifests larger than 1 MB fail validation before package inclusion.
 - The manifest package ID/version must match NuGet package metadata.

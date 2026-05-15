@@ -22,6 +22,8 @@ required for the default workflow.
   `$(IntermediateOutputPath)elsa-package.json` for the active target framework.
 - The NuGet package path defaults to root `elsa-package.json`.
 - Multi-targeted packages include exactly one canonical root manifest by default.
+  When target frameworks produce equivalent manifest surfaces, the first
+  declared target framework supplies the canonical package manifest.
 
 ## Properties
 
@@ -84,5 +86,9 @@ Warnings are emitted by default when:
 - XML documentation is missing and configured policy expects descriptions.
 - Recommended metadata such as descriptions or documentation links is missing.
 - Unsupported optional metadata is ignored.
+- Delegate-shaped code configuration hooks are ignored as low-importance or
+  verbose diagnostics only.
 
 `ElsaPackageManifestFailOnWarnings=true` turns warnings into build failures.
+`ElsaPackageManifestValidationSeverity=Warning` maps manifest validation errors
+to warnings, but infrastructure and invalid input failures still fail.
