@@ -34,8 +34,8 @@ public static class AdminPackageEndpoints
             package.Listed,
             package.SourceId,
             package.LatestVersion,
-            ToApprovalStatus(package),
-            ToValidationStatus(package),
+            ToApprovalStatus(package, latestVersion),
+            ToValidationStatus(latestVersion),
             latestVersion?.Features.Count ?? 0,
             package.UpdatedAt,
             package.Versions.Select(version => new AdminPackageVersionResponse(
@@ -47,25 +47,9 @@ public static class AdminPackageEndpoints
                 version.SchemaVersion)).ToList());
     }
 
-    private static PackageApprovalStatus ToApprovalStatus(Package package)
-    {
-        if (package.Versions.Any(version => version.ApprovalStatus == PackageApprovalStatus.Pending))
-            return PackageApprovalStatus.Pending;
-        if (package.Versions.Any(version => version.ApprovalStatus == PackageApprovalStatus.Rejected))
-            return PackageApprovalStatus.Rejected;
+    private static PackageApprovalStatus ToApprovalStatus(Package package, PackageVersion? latestVersion) =>
+        latestVersion?.ApprovalStatus ?? (package.Approved ? PackageApprovalStatus.Approved : PackageApprovalStatus.Pending);
 
-        return package.Approved ? PackageApprovalStatus.Approved : PackageApprovalStatus.Pending;
-    }
-
-    private static ValidationStatus ToValidationStatus(Package package)
-    {
-        if (package.Versions.Any(version => version.ValidationStatus == ValidationStatus.Invalid))
-            return ValidationStatus.Invalid;
-        if (package.Versions.Any(version => version.ValidationStatus == ValidationStatus.UnsupportedSchema))
-            return ValidationStatus.UnsupportedSchema;
-        if (package.Versions.Any(version => version.ValidationStatus == ValidationStatus.NotValidated))
-            return ValidationStatus.NotValidated;
-
-        return ValidationStatus.Valid;
-    }
+    private static ValidationStatus ToValidationStatus(PackageVersion? latestVersion) =>
+        latestVersion?.ValidationStatus ?? ValidationStatus.NotValidated;
 }

@@ -28,9 +28,38 @@ public sealed class AdminPackagesApiTests
         packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email" && !x.Approved);
         var package = packages.Single(x => x.PackageId == "Elsa.Email");
         package.SourceId.Should().NotBeEmpty();
-        package.ApprovalStatus.Should().Be(PackageApprovalStatus.Pending);
+        package.ApprovalStatus.Should().Be(PackageApprovalStatus.Approved);
         package.ValidationStatus.Should().Be(ValidationStatus.Valid);
         package.FeaturesCount.Should().Be(0);
         package.UpdatedAt.Should().NotBe(default);
+    }
+
+    [Fact]
+    public async Task Package_status_summaries_use_latest_version_only()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            var package = PublicCatalogSeedData.CreatePackage(source);
+            PublicCatalogSeedData.AddVersion(
+                package,
+                version: "1.0.0",
+                validationStatus: ValidationStatus.Invalid,
+                approvalStatus: PackageApprovalStatus.Rejected);
+            PublicCatalogSeedData.AddVersion(package, version: "2.0.0");
+            package.LatestVersion = "2.0.0";
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+
+        var packages = await client.GetCatalogJsonAsync<List<AdminPackageResponse>>("/api/admin/packages");
+
+        packages.Should().NotBeNull();
+        var package = packages!.Single(x => x.PackageId == "Elsa.Email");
+        package.ApprovalStatus.Should().Be(PackageApprovalStatus.Approved);
+        package.ValidationStatus.Should().Be(ValidationStatus.Valid);
     }
 }
