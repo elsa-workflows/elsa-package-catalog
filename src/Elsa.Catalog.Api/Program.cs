@@ -58,9 +58,12 @@ builder.Services.AddHostedService<ScheduledSyncHostedService>();
 
 var app = builder.Build();
 
-await using var scope = app.Services.CreateAsyncScope();
-var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-await dbContext.Database.MigrateAsync();
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
 
 app.UseExceptionHandler();
 app.UseAuthentication();
