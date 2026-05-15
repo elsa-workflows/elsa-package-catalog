@@ -1,4 +1,4 @@
-@baseUrl = http://localhost:5005
+@baseUrl = http://localhost:5220
 @apiKey = local-dev-key
 @sourceId = 00000000-0000-0000-0000-000000000000
 @syncRunId = 00000000-0000-0000-0000-000000000000
