@@ -11,7 +11,7 @@ public sealed class CatalogDatabaseProviderTests
     [Fact]
     public void AddCatalogDbContext_defaults_to_sqlite()
     {
-        using var provider = BuildProvider([]);
+        using var provider = BuildProvider(new Dictionary<string, string?>());
         using var scope = provider.CreateScope();
 
         var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
