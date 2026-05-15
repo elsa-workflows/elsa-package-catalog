@@ -16,6 +16,7 @@ using Elsa.Catalog.Core.Sync;
 using Elsa.Catalog.Packaging.NuGet;
 using Elsa.Catalog.Persistence.EntityFrameworkCore;
 using Elsa.PackageManifests.Validation;
+using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
 
@@ -83,4 +84,5 @@ app.MapAdminValidationEndpoints();
 
 app.Run();
 
+[UsedImplicitly]
 public partial class Program;
