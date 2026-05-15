@@ -111,7 +111,6 @@ public sealed class PackageSyncServiceTests
         public Task<IReadOnlyList<PackageSource>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult(sources);
         public Task<PackageSource?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(sources.SingleOrDefault(x => x.Id == id));
         public Task AddAsync(PackageSource source, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public void Remove(PackageSource source) { }
         public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
 

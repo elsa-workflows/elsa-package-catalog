@@ -15,6 +15,12 @@ public static class AdminSourceEndpoints
         group.MapGet("/", async (PackageSourceService sources, CancellationToken cancellationToken) =>
             Results.Ok((await sources.ListAsync(cancellationToken)).Select(ToResponse)));
 
+        group.MapGet("/{id:guid}", async (Guid id, PackageSourceService sources, CancellationToken cancellationToken) =>
+        {
+            var source = await sources.GetAsync(id, cancellationToken);
+            return source is null ? Results.NotFound() : Results.Ok(ToResponse(source));
+        });
+
         group.MapPost("/", async (AdminSourceRequest request, PackageSourceService sources, CancellationToken cancellationToken) =>
         {
             var result = await sources.CreateAsync(ToSource(request), cancellationToken);
@@ -52,7 +58,8 @@ public static class AdminSourceEndpoints
         Enabled = request.Enabled,
         IncludePatterns = request.IncludePatterns.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList(),
         ExcludePatterns = request.ExcludePatterns?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList() ?? [],
-        ApprovalPolicy = request.ApprovalPolicy
+        ApprovalPolicy = request.ApprovalPolicy,
+        PollingInterval = string.IsNullOrWhiteSpace(request.PollingInterval) ? null : request.PollingInterval.Trim()
     };
 
     private static AdminSourceResponse ToResponse(PackageSource source) =>
@@ -65,7 +72,12 @@ public static class AdminSourceEndpoints
             source.IncludePatterns,
             source.ExcludePatterns,
             source.ApprovalPolicy,
+            source.Status,
             source.LastSyncedAt,
+            source.LastSuccessfulSyncAt,
+            source.Packages.Count,
+            source.SoftDeletedAt,
+            source.PollingInterval,
             source.CreatedAt,
             source.UpdatedAt);
 }

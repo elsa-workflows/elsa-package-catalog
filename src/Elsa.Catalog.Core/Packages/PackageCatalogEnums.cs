@@ -11,6 +11,13 @@ public enum PackageSourceApprovalPolicy
     Manual
 }
 
+public enum PackageSourceStatus
+{
+    Healthy,
+    Warning,
+    Error
+}
+
 public enum PackageApprovalStatus
 {
     Pending,

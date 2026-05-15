@@ -209,6 +209,9 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTimeOffset?>("LastSuccessfulSyncAt")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset?>("LastSyncedAt")
                         .HasColumnType("datetimeoffset");
 
@@ -216,6 +219,16 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PollingInterval")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTimeOffset?>("SoftDeletedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");

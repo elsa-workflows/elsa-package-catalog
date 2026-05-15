@@ -29,6 +29,7 @@ public sealed class AdminSourceMutationApiTests
 
         delete.StatusCode.Should().Be(HttpStatusCode.NoContent);
         (await client.GetFromJsonAsync<List<AdminSourceResponse>>("/api/admin/sources")).Should().BeEmpty();
+        (await client.GetAsync($"/api/admin/sources/{created.Id}")).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     private static AdminSourceRequest Request(string name) =>

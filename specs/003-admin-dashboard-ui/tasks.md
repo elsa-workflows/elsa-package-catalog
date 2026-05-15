@@ -18,13 +18,13 @@
 
 **Purpose**: Create the admin UI project and test harness without implementing story behavior.
 
-- [ ] T001 Create the Vite React TypeScript admin UI project manifest in `src/Elsa.Catalog.AdminUi/package.json`
-- [ ] T002 Configure TypeScript, Vite, and path aliases in `src/Elsa.Catalog.AdminUi/tsconfig.json` and `src/Elsa.Catalog.AdminUi/vite.config.ts`
-- [ ] T003 Configure TailwindCSS, dark-mode theme tokens, and global stylesheet entry in `src/Elsa.Catalog.AdminUi/tailwind.config.ts` and `src/Elsa.Catalog.AdminUi/src/styles.css`
-- [ ] T004 [P] Configure frontend unit/component test runner in `src/Elsa.Catalog.AdminUi/vitest.config.ts` and `src/Elsa.Catalog.AdminUi/src/test/setupTests.ts`
-- [ ] T005 [P] Configure browser E2E test project in `tests/Elsa.Catalog.AdminUi.E2E/package.json` and `tests/Elsa.Catalog.AdminUi.E2E/playwright.config.ts`
-- [ ] T006 Add admin UI development configuration sample in `src/Elsa.Catalog.AdminUi/.env.example`
-- [ ] T007 Add admin UI build and test notes to `src/Elsa.Catalog.AdminUi/README.md`
+- [X] T001 Create the Vite React TypeScript admin UI project manifest in `src/Elsa.Catalog.AdminUi/package.json`
+- [X] T002 Configure TypeScript, Vite, and path aliases in `src/Elsa.Catalog.AdminUi/tsconfig.json` and `src/Elsa.Catalog.AdminUi/vite.config.ts`
+- [X] T003 Configure TailwindCSS, dark-mode theme tokens, and global stylesheet entry in `src/Elsa.Catalog.AdminUi/tailwind.config.ts` and `src/Elsa.Catalog.AdminUi/src/styles.css`
+- [X] T004 [P] Configure frontend unit/component test runner in `src/Elsa.Catalog.AdminUi/vitest.config.ts` and `src/Elsa.Catalog.AdminUi/src/test/setupTests.ts`
+- [X] T005 [P] Configure browser E2E test project in `tests/Elsa.Catalog.AdminUi.E2E/package.json` and `tests/Elsa.Catalog.AdminUi.E2E/playwright.config.ts`
+- [X] T006 Add admin UI development configuration sample in `src/Elsa.Catalog.AdminUi/.env.example`
+- [X] T007 Add admin UI build and test notes to `src/Elsa.Catalog.AdminUi/README.md`
 
 ---
 
@@ -34,19 +34,19 @@
 
 **CRITICAL**: No user story work should begin until this phase is complete.
 
-- [ ] T008 Create the React application entry point in `src/Elsa.Catalog.AdminUi/src/main.tsx`
-- [ ] T009 Create the root route configuration with only Overview, Sources, Packages, and Sync Runs destinations in `src/Elsa.Catalog.AdminUi/src/app/routes.tsx`
-- [ ] T010 Create the restrained admin shell and primary navigation in `src/Elsa.Catalog.AdminUi/src/app/AppShell.tsx`
-- [ ] T011 [P] Create shared button, input, dialog, badge, table, tabs, and empty-state UI primitive exports in `src/Elsa.Catalog.AdminUi/src/components/ui/index.ts`
-- [ ] T012 [P] Create shared status badge mapping utilities in `src/Elsa.Catalog.AdminUi/src/lib/status/statusBadges.ts`
-- [ ] T013 Create the authenticated HTTP client with admin API key support and typed error normalization in `src/Elsa.Catalog.AdminUi/src/lib/api/httpClient.ts`
-- [ ] T014 Create TanStack Query provider, query key helpers, and polling defaults in `src/Elsa.Catalog.AdminUi/src/lib/query/queryClient.ts`
-- [ ] T015 [P] Create shared date, duration, JSON formatting, and text truncation helpers in `src/Elsa.Catalog.AdminUi/src/lib/formatters.ts`
-- [ ] T016 [P] Create shared route-aware loading, stale-refresh, unauthorized, not-found, and unexpected-error views in `src/Elsa.Catalog.AdminUi/src/components/states/RequestStateViews.tsx`
-- [ ] T017 [P] Create MSW-style admin API mock handlers for sources, packages, validation, manifests, and sync runs in `src/Elsa.Catalog.AdminUi/src/test/adminApiHandlers.ts`
-- [ ] T018 [P] Create representative dashboard fixture data in `src/Elsa.Catalog.AdminUi/src/test/fixtures.ts`
-- [ ] T019 Add E2E test helpers for API stubbing, navigation, and admin credentials in `tests/Elsa.Catalog.AdminUi.E2E/helpers/adminUiTestHelpers.ts`
-- [ ] T020 Verify the root app renders the four MVP navigation entries with a component test in `src/Elsa.Catalog.AdminUi/src/app/AppShell.test.tsx`
+- [X] T008 Create the React application entry point in `src/Elsa.Catalog.AdminUi/src/main.tsx`
+- [X] T009 Create the root route configuration with only Overview, Sources, Packages, and Sync Runs destinations in `src/Elsa.Catalog.AdminUi/src/app/routes.tsx`
+- [X] T010 Create the restrained admin shell and primary navigation in `src/Elsa.Catalog.AdminUi/src/app/AppShell.tsx`
+- [X] T011 [P] Create shared button, input, dialog, badge, table, tabs, and empty-state UI primitive exports in `src/Elsa.Catalog.AdminUi/src/components/ui/index.tsx`
+- [X] T012 [P] Create shared status badge mapping utilities in `src/Elsa.Catalog.AdminUi/src/lib/status/statusBadges.ts`
+- [X] T013 Create the authenticated HTTP client with admin API key support and typed error normalization in `src/Elsa.Catalog.AdminUi/src/lib/api/httpClient.ts`
+- [X] T014 Create TanStack Query provider, query key helpers, and polling defaults in `src/Elsa.Catalog.AdminUi/src/lib/query/queryClient.ts`
+- [X] T015 [P] Create shared date, duration, JSON formatting, and text truncation helpers in `src/Elsa.Catalog.AdminUi/src/lib/formatters.ts`
+- [X] T016 [P] Create shared route-aware loading, stale-refresh, unauthorized, not-found, and unexpected-error views in `src/Elsa.Catalog.AdminUi/src/components/states/RequestStateViews.tsx`
+- [X] T017 [P] Create MSW-style admin API mock handlers for sources, packages, validation, manifests, and sync runs in `src/Elsa.Catalog.AdminUi/src/test/adminApiHandlers.ts`
+- [X] T018 [P] Create representative dashboard fixture data in `src/Elsa.Catalog.AdminUi/src/test/fixtures.ts`
+- [X] T019 Add E2E test helpers for API stubbing, navigation, and admin credentials in `tests/Elsa.Catalog.AdminUi.E2E/helpers/adminUiTestHelpers.ts`
+- [X] T020 Verify the root app renders the four MVP navigation entries with a component test in `src/Elsa.Catalog.AdminUi/src/app/AppShell.test.tsx`
 
 **Checkpoint**: Foundation ready. User story implementation can now begin in priority order or in parallel by story.
 
@@ -60,29 +60,29 @@
 
 ### Tests for User Story 1
 
-- [ ] T021 [P] [US1] Add API tests for source soft-delete, active source filtering, source status, last successful sync, and package count in `tests/Elsa.Catalog.Api.Tests/AdminSourcesApiTests.cs`
-- [ ] T022 [P] [US1] Add source pattern tester parity tests for include/exclude precedence in `src/Elsa.Catalog.AdminUi/src/features/sources/patternTester.test.ts`
-- [ ] T023 [P] [US1] Add component tests for source list empty, loading, populated, stale, and filtered states in `src/Elsa.Catalog.AdminUi/src/features/sources/SourcesPage.test.tsx`
-- [ ] T024 [P] [US1] Add component tests for create/edit validation and unsaved value preservation in `src/Elsa.Catalog.AdminUi/src/features/sources/SourceForm.test.tsx`
-- [ ] T025 [P] [US1] Add E2E test for create, pattern-test, sync, disable, enable, and soft-delete source workflow in `tests/Elsa.Catalog.AdminUi.E2E/sources.spec.ts`
+- [X] T021 [P] [US1] Add API tests for source soft-delete, active source filtering, source status, last successful sync, and package count in `tests/Elsa.Catalog.Api.Tests/AdminSourcesApiTests.cs`
+- [X] T022 [P] [US1] Add source pattern tester parity tests for include/exclude precedence in `src/Elsa.Catalog.AdminUi/src/features/sources/patternTester.test.ts`
+- [X] T023 [P] [US1] Add component tests for source list empty, loading, populated, stale, and filtered states in `src/Elsa.Catalog.AdminUi/src/features/sources/SourcesPage.test.tsx`
+- [X] T024 [P] [US1] Add component tests for create/edit validation and unsaved value preservation in `src/Elsa.Catalog.AdminUi/src/features/sources/SourceForm.test.tsx`
+- [X] T025 [P] [US1] Add E2E test for create, pattern-test, sync, disable, enable, and soft-delete source workflow in `tests/Elsa.Catalog.AdminUi.E2E/sources.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] Add soft-delete, health, and polling interval fields to package source model in `src/Elsa.Catalog.Core/Packages/PackageModels.cs`
-- [ ] T027 [US1] Update EF Core source mapping for soft-delete, health, and polling interval fields in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/Models/CatalogModelConfiguration.cs`
-- [ ] T028 [US1] Add provider migrations for source soft-delete, health, and polling interval fields in `src/Elsa.Catalog.Persistence.SqliteMigrations/Migrations/20260515_AddPackageSourceSoftDeleteAndHealth.cs` and `src/Elsa.Catalog.Persistence.SqlServerMigrations/Migrations/20260515_AddPackageSourceSoftDeleteAndHealth.cs`
-- [ ] T029 [US1] Update source store queries to hide soft-deleted sources by default and preserve history in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/PackageSourceStore.cs`
-- [ ] T030 [US1] Update source service soft-delete behavior, polling interval validation, and source health projection in `src/Elsa.Catalog.Core/Sources/PackageSourceService.cs`
-- [ ] T031 [US1] Update admin source contracts with status, lastSuccessfulSyncAt, packageCount, softDeletedAt, and pollingInterval fields in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceContracts.cs`
-- [ ] T032 [US1] Update admin source endpoints to expose active sources, soft-delete semantics, source health fields, and sync-linkable IDs in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceEndpoints.cs`
-- [ ] T033 [US1] Create source API adapter functions in `src/Elsa.Catalog.AdminUi/src/features/sources/sourceApi.ts`
-- [ ] T034 [US1] Create source view models, polling interval mapping, and status derivation helpers in `src/Elsa.Catalog.AdminUi/src/features/sources/sourceModels.ts`
-- [ ] T035 [US1] Implement include/exclude pattern tester logic with case-insensitive glob matching in `src/Elsa.Catalog.AdminUi/src/features/sources/patternTester.ts`
-- [ ] T036 [US1] Implement Sources list page with table columns, status badges, row actions, empty states, and refresh handling in `src/Elsa.Catalog.AdminUi/src/features/sources/SourcesPage.tsx`
-- [ ] T037 [US1] Implement create/edit source form with field validation, pattern tester preview, and failed-save value preservation in `src/Elsa.Catalog.AdminUi/src/features/sources/SourceForm.tsx`
-- [ ] T038 [US1] Implement source detail view with guaranteed health fields, recent sync evidence, and source sync action in `src/Elsa.Catalog.AdminUi/src/features/sources/SourceDetailsPage.tsx`
-- [ ] T039 [US1] Implement source disable/enable and soft-delete confirmation dialogs in `src/Elsa.Catalog.AdminUi/src/features/sources/SourceActions.tsx`
-- [ ] T040 [US1] Wire Sources routes into the app route tree in `src/Elsa.Catalog.AdminUi/src/app/routes.tsx`
+- [X] T026 [US1] Add soft-delete, health, and polling interval fields to package source model in `src/Elsa.Catalog.Core/Packages/PackageModels.cs`
+- [X] T027 [US1] Update EF Core source mapping for soft-delete, health, and polling interval fields in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/Models/CatalogModelConfiguration.cs`
+- [X] T028 [US1] Add provider migrations for source soft-delete, health, and polling interval fields in `src/Elsa.Catalog.Persistence.SqliteMigrations/Migrations/20260515_AddPackageSourceSoftDeleteAndHealth.cs` and `src/Elsa.Catalog.Persistence.SqlServerMigrations/Migrations/20260515_AddPackageSourceSoftDeleteAndHealth.cs`
+- [X] T029 [US1] Update source store queries to hide soft-deleted sources by default and preserve history in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/PackageSourceStore.cs`
+- [X] T030 [US1] Update source service soft-delete behavior, polling interval validation, and source health projection in `src/Elsa.Catalog.Core/Sources/PackageSourceService.cs`
+- [X] T031 [US1] Update admin source contracts with status, lastSuccessfulSyncAt, packageCount, softDeletedAt, and pollingInterval fields in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceContracts.cs`
+- [X] T032 [US1] Update admin source endpoints to expose active sources, soft-delete semantics, source health fields, and sync-linkable IDs in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceEndpoints.cs`
+- [X] T033 [US1] Create source API adapter functions in `src/Elsa.Catalog.AdminUi/src/features/sources/sourceApi.ts`
+- [X] T034 [US1] Create source view models, polling interval mapping, and status derivation helpers in `src/Elsa.Catalog.AdminUi/src/features/sources/sourceModels.ts`
+- [X] T035 [US1] Implement include/exclude pattern tester logic with case-insensitive glob matching in `src/Elsa.Catalog.AdminUi/src/features/sources/patternTester.ts`
+- [X] T036 [US1] Implement Sources list page with table columns, status badges, row actions, empty states, and refresh handling in `src/Elsa.Catalog.AdminUi/src/features/sources/SourcesPage.tsx`
+- [X] T037 [US1] Implement create/edit source form with field validation, pattern tester preview, and failed-save value preservation in `src/Elsa.Catalog.AdminUi/src/features/sources/SourceForm.tsx`
+- [X] T038 [US1] Implement source detail view with guaranteed health fields, recent sync evidence, and source sync action in `src/Elsa.Catalog.AdminUi/src/features/sources/SourceDetailsPage.tsx`
+- [X] T039 [US1] Implement source disable/enable and soft-delete confirmation dialogs in `src/Elsa.Catalog.AdminUi/src/features/sources/SourceActions.tsx`
+- [X] T040 [US1] Wire Sources routes into the app route tree in `src/Elsa.Catalog.AdminUi/src/app/routes.tsx`
 
 **Checkpoint**: User Story 1 is independently functional and demoable as the MVP source-management slice.
 

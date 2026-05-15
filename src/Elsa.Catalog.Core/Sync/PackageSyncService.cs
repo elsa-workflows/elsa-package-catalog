@@ -96,6 +96,8 @@ public sealed class PackageSyncService(
         {
             await AddItemAsync(run, source.Id, null, null, SyncRunItemStatus.Failed, cancellationToken, error: ex.Message);
             Increment(counters, "failed");
+            source.LastSyncedAt = DateTimeOffset.UtcNow;
+            source.Status = PackageSourceStatus.Error;
             return;
         }
 
@@ -103,6 +105,10 @@ public sealed class PackageSyncService(
             await SyncPackageVersionAsync(run, source, item, counters, cancellationToken);
 
         source.LastSyncedAt = DateTimeOffset.UtcNow;
+        source.LastSuccessfulSyncAt = source.LastSyncedAt;
+        source.Status = run.Items.Any(x => x.SourceId == source.Id && x.Status is SyncRunItemStatus.Failed)
+            ? PackageSourceStatus.Warning
+            : PackageSourceStatus.Healthy;
     }
 
     private async Task SyncPackageVersionAsync(SyncRun run, PackageSource source, DiscoveredPackageVersion discovered, Dictionary<string, int> counters, CancellationToken cancellationToken)

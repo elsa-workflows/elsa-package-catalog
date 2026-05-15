@@ -1,3 +1,4 @@
+using System.Xml;
 using Elsa.Catalog.Core.Packages;
 
 namespace Elsa.Catalog.Core.Sources;
@@ -21,6 +22,18 @@ public sealed class PackageSourceValidator
 
         if (source.IncludePatterns.Count == 0 || source.IncludePatterns.All(string.IsNullOrWhiteSpace))
             errors.Add("At least one include pattern is required.");
+
+        if (!string.IsNullOrWhiteSpace(source.PollingInterval))
+        {
+            try
+            {
+                _ = XmlConvert.ToTimeSpan(source.PollingInterval);
+            }
+            catch (FormatException)
+            {
+                errors.Add("Polling interval must be an ISO 8601 duration, for example PT30M.");
+            }
+        }
 
         return errors.Count == 0 ? PackageSourceValidationResult.Valid : PackageSourceValidationResult.Invalid(errors);
     }

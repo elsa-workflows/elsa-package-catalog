@@ -40,6 +40,7 @@ public sealed class PackageSourceService(IPackageSourceStore store, PackageSourc
         existing.IncludePatterns = source.IncludePatterns;
         existing.ExcludePatterns = source.ExcludePatterns;
         existing.ApprovalPolicy = source.ApprovalPolicy;
+        existing.PollingInterval = source.PollingInterval;
         existing.UpdatedAt = DateTimeOffset.UtcNow;
 
         await store.SaveChangesAsync(cancellationToken);
@@ -52,7 +53,9 @@ public sealed class PackageSourceService(IPackageSourceStore store, PackageSourc
         if (source is null)
             return false;
 
-        store.Remove(source);
+        source.Enabled = false;
+        source.SoftDeletedAt = DateTimeOffset.UtcNow;
+        source.UpdatedAt = source.SoftDeletedAt.Value;
         await store.SaveChangesAsync(cancellationToken);
         return true;
     }
@@ -63,7 +66,6 @@ public interface IPackageSourceStore
     Task<IReadOnlyList<PackageSource>> ListAsync(CancellationToken cancellationToken = default);
     Task<PackageSource?> GetAsync(Guid id, CancellationToken cancellationToken = default);
     Task AddAsync(PackageSource source, CancellationToken cancellationToken = default);
-    void Remove(PackageSource source);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
 
