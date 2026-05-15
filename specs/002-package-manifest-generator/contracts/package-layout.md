@@ -12,7 +12,7 @@ The generator package supplies:
 
 - MSBuild props/targets.
 - MSBuild task assembly.
-- Source-only annotation attributes.
+- Optional source-only manifest hint attributes.
 - Pack integration for the generated manifest.
 
 ## Generated Intermediate Output
@@ -64,17 +64,13 @@ tasks/
 contentFiles/
 └── cs/
     └── any/
-        └── Elsa.PackageManifest.Generator.Annotations/
-            ├── ElsaFeatureAttribute.cs
-            ├── FeatureSettingAttribute.cs
+        └── Elsa.PackageManifest.Generator.Hints/
+            ├── ManifestSettingAttribute.cs
             ├── ManifestIgnoreAttribute.cs
-            ├── ManifestExtensionAttribute.cs
-            ├── CompatibilityAttribute.cs
-            ├── RequiresFeatureAttribute.cs
-            └── ConflictsWithFeatureAttribute.cs
+            └── ManifestExtensionAttribute.cs
 ```
 
 The exact final packing layout may vary if MSBuild task loading requires a
 different task asset path, but the package author contract must stay one
-private package reference with source-only annotations and automatic manifest
+private package reference with optional source-only manifest hints and automatic manifest
 inclusion.

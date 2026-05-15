@@ -4,7 +4,7 @@
 
 The generator does not introduce durable application storage. Its model is a
 build-time data flow from project metadata, assembly metadata, XML documentation,
-source annotations, and optional override JSON into a validated
+CShells metadata, optional manifest hints, and optional override JSON into a validated
 `Elsa.PackageManifests` manifest object and a generated `elsa-package.json`
 artifact.
 
@@ -29,8 +29,7 @@ Fields:
 - `FailOnWarnings`: default `false`
 - `AllowTargetFrameworkDifferences`: default `false`
 - `DiagnosticsVerbosity`: concise by default
-- `FeatureBaseTypes`: configured CShells base type names
-- `FeatureInterfaceTypes`: configured CShells interface type names
+- `AdditionalFeatureInterfaceTypes`: advanced extra feature marker interfaces, default empty
 
 Validation:
 
@@ -89,11 +88,12 @@ Intermediate projection of a CShells feature type.
 Fields:
 
 - `FeatureId`
+- `CShellsFeatureName`
 - `ClrTypeName`
 - `DisplayName`
 - `Description`
 - `Category`
-- `DiscoverySource`: `BaseType`, `Interface`, `Attribute`
+- `DiscoverySource`: `IShellFeature`, `InheritedIShellFeature`
 - `IsPublic`
 - `IsAbstract`
 - `IsGenericDefinition`
@@ -110,7 +110,7 @@ Validation:
 - `FeatureId` is unique within the package manifest.
 - Abstract and generic type definitions are excluded.
 - Internal types are excluded unless explicitly included.
-- Explicit annotation metadata wins over ambiguous convention metadata.
+- `ShellFeatureAttribute` metadata wins over ambiguous convention metadata.
 
 ### DiscoveredSetting
 
@@ -123,6 +123,7 @@ Fields:
 - `ClrPropertyName`
 - `ClrType`
 - `JsonType`
+- `ConfigurationPath`
 - `Required`
 - `Nullable`
 - `DefaultValue`
@@ -135,7 +136,6 @@ Fields:
 - `Secret`
 - `Sensitive`
 - `RestartRequired`
-- `EnvironmentVariable`
 - `UiHint`
 - `Advanced`
 - `Experimental`
@@ -147,6 +147,8 @@ Validation:
 - Public instance properties with public setters are included by default.
 - Static, indexer, ignored, computed-only, and read-only properties are excluded
   unless explicitly included by supported metadata.
+- `ConfigurationPath` is derived from the CShells binding convention:
+  `{CShellsFeatureName}:{ClrPropertyName}`.
 - Complex object settings are unsupported in the MVP unless represented as a
   supported primitive, enum, nullable, array, list, or dictionary shape.
 
@@ -264,7 +266,7 @@ Validation:
 1. `GeneratorOptions` and `ProjectPackageMetadata` are resolved.
 2. Assembly metadata and XML docs are inspected.
 3. Features and settings are discovered.
-4. XML documentation and annotations enrich discovered metadata.
+4. XML documentation, CShells metadata, and manifest hints enrich discovered metadata.
 5. Override file is validated and merged.
 6. `Elsa.PackageManifests` object is built.
 7. Manifest is schema validated.
@@ -286,8 +288,8 @@ Validation:
 - `ProjectPackageMetadata` supplies package-level manifest fields.
 - `AssemblyInspectionInput` produces `DiscoveredFeature` records.
 - `DiscoveredFeature` owns `DiscoveredSetting` records.
-- `XmlDocumentationEntry` enriches features and settings before annotations and
-  overrides.
+- `XmlDocumentationEntry` enriches features and settings before CShells metadata,
+  manifest hints, and overrides.
 - `ManifestOverride` has highest precedence for allowed metadata.
 - `GeneratedSettingsSchema` is attached to each setting manifest.
 - `GeneratedManifestArtifact` contains the final contract JSON and validation

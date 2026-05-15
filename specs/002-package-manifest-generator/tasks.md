@@ -19,7 +19,7 @@
 **Purpose**: Add generator projects, packages, and test project shells.
 
 - [ ] T001 Add `Elsa.PackageManifest.Generator`, `Elsa.PackageManifest.Generator.Core`, and `Elsa.PackageManifest.Generator.MSBuild` projects to `Elsa.PackageCatalog.sln`
-- [ ] T002 Create `src/Elsa.PackageManifest.Generator/Elsa.PackageManifest.Generator.csproj` configured as the package facade for build assets and source-only annotations
+- [ ] T002 Create `src/Elsa.PackageManifest.Generator/Elsa.PackageManifest.Generator.csproj` configured as the package facade for build assets and optional source-only manifest hints
 - [ ] T003 Create `src/Elsa.PackageManifest.Generator.Core/Elsa.PackageManifest.Generator.Core.csproj` with references to `Elsa.PackageManifests`, `JsonSchema.Net`, and `NuGet.Versioning`
 - [ ] T004 Create `src/Elsa.PackageManifest.Generator.MSBuild/Elsa.PackageManifest.Generator.MSBuild.csproj` with MSBuild task dependencies and a project reference to `Elsa.PackageManifest.Generator.Core`
 - [ ] T005 [P] Create `tests/Elsa.PackageManifest.Generator.Core.Tests/Elsa.PackageManifest.Generator.Core.Tests.csproj` with xUnit and FluentAssertions references
@@ -32,19 +32,19 @@
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Establish shared contracts, source-only annotations, core value objects, and test fixtures required by all user stories.
+**Purpose**: Establish shared contracts, CShells metadata inspection, optional manifest hints, core value objects, and test fixtures required by all user stories.
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
 - [ ] T010 Define generator option, metadata, feature, setting, diagnostic, and artifact value objects in `src/Elsa.PackageManifest.Generator.Core/Generation/GeneratorModels.cs`
 - [ ] T011 Implement diagnostic severity and diagnostic collection types in `src/Elsa.PackageManifest.Generator.Core/Validation/GenerationDiagnostics.cs`
 - [ ] T012 Implement deterministic JSON serialization helpers for generated manifests in `src/Elsa.PackageManifest.Generator.Core/Generation/DeterministicJsonSerializer.cs`
-- [ ] T013 Implement source-only `ElsaFeatureAttribute` in `src/Elsa.PackageManifest.Generator/src/Elsa.PackageManifest.Generator.Annotations/ElsaFeatureAttribute.cs`
-- [ ] T014 Implement source-only `FeatureSettingAttribute` in `src/Elsa.PackageManifest.Generator/src/Elsa.PackageManifest.Generator.Annotations/FeatureSettingAttribute.cs`
-- [ ] T015 [P] Implement source-only `ManifestIgnoreAttribute` in `src/Elsa.PackageManifest.Generator/src/Elsa.PackageManifest.Generator.Annotations/ManifestIgnoreAttribute.cs`
-- [ ] T016 [P] Implement source-only `ManifestExtensionAttribute` in `src/Elsa.PackageManifest.Generator/src/Elsa.PackageManifest.Generator.Annotations/ManifestExtensionAttribute.cs`
-- [ ] T017 [P] Implement source-only `CompatibilityAttribute`, `RequiresFeatureAttribute`, and `ConflictsWithFeatureAttribute` in `src/Elsa.PackageManifest.Generator/src/Elsa.PackageManifest.Generator.Annotations/CompatibilityAttributes.cs`
-- [ ] T018 Configure source-only annotation packaging in `src/Elsa.PackageManifest.Generator/Elsa.PackageManifest.Generator.csproj`
+- [ ] T013 Add CShells reference metadata fixtures for `IShellFeature` and `ShellFeatureAttribute` inspection in `tests/Elsa.PackageManifest.Generator.Testing/CShellsFeatureFixtures.cs`
+- [ ] T014 Implement optional source-only `ManifestSettingAttribute` in `src/Elsa.PackageManifest.Generator/src/Elsa.PackageManifest.Generator.Hints/ManifestSettingAttribute.cs`
+- [ ] T015 [P] Implement optional source-only `ManifestIgnoreAttribute` in `src/Elsa.PackageManifest.Generator/src/Elsa.PackageManifest.Generator.Hints/ManifestIgnoreAttribute.cs`
+- [ ] T016 [P] Implement optional source-only `ManifestExtensionAttribute` in `src/Elsa.PackageManifest.Generator/src/Elsa.PackageManifest.Generator.Hints/ManifestExtensionAttribute.cs`
+- [ ] T017 Configure optional source-only manifest hint packaging in `src/Elsa.PackageManifest.Generator/Elsa.PackageManifest.Generator.csproj`
+- [ ] T018 Add CShells package/reference metadata handling to generator project setup in `Directory.Packages.props`
 - [ ] T019 Add build props template in `src/Elsa.PackageManifest.Generator/build/Elsa.PackageManifest.Generator.props`
 - [ ] T020 Add build targets template in `src/Elsa.PackageManifest.Generator/build/Elsa.PackageManifest.Generator.targets`
 - [ ] T021 Add buildTransitive props and targets forwarding files in `src/Elsa.PackageManifest.Generator/buildTransitive/Elsa.PackageManifest.Generator.props` and `src/Elsa.PackageManifest.Generator/buildTransitive/Elsa.PackageManifest.Generator.targets`
@@ -91,13 +91,13 @@
 
 **Goal**: Discover CShells feature classes and public configurable settings without duplicate JSON declarations.
 
-**Independent Test**: Build a sample package containing convention-discovered and explicitly annotated feature classes and verify feature/settings metadata, schema type mapping, exclusions, and no runtime code execution.
+**Independent Test**: Build a sample package containing CShells `IShellFeature` classes with `ShellFeatureAttribute` metadata and verify feature/settings metadata, schema type mapping, exclusions, and no runtime code execution.
 
 ### Tests for User Story 2
 
-- [ ] T040 [P] [US2] Add unit tests for metadata-only feature discovery by configured base type in `tests/Elsa.PackageManifest.Generator.Core.Tests/FeatureDiscoveryTests.cs`
-- [ ] T041 [P] [US2] Add unit tests for metadata-only feature discovery by configured interface in `tests/Elsa.PackageManifest.Generator.Core.Tests/FeatureDiscoveryTests.cs`
-- [ ] T042 [P] [US2] Add unit tests for explicit `ElsaFeatureAttribute` discovery in `tests/Elsa.PackageManifest.Generator.Core.Tests/FeatureAnnotationDiscoveryTests.cs`
+- [ ] T040 [P] [US2] Add unit tests for metadata-only feature discovery by direct `IShellFeature` implementation in `tests/Elsa.PackageManifest.Generator.Core.Tests/FeatureDiscoveryTests.cs`
+- [ ] T041 [P] [US2] Add unit tests for metadata-only feature discovery through a base type implementing `IShellFeature` in `tests/Elsa.PackageManifest.Generator.Core.Tests/FeatureDiscoveryTests.cs`
+- [ ] T042 [P] [US2] Add unit tests for `ShellFeatureAttribute` name, display name, description, dependency, and metadata enrichment in `tests/Elsa.PackageManifest.Generator.Core.Tests/ShellFeatureMetadataTests.cs`
 - [ ] T043 [P] [US2] Add unit tests for setting inclusion and exclusions in `tests/Elsa.PackageManifest.Generator.Core.Tests/SettingDiscoveryTests.cs`
 - [ ] T044 [P] [US2] Add unit tests for supported type-to-schema mapping in `tests/Elsa.PackageManifest.Generator.Core.Tests/SettingSchemaGeneratorTests.cs`
 - [ ] T045 [P] [US2] Add unit tests for unsupported complex object diagnostics in `tests/Elsa.PackageManifest.Generator.Core.Tests/UnsupportedSettingTypeTests.cs`
@@ -106,16 +106,18 @@
 ### Implementation for User Story 2
 
 - [ ] T047 [US2] Implement metadata-only assembly reader in `src/Elsa.PackageManifest.Generator.Core/AssemblyInspection/AssemblyMetadataReader.cs`
-- [ ] T048 [US2] Implement configured feature base/interface matching in `src/Elsa.PackageManifest.Generator.Core/AssemblyInspection/FeatureTypeMatcher.cs`
+- [ ] T048 [US2] Implement `IShellFeature` assignability matching and CShells feature-name convention in `src/Elsa.PackageManifest.Generator.Core/AssemblyInspection/FeatureTypeMatcher.cs`
 - [ ] T049 [US2] Implement feature discovery rules in `src/Elsa.PackageManifest.Generator.Core/Generation/FeatureDiscoveryService.cs`
-- [ ] T050 [US2] Implement source annotation reader in `src/Elsa.PackageManifest.Generator.Core/AssemblyInspection/AnnotationMetadataReader.cs`
+- [ ] T050 [US2] Implement `ShellFeatureAttribute` and manifest hint metadata reader in `src/Elsa.PackageManifest.Generator.Core/AssemblyInspection/FeatureMetadataReader.cs`
 - [ ] T051 [US2] Implement setting property discovery rules in `src/Elsa.PackageManifest.Generator.Core/Generation/SettingDiscoveryService.cs`
 - [ ] T052 [US2] Implement nullable metadata reader in `src/Elsa.PackageManifest.Generator.Core/AssemblyInspection/NullableMetadataReader.cs`
 - [ ] T053 [US2] Implement common validation annotation mapping in `src/Elsa.PackageManifest.Generator.Core/Generation/ValidationAnnotationMapper.cs`
+- [ ] T053a [P] [US2] Add unit tests for non-executing default value discovery from supported metadata in `tests/Elsa.PackageManifest.Generator.Core.Tests/SettingDefaultValueTests.cs`
+- [ ] T053b [US2] Implement default value metadata extraction without constructors, property getters, or runtime feature activation in `src/Elsa.PackageManifest.Generator.Core/Generation/SettingDefaultValueResolver.cs`
 - [ ] T054 [US2] Implement JSON Schema Draft 2020-12 setting schema generator for primitives, enums, nullable values, arrays/lists, and dictionaries in `src/Elsa.PackageManifest.Generator.Core/SchemaGeneration/SettingSchemaGenerator.cs`
 - [ ] T055 [US2] Implement unsupported complex object diagnostics in `src/Elsa.PackageManifest.Generator.Core/SchemaGeneration/UnsupportedTypeDiagnosticFactory.cs`
 - [ ] T056 [US2] Integrate discovered features and settings into manifest generation in `src/Elsa.PackageManifest.Generator.Core/Generation/ManifestGenerator.cs`
-- [ ] T057 [US2] Add MSBuild properties for `ElsaPackageManifestFeatureBaseTypes` and `ElsaPackageManifestFeatureInterfaceTypes` in `src/Elsa.PackageManifest.Generator/build/Elsa.PackageManifest.Generator.props`
+- [ ] T057 [US2] Add MSBuild property for `ElsaPackageManifestAdditionalFeatureInterfaceTypes` in `src/Elsa.PackageManifest.Generator/build/Elsa.PackageManifest.Generator.props`
 - [ ] T058 [US2] Run `dotnet test --filter Elsa.PackageManifest.Generator.Core.Tests` and fix US2 failures
 
 **Checkpoint**: User Stories 1 and 2 both work independently.
@@ -124,18 +126,19 @@
 
 ## Phase 5: User Story 3 - Enrich Metadata from Documentation and Overrides (Priority: P2)
 
-**Goal**: Use XML documentation, source annotations, and `elsa-package.overrides.json` to enrich final manifest metadata with deterministic merge behavior.
+**Goal**: Use XML documentation, CShells metadata, optional manifest hints, and `elsa-package.overrides.json` to enrich final manifest metadata with deterministic merge behavior.
 
-**Independent Test**: Build a sample package with XML docs, annotations, and override JSON, then verify merge precedence and validation of override references, identity conflicts, and size limits.
+**Independent Test**: Build a sample package with XML docs, CShells metadata, optional manifest hints, and override JSON, then verify merge precedence and validation of override references, identity conflicts, and size limits.
 
 ### Tests for User Story 3
 
 - [ ] T059 [P] [US3] Add XML documentation extraction tests in `tests/Elsa.PackageManifest.Generator.Core.Tests/XmlDocumentationReaderTests.cs`
-- [ ] T060 [P] [US3] Add annotation merge precedence tests in `tests/Elsa.PackageManifest.Generator.Core.Tests/AnnotationMergeTests.cs`
+- [ ] T060 [P] [US3] Add CShells metadata and manifest hint merge precedence tests in `tests/Elsa.PackageManifest.Generator.Core.Tests/MetadataMergeTests.cs`
 - [ ] T061 [P] [US3] Add override schema and parsing tests in `tests/Elsa.PackageManifest.Generator.Core.Tests/ManifestOverrideReaderTests.cs`
-- [ ] T062 [P] [US3] Add merge precedence tests for inferred, XML, annotation, and override layers in `tests/Elsa.PackageManifest.Generator.Core.Tests/ManifestMergeTests.cs`
+- [ ] T062 [P] [US3] Add merge precedence tests for inferred, XML, CShells metadata, manifest hint, and override layers in `tests/Elsa.PackageManifest.Generator.Core.Tests/ManifestMergeTests.cs`
 - [ ] T063 [P] [US3] Add override invalid reference and identity conflict tests in `tests/Elsa.PackageManifest.Generator.Core.Tests/ManifestOverrideValidationTests.cs`
 - [ ] T064 [P] [US3] Add override 256 KB size limit test in `tests/Elsa.PackageManifest.Generator.Core.Tests/ManifestOverrideValidationTests.cs`
+- [ ] T064a [P] [US3] Add override merge tests for feature dependencies, conflicts, and required capabilities in `tests/Elsa.PackageManifest.Generator.Core.Tests/ManifestOverrideCollectionMergeTests.cs`
 
 ### Implementation for User Story 3
 
@@ -148,7 +151,7 @@
 - [ ] T071 [US3] Implement deterministic merge service in `src/Elsa.PackageManifest.Generator.Core/Generation/ManifestMetadataMerger.cs`
 - [ ] T072 [US3] Implement override feature/setting reference resolution in `src/Elsa.PackageManifest.Generator.Core/Overrides/ManifestOverrideReferenceResolver.cs`
 - [ ] T073 [US3] Implement package ID/version conflict validation in `src/Elsa.PackageManifest.Generator.Core/Overrides/ManifestOverrideValidator.cs`
-- [ ] T074 [US3] Integrate XML docs, annotations, and overrides into `src/Elsa.PackageManifest.Generator.Core/Generation/ManifestGenerator.cs`
+- [ ] T074 [US3] Integrate XML docs, CShells metadata, manifest hints, and overrides into `src/Elsa.PackageManifest.Generator.Core/Generation/ManifestGenerator.cs`
 - [ ] T075 [US3] Run `dotnet test --filter ManifestOverride` and fix US3 failures
 
 **Checkpoint**: User Story 3 enriches manifests without manual full manifest maintenance.
@@ -224,6 +227,7 @@
 - [ ] T106 Run `dotnet pack` for generator package and inspect package layout against `specs/002-package-manifest-generator/contracts/package-layout.md`
 - [ ] T107 Review new abstractions and dependencies against constitution simplicity rules in `specs/002-package-manifest-generator/plan.md`
 - [ ] T108 Confirm no generator path executes package constructors or property getters by reviewing safety tests in `tests/Elsa.PackageManifest.Generator.Core.Tests/MetadataInspectionSafetyTests.cs`
+- [ ] T109 Run a performance smoke test proving generation adds no more than 2 seconds for a warm sample project with fewer than 50 feature types and 500 settings
 
 ---
 
@@ -251,7 +255,7 @@
 ### Parallel Opportunities
 
 - Setup test project creation tasks T005-T008 can run in parallel.
-- Foundational annotation and testing helper tasks T015-T017 and T022-T024 can run in parallel.
+- Foundational manifest hint and testing helper tasks T015-T017 and T022-T024 can run in parallel.
 - Test-writing tasks inside each user story are parallelizable.
 - US3 override reader/schema work can proceed in parallel with US4 diagnostic policy once US2 projections are stable.
 - US5 integration tests and comparison service can be developed in parallel after US1/US2 contracts settle.
@@ -272,7 +276,7 @@ Task: "T029 Add unit tests for project/package metadata mapping in tests/Elsa.Pa
 ### User Story 2
 
 ```text
-Task: "T040 Add unit tests for metadata-only feature discovery by configured base type in tests/Elsa.PackageManifest.Generator.Core.Tests/FeatureDiscoveryTests.cs"
+Task: "T040 Add unit tests for metadata-only feature discovery by direct IShellFeature implementation in tests/Elsa.PackageManifest.Generator.Core.Tests/FeatureDiscoveryTests.cs"
 Task: "T043 Add unit tests for setting inclusion and exclusions in tests/Elsa.PackageManifest.Generator.Core.Tests/SettingDiscoveryTests.cs"
 Task: "T044 Add unit tests for supported type-to-schema mapping in tests/Elsa.PackageManifest.Generator.Core.Tests/SettingSchemaGeneratorTests.cs"
 Task: "T046 Add safety test proving constructors and property getters are not invoked in tests/Elsa.PackageManifest.Generator.Core.Tests/MetadataInspectionSafetyTests.cs"
@@ -317,7 +321,7 @@ Task: "T093 Add package inspection test verifying one root manifest for multi-ta
 
 1. Add US1 for build/pack artifact generation.
 2. Add US2 for feature and setting discovery.
-3. Add US3 for documentation, annotations, and overrides.
+3. Add US3 for documentation, CShells metadata, manifest hints, and overrides.
 4. Add US4 for schema validation and diagnostics.
 5. Add US5 for multi-targeting.
 6. Run Polish tasks and quickstart validation.

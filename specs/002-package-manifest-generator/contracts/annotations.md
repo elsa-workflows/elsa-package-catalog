@@ -1,50 +1,66 @@
-# Contract: Source-Only Annotations
+# Contract: CShells Metadata And Manifest Hints
 
-## Namespace
+## CShells Feature Metadata
 
-Source-only annotation attributes are emitted into:
+Feature discovery is based on the CShells runtime contract, not a generator-owned
+feature attribute.
+
+The generator discovers concrete exposed types assignable to:
 
 ```csharp
-namespace Elsa.PackageManifest.Generator.Annotations;
+CShells.Features.IShellFeature
 ```
 
-They are compile-time generator inputs only. They are not part of the
-`Elsa.PackageManifests` wire contract and must not create runtime dependencies
-in consuming packages.
+When present, the generator reads:
 
-## ElsaFeatureAttribute
-
-Applies to classes.
-
-Supported metadata:
-
-- `Id`
-- `DisplayName`
-- `Category`
-- `Description`
-- `Advanced`
-- `Experimental`
-
-Purpose:
-
-- Explicitly include a feature class.
-- Enrich or override inferred feature metadata.
-- Resolve ambiguity when convention discovery finds a type.
-
-## FeatureSettingAttribute
-
-Applies to properties.
+```csharp
+CShells.Features.ShellFeatureAttribute
+```
 
 Supported metadata:
 
 - `Name`
 - `DisplayName`
 - `Description`
+- `DependsOn`
+- `Metadata`
+
+Rules:
+
+- `ShellFeatureAttribute` enriches a discovered `IShellFeature`; it does not make
+  a non-feature type discoverable by itself.
+- `Name` is the CShells feature name and the configuration section name.
+- When `Name` is absent, derive the feature name using the CShells convention by
+  stripping `ShellFeature` or `Feature` suffixes from the CLR type name.
+- Feature setting configuration paths are derived as
+  `{CShellsFeatureName}:{PropertyName}`.
+- Environment variable names are not stored as first-class manifest metadata.
+  Environment variables already flow through `IConfiguration`.
+
+## Optional Manifest Hints
+
+Generator-owned hints are compile-time inputs only. They must not replace
+`CShells.Features.ShellFeatureAttribute` and must not create a separate manifest
+contract from `Elsa.PackageManifests`.
+
+If included in the MVP, source-only hint attributes are emitted into:
+
+```csharp
+namespace Elsa.PackageManifest.Generator.Hints;
+```
+
+## ManifestSettingAttribute
+
+Applies to public feature setting properties.
+
+Supported metadata:
+
+- `DisplayName`
+- `Description`
 - `Category`
 - `Group`
 - `Required`
 - `DefaultValue`
-- `EnvironmentVariable`
 - `UiHint`
 - `Secret`
 - `Sensitive`
@@ -54,8 +70,8 @@ Supported metadata:
 
 Purpose:
 
-- Include or enrich configurable feature settings.
-- Override display and configuration metadata that cannot be inferred reliably.
+- Enrich configurable feature settings with metadata CShells does not own.
+- Keep small setting hints close to the setting property.
 
 ## ManifestIgnoreAttribute
 
@@ -80,48 +96,10 @@ Purpose:
 - Supply small extension metadata values.
 - Rich extension payloads must be supplied through `elsa-package.overrides.json`.
 
-## CompatibilityAttribute
-
-Applies to assemblies or feature classes.
-
-Supported metadata:
-
-- `ElsaVersionRange`
-- `DockerImageVersionRange`
-- `RuntimeCapabilities`
-
-Purpose:
-
-- Supply package or feature compatibility metadata that cannot be inferred.
-
-## RequiresFeatureAttribute
-
-Applies to feature classes.
-
-Supported metadata:
-
-- `FeatureId`
-
-Purpose:
-
-- Declare feature dependencies.
-
-## ConflictsWithFeatureAttribute
-
-Applies to feature classes.
-
-Supported metadata:
-
-- `FeatureId`
-
-Purpose:
-
-- Declare feature conflicts.
-
 ## Rules
 
-- Attribute values are merged after inferred metadata and XML documentation.
-- Override file values still win over attribute values.
-- Attributes must not duplicate manifest DTOs or replace the
-  `Elsa.PackageManifests` contract.
-- Attribute values must be representable without executing package code.
+- CShells metadata is merged after inferred metadata and XML documentation.
+- Manifest hint values are merged after CShells metadata.
+- Override file values still win over all inferred, XML, CShells, and hint
+  values.
+- Hint values must be representable without executing package code.

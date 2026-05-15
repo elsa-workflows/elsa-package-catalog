@@ -30,8 +30,8 @@ dotnet test
 Expected coverage areas:
 
 - Metadata-only assembly inspection.
-- Feature discovery through configured base/interface type names.
-- Explicit source-only annotations.
+- Feature discovery through `CShells.Features.IShellFeature`.
+- CShells `ShellFeatureAttribute` metadata and optional manifest hints.
 - Setting discovery and exclusions.
 - XML documentation enrichment.
 - Override file merge and validation.
@@ -58,6 +58,7 @@ Create or use a fixture class library that references the generator:
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="CShells.Abstractions" Version="x.y.z" />
     <PackageReference Include="Elsa.PackageManifest.Generator" Version="x.y.z" PrivateAssets="all" />
   </ItemGroup>
 </Project>
@@ -66,30 +67,111 @@ Create or use a fixture class library that references the generator:
 ## Add A Feature Class
 
 ```csharp
-using Elsa.PackageManifest.Generator.Annotations;
+using CShells.Features;
+using Elsa.PackageManifest.Generator.Hints;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.DependencyInjection;
 
-[ElsaFeature(
-    Id = "Elsa.Samples.Email",
+[ShellFeature(
+    "Email",
     DisplayName = "Email",
-    Category = "Communication",
     Description = "Adds email delivery support.")]
-public sealed class EmailFeature : Feature
+public sealed class EmailShellFeature : IShellFeature
 {
     /// <summary>
     /// SMTP server host name.
     /// </summary>
-    [FeatureSetting(
+    [ManifestSetting(
         DisplayName = "SMTP host",
-        EnvironmentVariable = "ELSA_EMAIL_SMTP_HOST",
+        Category = "Delivery",
         RestartRequired = true)]
     public string? SmtpHost { get; set; }
+
+    /// <summary>
+    /// SMTP server port.
+    /// </summary>
+    [Range(1, 65535)]
+    public int Port { get; set; } = 587;
+
+    public void ConfigureServices(IServiceCollection services)
+    {
+    }
 }
 ```
 
 Expected result:
 
-- Annotation attributes compile from source-only assets.
-- The consuming package does not emit a runtime dependency for annotations.
+- The generator discovers `EmailShellFeature` because it implements
+  `IShellFeature`.
+- `ShellFeatureAttribute.Name` produces the CShells feature name `Email`.
+- `SmtpHost` is documented with the CShells configuration path
+  `Email:SmtpHost`. An equivalent environment variable, when the application
+  uses the standard environment variable provider, is naturally
+  `Email__SmtpHost`; this does not need a dedicated manifest field.
+
+## Example Generated Manifest
+
+Shape shown for orientation only; the exact JSON members are owned by
+`Elsa.PackageManifests`.
+
+```json
+{
+  "schemaVersion": "1.0",
+  "package": {
+    "id": "Elsa.Samples.EmailFeature",
+    "version": "1.0.0",
+    "title": "Elsa Sample Email Feature",
+    "description": "Sample package for manifest generator validation.",
+    "authors": ["Elsa"],
+    "targetFrameworks": ["net10.0"]
+  },
+  "features": [
+    {
+      "id": "Elsa.Samples.EmailFeature.Email",
+      "name": "Email",
+      "clrType": "EmailShellFeature",
+      "displayName": "Email",
+      "description": "Adds email delivery support.",
+      "settings": [
+        {
+          "name": "SmtpHost",
+          "configurationPath": "Email:SmtpHost",
+          "clrType": "System.String",
+          "jsonType": "string",
+          "nullable": true,
+          "required": false,
+          "displayName": "SMTP host",
+          "description": "SMTP server host name.",
+          "category": "Delivery",
+          "restartRequired": true,
+          "schema": {
+            "type": ["string", "null"]
+          }
+        },
+        {
+          "name": "Port",
+          "configurationPath": "Email:Port",
+          "clrType": "System.Int32",
+          "jsonType": "integer",
+          "nullable": false,
+          "required": true,
+          "description": "SMTP server port.",
+          "defaultValue": 587,
+          "validation": {
+            "minimum": 1,
+            "maximum": 65535
+          },
+          "schema": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535
+          }
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## Build The Sample
 

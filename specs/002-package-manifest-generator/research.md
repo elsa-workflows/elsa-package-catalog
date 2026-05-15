@@ -16,22 +16,38 @@ Alternatives considered:
   inclusion.
 - Hybrid from day one: more moving parts than the MVP needs.
 
-## Decision: Keep source annotations source-only in the generator package
+## Decision: Ground feature discovery in CShells contracts
 
-Rationale: Package authors should add exactly one private generator reference,
-use optional annotations, and avoid emitting annotation-only runtime
-dependencies. Source-only compile assets in
-`Elsa.PackageManifest.Generator.Annotations` satisfy the one-reference workflow
-while keeping `Elsa.PackageManifests` focused on the wire contract.
+Rationale: CShells already defines the runtime feature contract through
+`CShells.Features.IShellFeature` and feature metadata through
+`CShells.Features.ShellFeatureAttribute`. The generator should inspect those
+contracts directly instead of introducing an Elsa-specific feature attribute.
+This keeps generated manifests aligned with the code CShells actually activates
+and avoids a second source of feature identity.
 
 Alternatives considered:
 
-- Put attributes in `Elsa.PackageManifests`: blurs generator input metadata with
+- Generator-owned `ElsaFeatureAttribute`: rejected because it duplicates
+  CShells feature identity and can drift from runtime behavior.
+- Configurable base/interface discovery as the primary mechanism: more generic
+  than needed now that the CShells contract is known.
+- Runtime feature instantiation: explicitly unsafe and unnecessary.
+
+## Decision: Keep manifest-only hints source-only and small
+
+Rationale: Some manifest fields, such as UI hints or secret/sensitive flags, are
+catalog concerns rather than CShells runtime concerns. Optional source-only
+hints in `Elsa.PackageManifest.Generator.Hints` can cover these narrow cases
+without adding runtime dependencies or replacing `Elsa.PackageManifests`.
+
+Alternatives considered:
+
+- Put hints in `Elsa.PackageManifests`: blurs generator input metadata with
   manifest DTOs.
 - Add a separate abstractions package: clean, but adds a second package to
   manage for the MVP.
-- Runtime assembly attributes: would leak a generator concern into package
-  runtime dependency graphs.
+- Broad feature and compatibility hint attributes: too much surface for the MVP;
+  rich metadata belongs in `elsa-package.overrides.json`.
 
 ## Decision: Use metadata-only inspection for assemblies
 
@@ -91,10 +107,10 @@ Alternatives considered:
 ## Decision: Merge metadata in four ordered layers
 
 Rationale: The spec defines a clear merge order: inferred metadata, XML
-documentation, source annotations, then override file. This preserves useful
-automation while giving authors explicit escape hatches for metadata that cannot
-be inferred. Scalar override behavior and keyed collection merge behavior are
-testable and deterministic.
+documentation, CShells metadata and manifest hints, then override file. This
+preserves useful automation while giving authors explicit escape hatches for
+metadata that cannot be inferred. Scalar override behavior and keyed collection
+merge behavior are testable and deterministic.
 
 Alternatives considered:
 

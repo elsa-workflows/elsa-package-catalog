@@ -37,8 +37,7 @@ required for the default workflow.
 | `ElsaPackageManifestFailOnWarnings` | `false` | Treats warnings as build failures. |
 | `ElsaPackageManifestAllowTargetFrameworkDifferences` | `false` | Allows target-specific manifest surface differences. |
 | `ElsaPackageManifestDiagnosticsVerbosity` | `concise` | Controls diagnostic verbosity. |
-| `ElsaPackageManifestFeatureBaseTypes` | documented CShells defaults | Semicolon-separated type names for convention discovery. |
-| `ElsaPackageManifestFeatureInterfaceTypes` | documented CShells defaults | Semicolon-separated interface type names for convention discovery. |
+| `ElsaPackageManifestAdditionalFeatureInterfaceTypes` | empty | Advanced semicolon-separated additional marker interfaces for CShells-compatible feature discovery. |
 
 ## Items Passed To The Task
 

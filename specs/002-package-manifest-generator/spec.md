@@ -14,19 +14,18 @@ Elsa Package Manifest Generator is a build-time package referenced by class libr
 
 The generated manifest is the distribution contract consumed later by Elsa Package Catalog, Elsa Runtime Builder, professional Elsa Docker images, and future runtime validation tools. The generator must emit manifests using the shared `Elsa.PackageManifests` wire contract package and must not define or serialize a separate manifest model.
 
-The first version uses an MSBuild-integrated generator because the output is an external artifact that must be created during build or pack and included in the NuGet package. The generator inspects compiled assembly metadata, project and NuGet metadata, XML documentation files, referenced metadata needed for type identification, optional source annotations, and an optional override file. It must not execute package code or invoke feature constructors.
+The first version uses an MSBuild-integrated generator because the output is an external artifact that must be created during build or pack and included in the NuGet package. The generator inspects compiled assembly metadata, project and NuGet metadata, XML documentation files, referenced metadata needed for CShells type identification, CShells feature metadata, optional manifest-specific hints, and an optional override file. It must not execute package code or invoke feature constructors.
 
 ## Clarifications
 
 ### Session 2026-05-15
 
-- Q: Where should source annotation attributes be packaged? → A: Ship annotation attributes as source-only compile assets from `Elsa.PackageManifest.Generator`, so package authors keep a one-reference workflow without emitting a runtime dependency for annotations.
+- Q: What identifies a feature? → A: The generator discovers CShells features by looking for concrete exposed types assignable to `CShells.Features.IShellFeature`. `CShells.Features.ShellFeatureAttribute` supplies the CShells feature name, display name, description, dependency, and metadata hints.
 - Q: Should complex object settings be supported in the MVP? → A: Defer complex object settings in the MVP; support primitives, enums, nullable values, arrays, lists, and dictionaries only.
 - Q: Can the override file change package identity fields? → A: The override file may not change package ID or package version; conflicts with NuGet metadata are validation errors.
 - Q: What size limits should apply to generated manifests and override files? → A: Generated manifests may be up to 1 MB, and override files may be up to 256 KB.
 - Q: What extension metadata shape should attributes support? → A: Attributes support simple string key/value extension metadata only; rich extension data belongs in the override file.
-- Q: Which namespace should source-only annotation attributes use? → A: Use `Elsa.PackageManifest.Generator.Annotations` for source-only annotation attributes.
-- Q: How should CShells feature base and interface type names be identified for convention discovery? → A: Support configurable MSBuild properties for CShells feature base and interface type names, with documented defaults.
+- Q: Should the manifest store environment variable mappings for settings? → A: No. CShells binds feature properties from `IConfiguration`, and environment variables are already just one configuration provider. The manifest should document the CShells configuration path, such as `FeatureName:PropertyName`, not invent dedicated environment variable mappings.
 
 ## Goals
 
@@ -38,7 +37,7 @@ The first version uses an MSBuild-integrated generator because the output is an 
 - Discover feature settings from configurable feature properties.
 - Extract XML documentation comments for feature and setting descriptions when available.
 - Generate JSON Schema metadata for feature settings.
-- Allow explicit source annotations and override files for metadata that cannot be inferred safely.
+- Allow CShells metadata, lightweight manifest hints, and override files for metadata that cannot be inferred safely.
 - Validate the final manifest against the versioned schema from `Elsa.PackageManifests`.
 - Support multi-targeted package projects predictably.
 - Keep generation deterministic, CI-friendly, quiet by default, and safe.
@@ -95,26 +94,26 @@ A package author exposes CShells feature classes and public configurable setting
 
 **Acceptance Scenarios**:
 
-1. **Given** a public feature class derives from a configured CShells feature base class or implements a configured feature interface, **When** generation runs, **Then** the feature is included in the manifest.
-2. **Given** a feature class uses an explicit feature annotation, **When** generation runs, **Then** annotation values enrich or override inferred feature metadata.
+1. **Given** a public feature class implements `CShells.Features.IShellFeature` directly or through a base type, **When** generation runs, **Then** the feature is included in the manifest.
+2. **Given** a feature class uses `CShells.Features.ShellFeatureAttribute`, **When** generation runs, **Then** CShells attribute values enrich or override inferred feature metadata.
 3. **Given** a feature setting property is public and settable, **When** generation runs, **Then** the property is included as a setting unless explicitly ignored.
-4. **Given** a property is static, read-only, computed-only, or ignored, **When** generation runs, **Then** it is excluded unless explicitly included by supported metadata.
+4. **Given** a property is static, read-only, computed-only, getter-only, indexer-based, or ignored, **When** generation runs, **Then** it is excluded.
 
 ---
 
 ### User Story 3 - Enrich Metadata from Documentation and Overrides (Priority: P2)
 
-A package author can use XML documentation, source annotations, and an override file to supply names, descriptions, documentation links, compatibility ranges, and metadata that inference cannot know.
+A package author can use XML documentation, CShells metadata, manifest hints, and an override file to supply names, descriptions, documentation links, compatibility ranges, and metadata that inference cannot know.
 
 **Why this priority**: Inference alone cannot produce high-quality catalog and UI metadata.
 
-**Independent Test**: Build a project with XML documentation, feature and setting annotations, and `elsa-package.overrides.json`, then verify that final manifest fields follow the documented merge order and conflict rules.
+**Independent Test**: Build a project with XML documentation, `ShellFeatureAttribute`, optional setting hints, and `elsa-package.overrides.json`, then verify that final manifest fields follow the documented merge order and conflict rules.
 
 **Acceptance Scenarios**:
 
 1. **Given** XML documentation contains feature and setting summaries, **When** generation runs, **Then** those summaries populate missing descriptions.
-2. **Given** annotations provide display names or categories, **When** generation runs, **Then** those values override inferred defaults for the annotated target.
-3. **Given** the override file provides package, feature, or setting metadata, **When** generation runs, **Then** override values take precedence over inferred, XML, and annotation values according to merge rules.
+2. **Given** CShells metadata or manifest hints provide display names or categories, **When** generation runs, **Then** those values override inferred defaults for the annotated target.
+3. **Given** the override file provides package, feature, or setting metadata, **When** generation runs, **Then** override values take precedence over inferred, XML, CShells metadata, and manifest hint values according to merge rules.
 
 ---
 
@@ -155,10 +154,10 @@ A package author multi-targets frameworks and still receives one canonical packa
 - XML documentation generation is disabled or the XML documentation file is missing.
 - XML documentation exists but contains no summary for a discovered feature or setting.
 - A feature class is internal, abstract, generic, nested, or otherwise not intended for runtime exposure.
-- A feature class matches convention-based discovery but is explicitly ignored.
-- A class has both inferred and explicit feature metadata with conflicting values.
+- A feature class matches CShells contract-based discovery but is explicitly ignored.
+- A class has both inferred metadata and CShells feature metadata with conflicting values.
 - A setting property has an unsupported or ambiguous type.
-- A setting property uses nullable reference metadata that is unavailable or inconsistent with annotations.
+- A setting property uses nullable reference metadata that is unavailable or inconsistent with manifest hints.
 - Default values cannot be determined safely without executing constructors.
 - Multiple target frameworks produce different feature surfaces.
 - The override file is missing, malformed, uses unknown fields, or references nonexistent features or settings.
@@ -196,33 +195,33 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-022**: The override file MUST be optional.
 - **FR-023**: The override file MUST support package metadata, documentation metadata, icon metadata, tags, compatibility metadata, license metadata, feature metadata overrides, setting metadata overrides, dependencies, conflicts, required capabilities, and extension metadata.
 - **FR-023a**: Override files larger than 256 KB MUST be rejected with a validation diagnostic.
-- **FR-024**: The final manifest MUST be produced by merging inferred metadata, XML documentation, source annotations, and override file values in that order.
+- **FR-024**: The final manifest MUST be produced by merging inferred metadata, XML documentation, CShells metadata, optional manifest hints, and override file values in that order.
 - **FR-025**: Later merge sources MUST take precedence over earlier merge sources for scalar values.
 - **FR-026**: Collection merge behavior MUST be deterministic and documented per collection type.
 - **FR-027**: The generator MUST report override entries that reference nonexistent features or settings.
 - **FR-027a**: The override file MUST NOT change package ID or package version, and any conflict with NuGet package identity MUST be treated as a validation error.
 - **FR-028**: The generator MUST discover CShells feature classes from the project assembly.
-- **FR-029**: A feature class MUST be discoverable when it derives from a configured CShells feature base class.
-- **FR-030**: A feature class MUST be discoverable when it implements a configured CShells feature interface.
-- **FR-030a**: CShells feature base class and interface type names used for convention discovery MUST be configurable through MSBuild properties with documented defaults.
-- **FR-031**: A feature class MUST be discoverable when it has an explicit feature annotation.
-- **FR-032**: Explicit feature annotations MUST be preferred where convention-based discovery is ambiguous.
+- **FR-029**: A feature class MUST be discoverable when it implements `CShells.Features.IShellFeature` directly or through a base type.
+- **FR-030**: `CShells.Features.ShellFeatureAttribute` MUST be used to read the CShells feature name, display name, description, dependencies, and metadata when present.
+- **FR-030a**: When `ShellFeatureAttribute.Name` is absent, the generator MUST derive the feature name using the CShells naming convention: strip `ShellFeature` or `Feature` suffixes from the CLR type name.
+- **FR-031**: A type that has `ShellFeatureAttribute` but is not assignable to `IShellFeature` MUST NOT be included as a feature.
+- **FR-032**: CShells metadata MUST be preferred where inferred display or dependency metadata is ambiguous.
 - **FR-033**: Abstract feature classes MUST NOT be included as exposed features by default.
 - **FR-034**: Generic feature type definitions MUST NOT be included as exposed features by default.
-- **FR-035**: Internal feature classes SHOULD be excluded by default unless explicitly included by supported metadata.
-- **FR-036**: Feature metadata MUST include feature ID, CLR type name, display name, description, category, settings, dependencies, conflicts, required capabilities, advanced flag, experimental flag, and extension metadata when available.
+- **FR-035**: Internal feature classes MUST be excluded in the MVP.
+- **FR-036**: Feature metadata MUST include feature ID, CShells feature name, CLR type name, display name, description, category, settings, dependencies, conflicts, required capabilities, advanced flag, experimental flag, and extension metadata when available.
 - **FR-037**: Feature IDs MUST be stable and deterministic.
-- **FR-038**: When no explicit feature ID is provided, the generator MUST infer a feature ID from stable package and type metadata.
+- **FR-038**: When no explicit feature ID is provided by the manifest contract or override file, the generator MUST infer a stable feature ID from the package ID and CShells feature name.
 - **FR-039**: The generator MUST discover feature settings from public configurable properties on discovered feature classes.
 - **FR-040**: Public instance properties with public setters MUST be included as settings by default.
 - **FR-041**: Static properties MUST be excluded.
-- **FR-042**: Read-only or computed properties MUST be excluded unless explicitly included by supported metadata.
-- **FR-043**: Settings or feature members marked with an ignore annotation MUST be excluded.
-- **FR-044**: Explicit setting annotations MUST be able to enrich or override inferred setting metadata.
+- **FR-042**: Read-only, computed-only, getter-only, and indexer properties MUST be excluded.
+- **FR-043**: Settings or feature members marked with supported ignore metadata MUST be excluded.
+- **FR-044**: Optional manifest setting hints MUST be able to enrich or override inferred setting metadata.
 - **FR-045**: The generator MUST support nullable value type metadata.
 - **FR-046**: The generator SHOULD use nullable reference type metadata when available to infer required and nullable behavior.
-- **FR-047**: The generator MUST support common validation annotations for settings.
-- **FR-048**: Setting metadata MUST include name, CLR type, JSON type, required flag, nullable flag, default value when safely discoverable, display name, description, category or group, validation constraints, enum values, secret flag, sensitive flag, restart-required flag, environment variable mapping, UI hints, advanced flag, experimental flag, and extension metadata where available.
+- **FR-047**: The generator MUST support common DataAnnotations validation attributes for settings.
+- **FR-048**: Setting metadata MUST include name, CLR type, JSON type, CShells configuration path, required flag, nullable flag, default value when safely discoverable, display name, description, category or group, validation constraints, enum values, secret flag, sensitive flag, restart-required flag, UI hints, advanced flag, experimental flag, and extension metadata where available.
 - **FR-049**: The generator MUST NOT execute feature constructors to discover default values.
 - **FR-050**: The generator MAY include default values only when they are available from compile-time constants, attributes, override metadata, or other non-executing metadata.
 - **FR-051**: Unsupported setting types MUST produce diagnostics whose severity is configurable.
@@ -243,12 +242,12 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-066**: XML documentation property summaries SHOULD populate setting descriptions when no higher-priority description is supplied.
 - **FR-067**: XML documentation remarks MAY be included where the manifest contract supports extended documentation metadata.
 - **FR-068**: XML documentation example tags MAY be included where the manifest contract supports examples.
-- **FR-069**: Source annotations MUST be lightweight metadata annotations used only as generator inputs.
-- **FR-070**: Source annotations MUST NOT replace or duplicate the shared manifest wire contract.
-- **FR-071**: The first version SHOULD support feature, setting, ignore, extension, compatibility, dependency, conflict, required-feature, and conflicts-with annotations where useful.
-- **FR-071a**: Annotation attributes MUST be provided as source-only compile assets from `Elsa.PackageManifest.Generator` so consuming packages can use annotations without emitting a runtime dependency for them.
+- **FR-069**: CShells metadata and manifest hints MUST be lightweight metadata inputs only.
+- **FR-070**: Manifest hints MUST NOT replace or duplicate the shared manifest wire contract.
+- **FR-071**: The first version SHOULD support only the smallest useful generator-owned hint surface for setting metadata, ignore behavior, and simple extension metadata.
+- **FR-071a**: Optional generator-owned hint attributes SHOULD be provided as source-only compile assets from `Elsa.PackageManifest.Generator` so consuming packages can use hints without emitting a runtime dependency for them.
 - **FR-071b**: Attribute-based extension metadata MUST be limited to simple string key/value pairs; rich extension payloads MUST be supplied through the override file.
-- **FR-071c**: Source-only annotation attributes MUST use the namespace `Elsa.PackageManifest.Generator.Annotations`.
+- **FR-071c**: Source-only manifest hint attributes SHOULD use the namespace `Elsa.PackageManifest.Generator.Hints`.
 - **FR-072**: The generator MUST produce clear diagnostics for discovered feature count, generated manifest path, missing XML documentation, invalid settings, unsupported property types, schema validation errors, and package inclusion.
 - **FR-073**: Default diagnostics MUST avoid noisy per-property success logs.
 - **FR-074**: The generator MUST support multi-targeted projects.
@@ -268,10 +267,10 @@ A package author multi-targets frameworks and still receives one canonical packa
 
 - **Elsa Package Manifest**: The generated package-level JSON document. It contains package identity, metadata, features, compatibility, documentation, dependencies, conflicts, license information, schema version, and extension metadata.
 - **Package Metadata**: Values inferred from project and NuGet metadata, including package ID, version, title, description, authors, repository URL, project URL, tags, license, readme, and target frameworks.
-- **CShells Feature**: A project assembly type that exposes a runtime feature and can declare configurable settings.
-- **Feature Setting**: A configurable public property on a discovered feature class, represented with type information, validation constraints, UI hints, environment mapping, sensitivity, and JSON Schema metadata.
+- **CShells Feature**: A concrete exposed project assembly type assignable to `CShells.Features.IShellFeature`.
+- **Feature Setting**: A configurable public property on a discovered feature class, represented with type information, CShells configuration path, validation constraints, UI hints, sensitivity, and JSON Schema metadata.
 - **XML Documentation Entry**: Documentation comments associated with a feature class or setting property, used as human-readable manifest metadata.
-- **Source Annotation**: A lightweight attribute applied in package source code to enrich or override generator inference.
+- **Manifest Hint**: A lightweight generator-owned attribute applied in package source code to enrich or override generator inference for fields CShells does not own.
 - **Override File**: Optional author-maintained JSON metadata file merged into the final manifest for information that cannot be inferred reliably.
 - **Generated Settings Schema**: JSON Schema metadata describing each feature setting's shape, constraints, enum values, nullability, and supported UI interpretation.
 - **Validation Result**: Structured outcome from validating the final manifest against the versioned schema and recommended metadata rules.
@@ -292,7 +291,7 @@ The architecture decision for the first version is:
 
 Suggested package boundaries:
 
-- `Elsa.PackageManifest.Generator`: Public package referenced by package authors; brings in build assets, task assets, and source-only compile assets for optional annotations.
+- `Elsa.PackageManifest.Generator`: Public package referenced by package authors; brings in build assets, task assets, and optional source-only compile assets for manifest hints.
 - `Elsa.PackageManifest.Generator.Core`: Optional internal/shared library for generation logic if it removes meaningful duplication between task, tests, or future analyzers.
 - `Elsa.PackageManifest.Generator.MSBuild`: Optional packaging/task assembly if separating MSBuild assets keeps the public package cleaner.
 - `Elsa.PackageManifests`: Required shared contract package for manifest DTOs, schema resources, validation behavior, and serialization rules.
@@ -303,11 +302,11 @@ Suggested package boundaries:
 2. Resolve package metadata from project and NuGet properties.
 3. Locate compiled assembly, XML documentation file, referenced assemblies needed for type identification, and optional override file.
 4. Inspect compiled assembly metadata without executing package code.
-5. Discover CShells feature classes using conventions and explicit annotations.
+5. Discover CShells feature classes using `IShellFeature` type identity and `ShellFeatureAttribute` metadata.
 6. Discover configurable settings from feature properties.
 7. Map settings to manifest metadata and generated JSON Schema metadata.
 8. Extract XML documentation summaries, remarks, and examples where available.
-9. Apply source annotation metadata.
+9. Apply CShells metadata and optional manifest hint metadata.
 10. Apply override file metadata.
 11. Build the final `Elsa.PackageManifests` contract object.
 12. Validate the final manifest against the versioned schema and recommended metadata rules.
@@ -317,19 +316,21 @@ Suggested package boundaries:
 
 ## Feature Discovery Rules
 
-Feature discovery supports both convention-based and explicit discovery.
+Feature discovery is grounded in CShells runtime contracts.
 
-Convention-based discovery includes concrete exposed types that derive from a configured CShells feature base class or implement a configured CShells feature interface. The generator provides documented default type names and allows package projects to override them through MSBuild properties. Explicit discovery includes types annotated as Elsa features. Explicit metadata is preferred when convention-based discovery would be ambiguous.
+The generator includes concrete exposed project assembly types assignable to `CShells.Features.IShellFeature`. This includes direct implementations and feature classes that inherit from a base type implementing `IShellFeature`. `CShells.Features.ShellFeatureAttribute` does not by itself make a type a feature, but it supplies authoritative CShells metadata for discovered features.
 
 Default inclusion rules:
 
-- Include concrete public feature classes that match a configured CShells base class, configured feature interface, or explicit feature annotation.
+- Include concrete public feature classes assignable to `CShells.Features.IShellFeature`.
 - Exclude abstract classes, generic type definitions, static classes, and ignored classes.
-- Exclude internal classes unless explicitly included.
+- Exclude internal classes.
 - Use stable type identity metadata for CLR type names.
-- Infer feature ID from explicit metadata first, then from stable package and type metadata.
-- Infer display name from explicit metadata, XML documentation title-equivalent metadata when available, or readable type name.
+- Infer the CShells feature name from `ShellFeatureAttribute.Name` first, then from the CShells type-name convention.
+- Infer feature ID from manifest override metadata first, then from stable package ID plus CShells feature name.
+- Infer display name from `ShellFeatureAttribute.DisplayName`, XML documentation title-equivalent metadata when available, or readable feature name.
 - Infer category only from explicit metadata or overrides; do not invent categories from namespace segments unless later explicitly approved.
+- Infer dependencies from `ShellFeatureAttribute.DependsOn` and represent type dependencies using resolved CShells feature names where possible.
 
 ## Feature Setting Discovery Rules
 
@@ -339,11 +340,10 @@ Default inclusion rules:
 
 - Include public instance properties with public setters.
 - Exclude static properties.
-- Exclude read-only or computed-only properties unless explicitly included.
-- Exclude indexer properties.
+- Exclude read-only, computed-only, getter-only, and indexer properties.
 - Exclude properties marked with ignore metadata.
-- Include explicitly annotated properties when they are safe to describe.
 - Preserve deterministic ordering by declared metadata order when available, then by property name.
+- Compute each setting's CShells configuration path as `{featureName}:{propertyName}` using the same feature name CShells uses for binding.
 
 Default required and nullable behavior:
 
@@ -358,30 +358,36 @@ The generator reads XML documentation when present and maps documentation entrie
 
 Extraction behavior:
 
-- Class `<summary>` populates feature description when no source annotation or override description is supplied.
-- Property `<summary>` populates setting description when no source annotation or override description is supplied.
+- Class `<summary>` populates feature description when no CShells metadata, manifest hint, or override description is supplied.
+- Property `<summary>` populates setting description when no manifest hint or override description is supplied.
 - `<remarks>` may populate extended documentation fields when supported by the manifest contract.
 - `<example>` may populate examples when supported by the manifest contract.
 - Missing XML documentation does not stop generation by default.
 - Missing descriptions generate warnings only when configured by recommended metadata validation or strict mode.
 
-## Attribute Model
+## CShells Metadata And Manifest Hints
 
-Attributes are optional source annotations for generation input only. They enrich inference and reduce override-file noise, but the generated JSON still uses `Elsa.PackageManifests`.
+CShells metadata is the primary annotation source for feature discovery and feature metadata. Optional manifest hints enrich inference and reduce override-file noise, but the generated JSON still uses `Elsa.PackageManifests`.
 
-Annotation attributes are shipped as source-only compile assets from `Elsa.PackageManifest.Generator`. This preserves the one-reference package author experience and avoids introducing annotation-only runtime dependencies into packages that use the generator. The annotation namespace is `Elsa.PackageManifest.Generator.Annotations`, making it clear that annotations are generator inputs rather than part of the `Elsa.PackageManifests` wire contract.
+The generator MUST understand `CShells.Features.ShellFeatureAttribute`:
 
-Recommended first-version annotations:
+- `Name`: CShells feature name and configuration section name.
+- `DisplayName`: Feature display name.
+- `Description`: Feature description when present.
+- `DependsOn`: Feature dependencies by type or string.
+- `Metadata`: CShells metadata values that can be mapped safely to manifest extension metadata.
 
-- `ElsaFeatureAttribute`: Supplies feature ID, display name, category, description, advanced flag, experimental flag, and extension metadata where supported.
-- `FeatureSettingAttribute`: Supplies setting name, display name, description, group, category, required flag, default value metadata, environment variable name, UI hint, secret or sensitive flags, restart-required flag, advanced flag, experimental flag, and extension metadata where supported.
+The generator SHOULD understand common .NET metadata already used by package authors, including XML documentation comments, nullable metadata, and DataAnnotations validation attributes.
+
+Generator-owned source-only hints MAY be added for manifest-only concerns that CShells does not own, such as ignoring a setting, marking a setting as secret, declaring UI hints, or attaching small extension metadata. The MVP should keep this surface intentionally small and must not introduce an `ElsaFeatureAttribute` or any alternate feature identity system.
+
+Potential first-version manifest hints:
+
+- `ManifestSettingAttribute`: Supplies setting display name, description, group, category, required flag, default value metadata, UI hint, secret or sensitive flags, restart-required flag, advanced flag, experimental flag, and simple extension metadata where supported.
 - `ManifestIgnoreAttribute`: Excludes a type or property from manifest generation.
 - `ManifestExtensionAttribute`: Supplies small extension metadata values where the contract allows extension data.
-- `CompatibilityAttribute`: Supplies package or feature compatibility metadata.
-- `RequiresFeatureAttribute`: Declares feature dependencies.
-- `ConflictsWithFeatureAttribute`: Declares feature conflicts.
 
-Attribute metadata must be intentionally small. Attribute-based extension metadata is limited to simple string key/value pairs. Rich metadata such as long documentation, complex compatibility matrices, icon metadata, and broad extension payloads should live in the override file.
+Rich metadata such as long documentation, complex compatibility matrices, icon metadata, feature conflicts, required capabilities, and broad extension payloads should live in the override file unless the `Elsa.PackageManifests` contract later defines a stronger hint need.
 
 ## Override File Model
 
@@ -399,7 +405,7 @@ The override file may provide:
 - Required runtime capabilities.
 - Feature metadata overrides.
 - Setting metadata overrides.
-- Environment variable mappings.
+- Setting display metadata and UI metadata. CShells configuration paths are generated from CShells binding metadata and cannot be overridden.
 - UI hints.
 - Advanced and experimental flags.
 - Extension metadata.
@@ -412,7 +418,7 @@ The final manifest is merged in this order:
 
 1. Inferred metadata.
 2. XML documentation.
-3. Source annotations.
+3. CShells metadata and optional manifest hints.
 4. Override file.
 
 Conflict rules:
@@ -447,7 +453,7 @@ Type mapping:
 - Nullable values are represented according to the active manifest schema version.
 - Unsupported types produce diagnostics according to configured severity.
 
-Validation metadata from common validation annotations should map to JSON Schema constraints when possible, including required, length, range, regular expression, enum values, and custom display metadata where supported.
+Validation metadata from common DataAnnotations validation attributes should map to JSON Schema constraints when possible, including required, length, range, regular expression, enum values, and custom display metadata where supported.
 
 ## Manifest Validation Behavior
 
@@ -491,8 +497,7 @@ The generator supports these project properties:
 - `ElsaPackageManifestFailOnWarnings`: Treats generator warnings as build failures. Default: `false`.
 - `ElsaPackageManifestAllowTargetFrameworkDifferences`: Allows target-specific differences when explicitly accepted. Default: `false`.
 - `ElsaPackageManifestDiagnosticsVerbosity`: Controls generator diagnostic verbosity. Default: concise.
-- `ElsaPackageManifestFeatureBaseTypes`: Configures CShells feature base type names used for convention discovery. Default: documented CShells defaults.
-- `ElsaPackageManifestFeatureInterfaceTypes`: Configures CShells feature interface type names used for convention discovery. Default: documented CShells defaults.
+- `ElsaPackageManifestAdditionalFeatureInterfaceTypes`: Advanced escape hatch for additional feature marker interfaces that should be treated as CShells-compatible. Default: empty.
 
 ## NuGet Package Inclusion Behavior
 
@@ -568,7 +573,7 @@ Warnings include:
 - Missing recommended descriptions.
 - Missing recommended documentation links.
 - Ignored unsupported optional metadata.
-- Convention-discovered feature ambiguity resolved by explicit metadata.
+- CShells-discovered feature ambiguity resolved by CShells metadata or manifest hints.
 
 All diagnostics should include enough context for the package author to locate the type, property, manifest path, or override entry involved.
 
@@ -579,7 +584,7 @@ All diagnostics should include enough context for the package author to locate t
 - The generator must avoid invoking constructors or property getters.
 - The generator must use metadata inspection for type, property, annotation, and nullability discovery.
 - Override files are local project inputs and must be parsed as data only.
-- Generated manifests must not include local secrets or environment-specific values unless explicitly supplied by the package author.
+- Generated manifests must not include local secrets or machine-specific configuration values.
 - Secret or sensitive settings must be marked as metadata flags, not populated with secret values.
 - Diagnostics must not print secret default values.
 - Build output must be deterministic and suitable for CI and reproducible package workflows.
@@ -592,10 +597,10 @@ Testing should cover generator behavior from package author and build-system per
 - Integration tests with sample package projects that build and pack with the generator reference only.
 - Integration tests for direct pack without a separate build command.
 - Integration tests for XML documentation present and absent.
-- Integration tests for feature discovery through base class, interface, and explicit annotation.
+- Integration tests for feature discovery through `IShellFeature`, inherited `IShellFeature`, and `ShellFeatureAttribute` metadata.
 - Integration tests for ignored features and ignored settings.
 - Integration tests for nullable reference type metadata.
-- Integration tests for common validation annotations.
+- Integration tests for common DataAnnotations validation attributes.
 - Integration tests for unsupported setting types and configured severity behavior.
 - Integration tests for malformed and valid override files.
 - Integration tests for override files larger than 256 KB and generated manifests larger than 1 MB.
@@ -611,8 +616,8 @@ Testing should cover generator behavior from package author and build-system per
 ### Measurable Outcomes
 
 - **SC-001**: A package author can add one private package reference and produce a NuGet package containing `elsa-package.json` at the package root without any additional project item configuration.
-- **SC-002**: At least 95% of standard package metadata fields are inferred correctly from normal project and NuGet metadata in sample package projects.
-- **SC-003**: Feature discovery identifies all intentionally exposed sample CShells features across base-class, interface, and explicit-annotation patterns.
+- **SC-002**: At least 95% of the FR-017 package metadata fields are inferred correctly from normal project and NuGet metadata in sample package projects.
+- **SC-003**: Feature discovery identifies all intentionally exposed sample CShells features assignable to `IShellFeature` and applies `ShellFeatureAttribute` metadata correctly.
 - **SC-004**: Setting discovery identifies all eligible public configurable sample settings and excludes all ignored, static, read-only, and computed-only sample properties.
 - **SC-005**: Generated manifests validate against the active `Elsa.PackageManifests` schema in all valid sample projects.
 - **SC-006**: Invalid manifests fail the build by default with diagnostics that identify the affected manifest path, feature, setting, or override entry.
@@ -626,9 +631,9 @@ Testing should cover generator behavior from package author and build-system per
 ## Assumptions
 
 - `Elsa.PackageManifests` exists or will be created as the shared manifest contract package with versioned JSON Schema resources and validation behavior.
-- CShells exposes stable base class, interface, or attribute points that can be used for feature identification.
+- CShells exposes `CShells.Features.IShellFeature` and `CShells.Features.ShellFeatureAttribute` as stable points for feature identification and metadata.
 - Package projects can produce XML documentation files when authors want documentation-derived descriptions.
-- Package authors are willing to use lightweight annotations or an override file for metadata that cannot be inferred safely.
+- Package authors are willing to use lightweight manifest hints or an override file for metadata that cannot be inferred safely.
 - The first version optimizes for build-time manifest generation and package inclusion, while analyzer-based authoring assistance can be added later.
 - The canonical manifest path for NuGet packages is the package root.
 - Target-specific feature differences are uncommon and should be treated conservatively in the first version.
@@ -641,7 +646,7 @@ Testing should cover generator behavior from package author and build-system per
 4. Feature classes are discovered from the project assembly.
 5. Feature settings are discovered from feature properties.
 6. XML documentation comments are used where available.
-7. Explicit annotations can override or enrich inferred metadata.
+7. CShells metadata and optional manifest hints can override or enrich inferred metadata.
 8. An override JSON file can provide additional metadata.
 9. The final manifest is validated against the versioned manifest schema.
 10. Build diagnostics are clear and actionable.
@@ -651,4 +656,4 @@ Testing should cover generator behavior from package author and build-system per
 
 ## Open Questions
 
-- Which JSON Schema library and schema draft should `Elsa.PackageManifests` standardize on?
+- None.

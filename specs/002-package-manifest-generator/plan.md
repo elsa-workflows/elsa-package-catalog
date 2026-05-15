@@ -12,11 +12,12 @@ metadata-inspection task that runs after compilation and before pack, generates
 one deterministic `elsa-package.json`, validates it with `Elsa.PackageManifests`,
 and includes it at the NuGet package root.
 
-The implementation stays deliberately small: a source-only annotation surface,
-an MSBuild task, a focused generator core, manual schema construction for the
-supported setting shapes, XML documentation parsing, JSON override merging, and
-packaging tests against sample projects. Analyzer/source-generator authoring
-support remains deferred.
+The implementation stays deliberately small: CShells metadata discovery, a tiny
+manifest-hint surface where CShells has no concept for a field, an MSBuild task,
+a focused generator core, manual schema construction for the supported setting
+shapes, XML documentation parsing, JSON override merging, and packaging tests
+against sample projects. Analyzer/source-generator authoring support remains
+deferred.
 
 ## Technical Context
 
@@ -41,8 +42,8 @@ not invoked.
 **Target Platform**: Cross-platform .NET SDK builds on macOS, Linux, Windows,
 and CI. Consuming projects are class library NuGet package projects.
 
-**Project Type**: Build-time NuGet package plus source-only annotations and
-shared generator libraries in the existing solution.
+**Project Type**: Build-time NuGet package plus optional source-only manifest
+hints and shared generator libraries in the existing solution.
 
 **Performance Goals**: Generation should add no more than 2 seconds for typical
 package projects with fewer than 50 feature types and 500 settings on warm
@@ -51,12 +52,14 @@ builds. Generated manifests must stay under 1 MB; override files must stay under
 
 **Constraints**: No package code execution; no feature constructors or property
 getters; one package author reference; root `elsa-package.json`; one canonical
-manifest for multi-targeted packages; complex object settings deferred; source
-annotations must not become the manifest contract.
+manifest for multi-targeted packages; complex object settings deferred; manifest
+hints must not become the manifest contract.
 
 **Scale/Scope**: MVP supports primitives, enums, nullable values, arrays/lists,
-dictionaries, common validation annotations, XML documentation, source-only
-annotations, override files, schema validation, and predictable multi-targeting.
+dictionaries, common DataAnnotations validation attributes, XML documentation,
+CShells `IShellFeature`/`ShellFeatureAttribute` metadata, optional source-only
+manifest hints, override files, schema validation, and predictable
+multi-targeting.
 Recursive object schema generation and Roslyn analyzers are out of scope.
 
 ## Constitution Check
@@ -68,7 +71,8 @@ Recursive object schema generation and Roslyn analyzers are out of scope.
 - **No arbitrary code execution**: PASS. Discovery uses metadata inspection of
   assemblies, XML docs, and JSON files only; constructors/getters are forbidden.
 - **Stable contracts**: PASS. Generated JSON is based on
-  `Elsa.PackageManifests`; source annotations are generator inputs only.
+  `Elsa.PackageManifests`; CShells metadata and manifest hints are generator
+  inputs only.
 - **Schema evolution**: PASS. The plan standardizes on versioned manifest schema
   validation and Draft 2020-12 JSON Schema resources owned by
   `Elsa.PackageManifests`.
@@ -123,7 +127,7 @@ src/
 │   ├── build/
 │   ├── buildTransitive/
 │   ├── src/
-│   │   └── Elsa.PackageManifest.Generator.Annotations/
+│   │   └── Elsa.PackageManifest.Generator.Hints/
 │   └── Elsa.PackageManifest.Generator.csproj
 ├── Elsa.PackageManifest.Generator.Core/
 │   ├── AssemblyInspection/
@@ -145,9 +149,9 @@ tests/
 
 **Structure Decision**: Use a small package facade plus separate core and
 MSBuild projects. `Elsa.PackageManifest.Generator` is the NuGet package authors
-reference; it carries targets, props, task binaries, and source-only annotations.
-`Core` owns deterministic generation and validation orchestration. `MSBuild`
-owns task binding and pack item integration. The existing
+reference; it carries targets, props, task binaries, and optional source-only
+manifest hints. `Core` owns deterministic generation and validation
+orchestration. `MSBuild` owns task binding and pack item integration. The existing
 `Elsa.PackageManifests` package remains the wire contract and schema owner.
 
 ## Complexity Tracking

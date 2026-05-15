@@ -158,7 +158,6 @@
         "secret": { "type": "boolean" },
         "sensitive": { "type": "boolean" },
         "restartRequired": { "type": "boolean" },
-        "environmentVariable": { "type": "string" },
         "uiHint": { "type": "string" },
         "advanced": { "type": "boolean" },
         "experimental": { "type": "boolean" },
