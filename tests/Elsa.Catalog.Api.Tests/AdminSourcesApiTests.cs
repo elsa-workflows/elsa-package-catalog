@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Elsa.Catalog.Api.Admin.Sources;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Core.Packages;
+using Elsa.Catalog.Testing;
 using FluentAssertions;
 
 namespace Elsa.Catalog.Api.Tests;
@@ -43,6 +44,58 @@ public sealed class AdminSourcesApiTests
             x.Name == "NuGet" &&
             x.IncludePatterns.Contains("Elsa.*") &&
             x.ExcludePatterns.Contains("Elsa.Experimental.*"));
+    }
+
+    [Fact]
+    public async Task Lists_source_health_last_successful_sync_and_package_count()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var lastSuccessfulSync = DateTimeOffset.UtcNow.AddMinutes(-15);
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            source.Status = PackageSourceStatus.Warning;
+            source.LastSyncedAt = DateTimeOffset.UtcNow;
+            source.LastSuccessfulSyncAt = lastSuccessfulSync;
+            source.PollingInterval = "PT30M";
+            var package = PublicCatalogSeedData.CreatePackage(source);
+            PublicCatalogSeedData.AddVersion(package);
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+
+        var sources = await client.GetFromJsonAsync<List<AdminSourceResponse>>("/api/admin/sources");
+
+        var source = sources.Should().ContainSingle().Subject;
+        source.Status.Should().Be(PackageSourceStatus.Warning);
+        source.LastSuccessfulSyncAt.Should().BeCloseTo(lastSuccessfulSync, TimeSpan.FromSeconds(1));
+        source.PackageCount.Should().Be(1);
+        source.PollingInterval.Should().Be("PT30M");
+    }
+
+    [Fact]
+    public async Task Soft_deleted_sources_are_hidden_from_admin_reads()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var deletedSourceId = Guid.Empty;
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            source.SoftDeletedAt = DateTimeOffset.UtcNow;
+            deletedSourceId = source.Id;
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+
+        var sources = await client.GetFromJsonAsync<List<AdminSourceResponse>>("/api/admin/sources");
+        var getDeleted = await client.GetAsync($"/api/admin/sources/{deletedSourceId}");
+
+        sources.Should().BeEmpty();
+        getDeleted.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]

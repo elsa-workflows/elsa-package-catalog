@@ -69,6 +69,26 @@ public sealed class PackageSyncServiceTests
     }
 
     [Fact]
+    public async Task Does_not_advance_last_successful_sync_when_source_has_failed_items()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        source.LastSuccessfulSyncAt = DateTimeOffset.UtcNow.AddDays(-1);
+        var previousLastSuccessfulSync = source.LastSuccessfulSyncAt;
+        var sources = new InMemorySourceStore([source]);
+        var catalog = new InMemorySyncCatalogStore();
+        var syncRuns = new InMemorySyncRunStore();
+        var service = CreateService(sources, catalog, syncRuns, new FakeDiscovery([new("Elsa.Email", "1.0.0")]), new ThrowingDownloader());
+
+        var run = await service.SyncAllAsync();
+
+        run.Status.Should().Be(SyncRunStatus.CompletedWithErrors);
+        source.Status.Should().Be(PackageSourceStatus.Warning);
+        source.LastSyncedAt.Should().NotBeNull();
+        source.LastSuccessfulSyncAt.Should().Be(previousLastSuccessfulSync);
+        sources.SaveChangesCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Rejects_overlapping_all_source_syncs()
     {
         var source = PublicCatalogSeedData.CreatePackageSource();
@@ -108,11 +128,17 @@ public sealed class PackageSyncServiceTests
 
     private sealed class InMemorySourceStore(IReadOnlyList<PackageSource> sources) : IPackageSourceStore
     {
+        public int SaveChangesCount { get; private set; }
+
         public Task<IReadOnlyList<PackageSource>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult(sources);
         public Task<PackageSource?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(sources.SingleOrDefault(x => x.Id == id));
+        public Task<IReadOnlyDictionary<Guid, int>> GetPackageCountsAsync(IReadOnlyCollection<Guid> sourceIds, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyDictionary<Guid, int>>(new Dictionary<Guid, int>());
         public Task AddAsync(PackageSource source, CancellationToken cancellationToken = default) => Task.CompletedTask;
-        public void Remove(PackageSource source) { }
-        public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            SaveChangesCount++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class InMemorySyncCatalogStore(IReadOnlyList<Package>? packages = null) : ISyncCatalogStore
@@ -173,6 +199,12 @@ public sealed class PackageSyncServiceTests
     {
         public Task<Stream> DownloadPackageAsync(PackageSource source, string packageId, string version, CancellationToken cancellationToken = default) =>
             Task.FromResult<Stream>(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(manifestJson)));
+    }
+
+    private sealed class ThrowingDownloader : IPackageArchiveDownloader
+    {
+        public Task<Stream> DownloadPackageAsync(PackageSource source, string packageId, string version, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("download failed");
     }
 
     private sealed class FakeManifestReader : IPackageArchiveManifestReader
