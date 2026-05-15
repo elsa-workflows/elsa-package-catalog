@@ -27,6 +27,7 @@ Required UI fields per item:
 - `excludePatterns`
 - `approvalPolicy`
 - `status`
+- `isSyncing`
 - `lastSuccessfulSyncAt`
 - `lastSyncedAt`
 - `packageCount`
@@ -36,6 +37,8 @@ Required UI fields per item:
 Notes:
 
 - `status` and `lastSuccessfulSyncAt` are guaranteed source health fields.
+- `isSyncing` is transient process state and may reflect manual or scheduled
+  syncs currently running in the API host.
 - `packageCount` may be zero when no packages have been indexed.
 - Soft-deleted sources are omitted from the default list.
 

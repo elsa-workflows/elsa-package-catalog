@@ -21,6 +21,7 @@ public sealed record AdminSourceResponse(
     IReadOnlyList<string> ExcludePatterns,
     PackageSourceApprovalPolicy ApprovalPolicy,
     PackageSourceStatus Status,
+    bool IsSyncing,
     DateTimeOffset? LastSyncedAt,
     DateTimeOffset? LastSuccessfulSyncAt,
     string? LastSyncError,

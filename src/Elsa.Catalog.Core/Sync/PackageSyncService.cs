@@ -20,7 +20,8 @@ public sealed class PackageSyncService(
     ManifestIngestionService ingestion,
     PackageVersionPolicy versionPolicy,
     ISyncDiagnostics diagnostics,
-    SyncConcurrencyGuard concurrencyGuard)
+    SyncConcurrencyGuard concurrencyGuard,
+    SourceSyncActivityTracker syncActivity)
 {
     public async Task<SyncRun> SyncAllAsync(CancellationToken cancellationToken = default)
     {
@@ -90,6 +91,7 @@ public sealed class PackageSyncService(
 
     private async Task SyncSourceAsync(SyncRun run, PackageSource source, Dictionary<string, int> counters, CancellationToken cancellationToken)
     {
+        using var activity = syncActivity.BeginSourceSync(source.Id);
         IReadOnlyList<DiscoveredPackageVersion> discovered;
         try
         {

@@ -8,6 +8,7 @@ export const sourceFixture = {
   excludePatterns: ["*.Tests"],
   approvalPolicy: "Manual",
   status: "Healthy",
+  isSyncing: false,
   lastSuccessfulSyncAt: "2026-05-15T08:00:00Z",
   lastSyncedAt: "2026-05-15T08:00:00Z",
   lastSyncError: null,

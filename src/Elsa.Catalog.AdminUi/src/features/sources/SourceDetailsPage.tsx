@@ -6,16 +6,20 @@ import { RequestStateView } from "@/components/states/RequestStateViews";
 import { SourceActions } from "@/features/sources/SourceActions";
 import { getSource } from "@/features/sources/sourceApi";
 import { sourceHealthText } from "@/features/sources/sourceModels";
+import { useSyncingSourceIds } from "@/features/sources/sourceSyncState";
 import { formatDateTime } from "@/lib/formatters";
 import { sourceStatusTone, statusToneClass } from "@/lib/status/statusBadges";
 
 export function SourceDetailsPage() {
   const { sourceId } = useParams();
   const navigate = useNavigate();
-  const source = useQuery({ queryKey: ["sources", sourceId], queryFn: () => getSource(sourceId!), enabled: Boolean(sourceId) });
+  const { syncingSourceIds, setSourceSyncing } = useSyncingSourceIds();
+  const source = useQuery({ queryKey: ["sources", sourceId], queryFn: () => getSource(sourceId!), enabled: Boolean(sourceId), refetchInterval: 30_000 });
 
   if (source.isLoading) return <RequestStateView state="loading" title="Loading source" />;
   if (source.isError || !source.data) return <RequestStateView state="not-found" title="Source not found" />;
+
+  const isSyncing = source.data.isSyncing || syncingSourceIds.has(source.data.id);
 
   return (
     <section className="space-y-5">
@@ -31,14 +35,14 @@ export function SourceDetailsPage() {
         </div>
       </div>
       <div className="grid gap-3 md:grid-cols-3">
-        <Info label="Health" value={<Badge className={statusToneClass(sourceStatusTone(source.data.status))}>{sourceHealthText(source.data)}</Badge>} />
+        <Info label="Health" value={<Badge className={statusToneClass(sourceStatusTone(isSyncing ? "syncing" : source.data.status))}>{sourceHealthText(source.data, isSyncing)}</Badge>} />
         <Info label="Last successful sync" value={formatDateTime(source.data.lastSuccessfulSyncAt)} />
         <Info label="Package count" value={source.data.packageCount} />
         <Info label="Polling interval" value={source.data.pollingInterval ?? "Manual"} />
         <Info label="Approval policy" value={source.data.approvalPolicy} />
         <Info label="Enabled" value={source.data.enabled ? "Yes" : "No"} />
       </div>
-      {source.data.lastSyncError ? (
+      {source.data.lastSyncError && !isSyncing ? (
         <div className="rounded-ui border border-destructive/30 bg-destructive/5 p-4">
           <div className="text-xs uppercase text-destructive">Last sync error</div>
           <p className="mt-2 break-words text-sm text-foreground">{source.data.lastSyncError}</p>
@@ -51,7 +55,7 @@ export function SourceDetailsPage() {
           <PatternList title="Exclude" items={source.data.excludePatterns} />
         </div>
       </div>
-      <SourceActions source={source.data} onDeleted={() => navigate("/admin/sources")} showEdit={false} />
+      <SourceActions source={source.data} onDeleted={() => navigate("/admin/sources")} onSyncStateChange={setSourceSyncing} showEdit={false} />
     </section>
   );
 }

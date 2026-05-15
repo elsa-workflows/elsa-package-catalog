@@ -4,8 +4,10 @@ using System.Text.Json;
 using Elsa.Catalog.Api.Admin.Sources;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Core.Packages;
+using Elsa.Catalog.Core.Sync;
 using Elsa.Catalog.Testing;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Elsa.Catalog.Api.Tests;
 
@@ -104,6 +106,29 @@ public sealed class AdminSourcesApiTests
         source.LastSyncError.Should().Be("Elsa.Email 1.0.0: download failed");
         source.PackageCount.Should().Be(1);
         source.PollingInterval.Should().Be("PT30M");
+    }
+
+    [Fact]
+    public async Task Lists_source_sync_activity()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var sourceId = Guid.Empty;
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            sourceId = source.Id;
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+        var syncActivity = app.Services.GetRequiredService<SourceSyncActivityTracker>();
+
+        using var activity = syncActivity.BeginSourceSync(sourceId);
+
+        var sources = await client.GetCatalogJsonAsync<List<AdminSourceResponse>>("/api/admin/sources");
+
+        sources.Should().ContainSingle().Subject.IsSyncing.Should().BeTrue();
     }
 
     [Fact]
