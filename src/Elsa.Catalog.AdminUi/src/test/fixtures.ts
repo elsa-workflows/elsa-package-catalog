@@ -46,6 +46,8 @@ export const syncRunFixture = {
   completedAt: "2026-05-15T08:02:14Z",
   error: null,
   summaryCountersJson: JSON.stringify({ scanned: 52, indexed: 4, failed: 1 }),
+  itemCount: 1,
+  sources: [{ id: "source-1", name: "Elsa Official" }],
   items: [
     {
       id: "item-1",

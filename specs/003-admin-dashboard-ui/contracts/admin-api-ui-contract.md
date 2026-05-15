@@ -266,7 +266,14 @@ Required UI fields:
 - `duration`
 - `error`
 - `summaryCounters`
+- `itemCount`
+- `sources`
 - `items`
+
+Sync run source fields:
+
+- `id`
+- `name`
 
 Sync run item fields:
 

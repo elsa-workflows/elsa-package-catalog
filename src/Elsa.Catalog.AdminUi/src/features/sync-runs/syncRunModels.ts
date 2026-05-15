@@ -4,6 +4,11 @@ export type SyncRunItemStatus = "Discovered" | "Skipped" | "Downloaded" | "Index
 
 export type SummaryCounters = Record<string, number>;
 
+export type SyncRunSource = {
+  id: string;
+  name?: string | null;
+};
+
 export type SyncRunItem = {
   id: string;
   sourceId?: string | null;
@@ -24,15 +29,19 @@ export type SyncRun = {
   completedAt?: string | null;
   error?: string | null;
   summaryCounters: SummaryCounters;
+  itemCount: number;
+  sources: SyncRunSource[];
   items: SyncRunItem[];
 };
 
-type SyncRunResponse = Omit<SyncRun, "summaryCounters" | "items"> & {
+type SyncRunResponse = Omit<SyncRun, "summaryCounters" | "itemCount" | "sources" | "items"> & {
   summaryCounters?: SummaryCounters | string | null;
   summaryCountersJson?: string | null;
   packagesScanned?: number;
   packagesUpdated?: number;
   failures?: number;
+  itemCount?: number;
+  sources?: SyncRunSource[] | null;
   items?: SyncRunItem[] | null;
 };
 
@@ -50,6 +59,7 @@ export function normalizeSyncRuns(response: unknown): SyncRun[] {
 
 export function normalizeSyncRun(response: unknown): SyncRun {
   const run = response as SyncRunResponse;
+  const items = run.items ?? [];
   return {
     id: run.id,
     trigger: run.trigger,
@@ -58,7 +68,9 @@ export function normalizeSyncRun(response: unknown): SyncRun {
     completedAt: run.completedAt,
     error: run.error,
     summaryCounters: withLegacyCounterFallbacks(parseSummaryCounters(run), run),
-    items: run.items ?? []
+    itemCount: typeof run.itemCount === "number" ? run.itemCount : items.length,
+    sources: normalizeSources(run.sources),
+    items
   };
 }
 
@@ -81,6 +93,12 @@ export function syncRunTriggerLabel(trigger: SyncRunTrigger) {
     default:
       return "Scheduled";
   }
+}
+
+export function syncRunSourceLabel(run: SyncRun) {
+  if (run.sources.length === 1) return sourceDisplayName(run.sources[0]);
+  if (run.sources.length > 1) return `${run.sources.length} sources`;
+  return run.trigger === "ManualSource" || run.trigger === "ManualPackage" ? "Unknown source" : "All enabled sources";
 }
 
 export function syncRunStatusLabel(status: SyncRunStatus) {
@@ -120,6 +138,11 @@ export function failedItems(run: SyncRun) {
 
 export function shortId(id: string) {
   return id.length > 8 ? id.slice(0, 8) : id;
+}
+
+export function sourceDisplayName(source: SyncRunSource) {
+  const name = source.name?.trim();
+  return name ? name : shortId(source.id);
 }
 
 function parseSummaryCounters(run: SyncRunResponse): SummaryCounters {
@@ -170,6 +193,11 @@ function normalizeCounterObject(value: unknown): SummaryCounters {
       .filter(([, counter]) => typeof counter === "number")
       .map(([key, counter]) => [key.toLowerCase(), counter as number])
   );
+}
+
+function normalizeSources(sources: SyncRunSource[] | null | undefined): SyncRunSource[] {
+  if (!Array.isArray(sources)) return [];
+  return sources.filter((source) => Boolean(source.id));
 }
 
 function hasItems(response: unknown): response is { items: unknown[] } {

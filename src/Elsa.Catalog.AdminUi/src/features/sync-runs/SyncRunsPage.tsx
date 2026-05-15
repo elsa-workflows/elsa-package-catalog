@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { Badge, Button, EmptyState, Input, SecondaryButton, Select, Table } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
 import { listSyncRuns, syncAll } from "@/features/sync-runs/syncRunApi";
+import { SyncRunSourceValue } from "@/features/sync-runs/SyncRunSourceValue";
 import type { SyncRunStatus, SyncRunTrigger } from "@/features/sync-runs/syncRunModels";
 import {
   isActiveSyncRun,
@@ -37,7 +38,8 @@ export function SyncRunsPage() {
   const filtered = useMemo(() => {
     const term = filter.trim().toLowerCase();
     return (syncRuns.data ?? []).filter((run) => {
-      const matchesTerm = !term || `${run.id} ${run.status} ${run.trigger} ${run.error ?? ""}`.toLowerCase().includes(term);
+      const sourceText = run.sources.map((source) => `${source.id} ${source.name ?? ""}`).join(" ");
+      const matchesTerm = !term || `${run.id} ${run.status} ${run.trigger} ${run.error ?? ""} ${sourceText}`.toLowerCase().includes(term);
       const matchesStatus = status === "All" || run.status === status;
       const matchesTrigger = trigger === "All" || run.trigger === trigger;
       return matchesTerm && matchesStatus && matchesTrigger;
@@ -116,6 +118,7 @@ export function SyncRunsPage() {
               <tr>
                 <th className="px-3 py-2">Started</th>
                 <th className="px-3 py-2">Duration</th>
+                <th className="px-3 py-2">Source</th>
                 <th className="px-3 py-2">Trigger</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Scanned</th>
@@ -132,6 +135,9 @@ export function SyncRunsPage() {
                     <div className="mt-1 font-mono text-xs text-muted-foreground">{shortId(run.id)}</div>
                   </td>
                   <td className="px-3 py-3">{formatDuration(run.startedAt, run.completedAt)}</td>
+                  <td className="px-3 py-3">
+                    <SyncRunSourceValue run={run} />
+                  </td>
                   <td className="px-3 py-3">{syncRunTriggerLabel(run.trigger)}</td>
                   <td className="px-3 py-3">
                     <Badge className={statusToneClass(sourceStatusTone(run.status))}>{syncRunStatusLabel(run.status)}</Badge>
@@ -139,7 +145,7 @@ export function SyncRunsPage() {
                   <td className="px-3 py-3">{packagesScanned(run)}</td>
                   <td className="px-3 py-3">{packagesUpdated(run)}</td>
                   <td className="px-3 py-3">{syncFailures(run)}</td>
-                  <td className="px-3 py-3">{run.items.length}</td>
+                  <td className="px-3 py-3">{run.itemCount}</td>
                 </tr>
               ))}
             </tbody>

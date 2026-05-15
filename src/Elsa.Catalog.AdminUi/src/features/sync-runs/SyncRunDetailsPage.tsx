@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { Badge, EmptyState, Table } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
 import { getSyncRun } from "@/features/sync-runs/syncRunApi";
+import { SyncRunSourceValue } from "@/features/sync-runs/SyncRunSourceValue";
 import type { SyncRunItem } from "@/features/sync-runs/syncRunModels";
 import {
   failedItems,
@@ -52,13 +53,14 @@ export function SyncRunDetailsPage() {
 
       <div className="grid gap-3 md:grid-cols-4">
         <Info label="Trigger" value={syncRunTriggerLabel(run.trigger)} />
+        <Info label="Source" value={<SyncRunSourceValue run={run} />} />
         <Info label="Started" value={formatDateTime(run.startedAt)} />
         <Info label="Completed" value={run.completedAt ? formatDateTime(run.completedAt) : "Still running"} />
         <Info label="Duration" value={formatDuration(run.startedAt, run.completedAt)} />
         <Info label="Packages scanned" value={packagesScanned(run)} />
         <Info label="Packages updated" value={packagesUpdated(run)} />
         <Info label="Failures" value={syncFailures(run)} />
-        <Info label="Items" value={run.items.length} />
+        <Info label="Items" value={run.itemCount} />
       </div>
 
       {run.error ? (
