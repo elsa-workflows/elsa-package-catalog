@@ -11,9 +11,12 @@ specs/003-admin-dashboard-ui/plan.md
 - File artifact generation only: compiled assemblies, XML docs, project/NuGet metadata, reference metadata, optional overrides in; deterministic `elsa-package.json` and NuGet package root inclusion out (002-package-manifest-generator)
 - TypeScript admin web UI + React, React Router, TanStack Query, TailwindCSS, shadcn/ui-style components, existing authenticated Catalog Admin REST APIs (003-admin-dashboard-ui)
 - No frontend-owned durable storage; transient UI state only, with durable catalog state remaining in existing backend persistence (003-admin-dashboard-ui)
+- C# on .NET 10 LTS with nullable reference types + existing MSBuild task APIs, metadata inspection, System.Text.Json, Elsa.PackageManifests validation, xUnit, FluentAssertions (003-generator-adoption-fixes)
+- File artifact generation only: compiled assemblies/XML docs/project metadata in; deterministic `elsa-package.json` and NuGet package root inclusion out (003-generator-adoption-fixes)
 
 ## Recent Changes
 - 001-package-catalog: Added implementation plan, research, data model, OpenAPI contract, quickstart, and current plan reference.
 - 001-package-catalog: Shifted project structure to onion-style `Elsa.Catalog.Core`, `Elsa.Catalog.Persistence.EntityFrameworkCore`, and `Elsa.Catalog.Packaging.NuGet`.
 - 002-package-manifest-generator: Added implementation plan, research, data model, MSBuild/annotation/package-layout contracts, override schema, and quickstart.
 - 003-admin-dashboard-ui: Added implementation plan, research, data model, admin API/UI route contracts, and quickstart for the lightweight operational admin dashboard.
+- 003-generator-adoption-fixes: Added plan, research, data model, diagnostic policy, setting discovery, package inclusion contracts, and quickstart.

@@ -33,6 +33,8 @@ jobs:
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      AZURE_RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      AZURE_WEBAPP_NAME: ${{ vars.AZURE_WEBAPP_NAME }}
       AZURE_APP_SERVICE_DASHBOARD_URI: ${{ vars.AZURE_APP_SERVICE_DASHBOARD_URI }}
       AZURE_CONTAINER_REGISTRY_ENDPOINT: ${{ vars.AZURE_CONTAINER_REGISTRY_ENDPOINT }}
       API_IDENTITY_CLIENTID: ${{ vars.API_IDENTITY_CLIENTID }}
@@ -71,6 +73,8 @@ jobs:
             AZURE_SUBSCRIPTION_ID
             AZURE_ENV_NAME
             AZURE_LOCATION
+            AZURE_RESOURCE_GROUP
+            AZURE_WEBAPP_NAME
             AZURE_APP_SERVICE_DASHBOARD_URI
             AZURE_CONTAINER_REGISTRY_ENDPOINT
             API_IDENTITY_CLIENTID
@@ -110,6 +114,13 @@ jobs:
             --tenant-id "$AZURE_TENANT_ID" \
             --federated-credential-provider github
 
+      - name: Log in Azure CLI
+        uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
       - name: Configure azd environment
         shell: bash
         run: |
@@ -142,5 +153,31 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.deploy_mode }}" = "infra" ]; then
             azd up --no-prompt
           else
-            azd deploy --no-prompt
+            image="$AZURE_CONTAINER_REGISTRY_ENDPOINT/elsa-package-catalog/api-elsa-package-catalog:${GITHUB_SHA}"
+            acr_name="${AZURE_CONTAINER_REGISTRY_ENDPOINT%%.azurecr.io}"
+
+            az acr login --name "$acr_name"
+            docker build --file src/Elsa.Catalog.Api/Dockerfile --tag "$image" .
+            docker push "$image"
+
+            az webapp config appsettings set \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --name "$AZURE_WEBAPP_NAME" \
+              --settings AZURE_TOKEN_CREDENTIALS=prod \
+              --output none
+
+            az webapp sitecontainers update \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --name "$AZURE_WEBAPP_NAME" \
+              --container-name main \
+              --image "$image" \
+              --target-port 8080 \
+              --is-main true \
+              --user-assigned-identity "$ELSA_PACKAGE_CATALOG_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID" \
+              --output none
+
+            az webapp restart \
+              --resource-group "$AZURE_RESOURCE_GROUP" \
+              --name "$AZURE_WEBAPP_NAME" \
+              --output none
           fi

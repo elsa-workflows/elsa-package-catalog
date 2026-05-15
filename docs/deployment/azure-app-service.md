@@ -41,16 +41,19 @@ confirm the detected Aspire AppHost.
 ## GitHub Actions Deployment
 
 The `Azure API Deploy` workflow runs on pushes to `main` and can also be run
-manually from GitHub Actions. Normal `main` deployments run:
+manually from GitHub Actions. Normal `main` deployments build the API container,
+push it to ACR, and update the existing App Service site container:
 
 ```bash
-azd deploy --no-prompt
+docker build --file src/Elsa.Catalog.Api/Dockerfile --tag <acr>/<repo>:<sha> .
+docker push <acr>/<repo>:<sha>
+az webapp sitecontainers update ...
 ```
 
 This is the fast path for application-only updates because the Azure resources
-are expected to already exist for the selected `azd` environment. If the AppHost
-infrastructure shape changes, run the same workflow manually and choose
-`deploy_mode: infra`; that path runs:
+are expected to already exist. It also avoids reapplying the App Service Bicep
+module on every code change. If the AppHost infrastructure shape changes, run
+the same workflow manually and choose `deploy_mode: infra`; that path runs:
 
 ```bash
 azd up --no-prompt
@@ -78,6 +81,9 @@ Required GitHub Actions variables:
   `elsa-package-catalog`.
 - `AZURE_LOCATION`: Azure region for the `azd` environment, for example
   `westeurope`.
+- `AZURE_RESOURCE_GROUP`: resource group containing the deployed App Service,
+  for example `rg-elsa-package-catalog`.
+- `AZURE_WEBAPP_NAME`: API App Service name, for example `api-k35qdj734hds2`.
 - `AZURE_APP_SERVICE_DASHBOARD_URI`: Aspire dashboard URL emitted by `azd up`.
 - `AZURE_CONTAINER_REGISTRY_ENDPOINT`: ACR login server for app image pushes,
   for example `elsapackagecatalogacrk35qdj734hds2.azurecr.io`.
@@ -103,10 +109,49 @@ Required GitHub Actions secrets:
   and surfaced to the API as `Authentication__ApiKey`.
 
 The workflow validates the configuration, restores the solution, builds the
-Aspire AppHost, runs the API test project, signs in with `azd auth login` using
-GitHub federated credentials, creates the local CI `azd` environment metadata,
-sets the secured `infra.parameters.adminApiKey` parameter and required azd
-environment outputs for the run, and deploys.
+Aspire AppHost, runs the API test project, signs in to Azure with GitHub
+federated credentials, creates the local CI `azd` environment metadata, sets the
+secured `infra.parameters.adminApiKey` parameter and required azd environment
+outputs for the run, then deploys either the application container or the full
+infrastructure path.
+
+## GitHub/Azure Bootstrap
+
+Use the bootstrap script to recreate or refresh the GitHub `production`
+environment wiring from the selected `azd` environment:
+
+```bash
+scripts/bootstrap-github-azure.sh --azd-environment elsa-package-catalog
+```
+
+The script:
+
+- creates the GitHub environment if needed;
+- optionally runs `azd pipeline config --provider github --auth-type federated`
+  to configure the Microsoft Entra federated credential;
+- reads deployment outputs from `azd env get-value`;
+- sets the required GitHub environment variables with `gh variable set`;
+- sets `ADMIN_API_KEY` with `gh secret set` without printing the value.
+
+If the federated credential already exists and only the GitHub variables/secrets
+need to be refreshed, skip the Azure pipeline setup step:
+
+```bash
+scripts/bootstrap-github-azure.sh --skip-pipeline-config
+```
+
+For a preview that does not modify Azure or GitHub:
+
+```bash
+scripts/bootstrap-github-azure.sh --skip-pipeline-config --dry-run
+```
+
+Set `ADMIN_API_KEY` in the shell to override the value discovered from the local
+`azd` environment:
+
+```bash
+ADMIN_API_KEY='<strong-secret>' scripts/bootstrap-github-azure.sh
+```
 
 ## Removing Existing Resources
 
