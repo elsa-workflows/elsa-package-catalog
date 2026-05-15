@@ -13,6 +13,7 @@ export type PackageSource = {
   status: SourceStatus;
   lastSyncedAt?: string | null;
   lastSuccessfulSyncAt?: string | null;
+  lastSyncError?: string | null;
   packageCount: number;
   softDeletedAt?: string | null;
   pollingInterval?: string | null;

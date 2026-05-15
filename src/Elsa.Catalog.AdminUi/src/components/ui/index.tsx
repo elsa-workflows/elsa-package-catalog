@@ -2,21 +2,20 @@ import { forwardRef } from "react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(function Button({ className, ...props }, ref) {
-  return (
-    <button
-      ref={ref}
-      className={cn(
-        "inline-flex h-9 items-center justify-center gap-2 rounded-ui border border-border bg-foreground px-3 text-sm font-medium text-background transition-colors hover:opacity-90 disabled:pointer-events-none disabled:opacity-50",
-        className
-      )}
-      {...props}
-    />
+export function buttonClassName(variant: "primary" | "secondary" = "primary", className?: string) {
+  return cn(
+    "inline-flex h-9 items-center justify-center gap-2 rounded-ui border border-border px-3 text-sm font-medium transition-colors hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50",
+    variant === "primary" ? "bg-foreground text-background" : "bg-background text-foreground hover:bg-muted",
+    className
   );
+}
+
+export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(function Button({ className, ...props }, ref) {
+  return <button ref={ref} className={buttonClassName("primary", className)} {...props} />;
 });
 
 export const SecondaryButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(function SecondaryButton({ className, ...props }, ref) {
-  return <Button ref={ref} className={cn("bg-background text-foreground hover:bg-muted", className)} {...props} />;
+  return <button ref={ref} className={buttonClassName("secondary", className)} {...props} />;
 });
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {

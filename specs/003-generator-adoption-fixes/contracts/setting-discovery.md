@@ -1,9 +1,9 @@
-# Contract: Setting Discovery For Delegate-Shaped Code Hooks
+# Contract: Setting Discovery For Non-Manifestable Properties
 
 ## Purpose
 
 Define which shell-feature properties become deploy-time settings and which are
-ignored as code configuration hooks.
+ignored because they cannot be represented in the package manifest.
 
 ## Included Deploy-Time Settings
 
@@ -36,16 +36,25 @@ public IDictionary<string, Func<IServiceProvider, ValueTask<IWorkflow>>> Factori
 
 ## Diagnostic Behavior
 
-- Ignored code hooks do not appear in manifest settings.
-- Ignored code hooks do not emit unsupported-setting errors.
-- Ignored code hooks do not emit warnings by default.
+- Ignored code hooks and unsupported setting candidates do not appear in
+  manifest settings.
+- Ignored code hooks and unsupported setting candidates do not emit
+  unsupported-setting errors.
+- Ignored code hooks and unsupported setting candidates do not emit warnings by
+  default.
 - Verbose diagnostics may identify ignored code hooks and the owning feature.
+- Low-importance diagnostics identify unsupported non-delegate omissions,
+  including the owning feature, property name, and CLR type.
 
 ## Unsupported Settings
 
 Non-delegate complex object settings remain unsupported unless represented by a
-supported primitive, enum, nullable, array, list, or dictionary shape. These
-properties continue to follow the configured diagnostic severity policy.
+supported primitive, enum, nullable, array, list, or dictionary shape.
+Unsupported CLR-only shapes such as `System.Type` are also unsupported.
+
+Unsupported setting candidates are omitted from the manifest and emit
+low-importance non-warning diagnostics. They must not fail default builds or
+fail-on-warnings builds unless another warning or error is present.
 
 ## Acceptance Tests
 
@@ -54,5 +63,7 @@ properties continue to follow the configured diagnostic severity policy.
 - Direct delegate hooks are ignored without default warnings.
 - Delegate-valued dictionaries and collections are ignored without default
   warnings.
-- Non-delegate unsupported object settings still produce unsupported-setting
-  diagnostics.
+- `System.Type` settings are omitted with low-importance diagnostics and no
+  warnings or errors.
+- Non-delegate unsupported object settings are omitted with low-importance
+  diagnostics and no warnings or errors.

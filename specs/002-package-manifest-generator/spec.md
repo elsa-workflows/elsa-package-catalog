@@ -225,7 +225,7 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-048**: Setting metadata MUST include name, CLR type, JSON type, CShells configuration path, required flag, nullable flag, default value when safely discoverable, display name, description, category or group, validation constraints, enum values, secret flag, sensitive flag, restart-required flag, UI hints, advanced flag, experimental flag, and extension metadata where available.
 - **FR-049**: The generator MUST NOT execute feature constructors to discover default values.
 - **FR-050**: The generator MAY include default values only when they are available from compile-time constants, attributes, override metadata, or other non-executing metadata.
-- **FR-051**: Unsupported setting types MUST produce diagnostics whose severity is configurable.
+- **FR-051**: Unsupported setting types MUST be omitted from generated manifest settings and MUST produce low-importance non-warning diagnostics by default.
 - **FR-052**: The generator MUST map supported setting types to JSON Schema metadata.
 - **FR-053**: String settings MUST map to JSON string schema.
 - **FR-054**: Boolean settings MUST map to JSON boolean schema.
@@ -452,7 +452,7 @@ Type mapping:
 - Dictionaries map to `object`.
 - Complex object settings are deferred from the MVP unless represented through supported primitive, enum, nullable, array, list, or dictionary shapes.
 - Nullable values are represented according to the active manifest schema version.
-- Unsupported types produce diagnostics according to configured severity.
+- Unsupported types are omitted from generated manifest settings and produce low-importance non-warning diagnostics by default.
 
 Validation metadata from common DataAnnotations validation attributes should map to JSON Schema constraints when possible, including required, length, range, regular expression, enum values, and custom display metadata where supported.
 
@@ -478,7 +478,7 @@ Validation includes:
 Default behavior:
 
 - Schema errors fail the build.
-- Unsupported critical setting types fail the build.
+- Unsupported setting types are omitted from manifest settings with low-importance diagnostics.
 - Missing recommended metadata produces warnings.
 - Missing XML documentation produces a warning only when descriptions are required by configured policy.
 - Strict mode increases recommended metadata checks.
@@ -565,7 +565,6 @@ Validation errors include:
 - Generated manifest exceeds 1 MB.
 - Duplicate feature IDs.
 - Duplicate setting names within a feature.
-- Unsupported critical setting types.
 - Invalid compatibility ranges.
 
 Warnings include:

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("source operations", () => {
-  test("create, pattern-test, sync, toggle, and soft-delete source workflow", async ({ page }) => {
+  test("create, edit, pattern-test, sync, toggle, and soft-delete source workflow", async ({ page }) => {
     let source: Record<string, unknown> | null = null;
     const sourceBody = {
       id: "source-1",
@@ -15,6 +15,7 @@ test.describe("source operations", () => {
       status: "Healthy",
       lastSyncedAt: null,
       lastSuccessfulSyncAt: null,
+      lastSyncError: null,
       packageCount: 0,
       softDeletedAt: null,
       pollingInterval: "PT30M",
@@ -56,6 +57,10 @@ test.describe("source operations", () => {
     await expect(page.getByText("Elsa.Tests")).toBeVisible();
     await page.getByRole("button", { name: "Save Source" }).click();
     await expect(page.getByRole("link", { name: "Elsa Official" })).toBeVisible();
+    await page.getByRole("link", { name: "Edit" }).click();
+    await page.getByLabel("Name").fill("Elsa Internal");
+    await page.getByRole("button", { name: "Save Source" }).click();
+    await expect(page.getByRole("link", { name: "Elsa Internal" })).toBeVisible();
     await page.getByRole("button", { name: "Sync" }).click();
     await page.getByRole("button", { name: "Disable" }).click();
     await expect(page.getByText("No")).toBeVisible();

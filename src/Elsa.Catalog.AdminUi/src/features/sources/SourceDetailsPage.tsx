@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Badge } from "@/components/ui";
+import { Badge, buttonClassName } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
 import { SourceActions } from "@/features/sources/SourceActions";
 import { getSource } from "@/features/sources/sourceApi";
@@ -25,7 +25,7 @@ export function SourceDetailsPage() {
           <p className="mt-1 break-all text-sm text-muted-foreground">{source.data.url}</p>
         </div>
         <div className="flex gap-2">
-          <Link className="inline-flex h-9 items-center justify-center rounded-ui border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-muted" to={`/admin/sources/${source.data.id}/edit`}>
+          <Link className={buttonClassName("secondary")} to={`/admin/sources/${source.data.id}/edit`}>
             Edit
           </Link>
         </div>
@@ -38,6 +38,12 @@ export function SourceDetailsPage() {
         <Info label="Approval policy" value={source.data.approvalPolicy} />
         <Info label="Enabled" value={source.data.enabled ? "Yes" : "No"} />
       </div>
+      {source.data.lastSyncError ? (
+        <div className="rounded-ui border border-destructive/30 bg-destructive/5 p-4">
+          <div className="text-xs uppercase text-destructive">Last sync error</div>
+          <p className="mt-2 break-words text-sm text-foreground">{source.data.lastSyncError}</p>
+        </div>
+      ) : null}
       <div className="rounded-ui border border-border p-4">
         <h2 className="text-sm font-medium">Indexing boundaries</h2>
         <div className="mt-3 grid gap-4 md:grid-cols-2">
@@ -45,7 +51,7 @@ export function SourceDetailsPage() {
           <PatternList title="Exclude" items={source.data.excludePatterns} />
         </div>
       </div>
-      <SourceActions source={source.data} onDeleted={() => navigate("/admin/sources")} />
+      <SourceActions source={source.data} onDeleted={() => navigate("/admin/sources")} showEdit={false} />
     </section>
   );
 }

@@ -23,6 +23,7 @@ public sealed record AdminSourceResponse(
     PackageSourceStatus Status,
     DateTimeOffset? LastSyncedAt,
     DateTimeOffset? LastSuccessfulSyncAt,
+    string? LastSyncError,
     int PackageCount,
     DateTimeOffset? SoftDeletedAt,
     string? PollingInterval,

@@ -1,9 +1,11 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Input, SecondaryButton, Select } from "@/components/ui";
 import { previewPatterns } from "@/features/sources/patternTester";
 import type { PackageSource, SourceFormValues } from "@/features/sources/sourceModels";
 import { splitPatterns, toSourceFormValues } from "@/features/sources/sourceModels";
+import { queryKeys } from "@/lib/query/queryClient";
 
 const samplePackageIds = ["Elsa.Persistence.PostgreSql", "Elsa.Messaging.RabbitMQ", "Elsa.Tests", "Elsa.Abstractions"];
 
@@ -15,6 +17,7 @@ export function SourceForm({
   onSubmit: (values: SourceFormValues) => Promise<unknown>;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [values, setValues] = useState<SourceFormValues>(() => toSourceFormValues(source));
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -29,6 +32,7 @@ export function SourceForm({
     setSaving(true);
     try {
       await onSubmit(values);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.sources });
       navigate("/admin/sources");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Source could not be saved.");

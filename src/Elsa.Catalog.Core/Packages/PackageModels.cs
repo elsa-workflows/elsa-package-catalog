@@ -13,6 +13,7 @@ public sealed class PackageSource
     public PackageSourceStatus Status { get; set; } = PackageSourceStatus.Healthy;
     public DateTimeOffset? LastSyncedAt { get; set; }
     public DateTimeOffset? LastSuccessfulSyncAt { get; set; }
+    public string? LastSyncError { get; set; }
     public string? PollingInterval { get; set; }
     public DateTimeOffset? SoftDeletedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;

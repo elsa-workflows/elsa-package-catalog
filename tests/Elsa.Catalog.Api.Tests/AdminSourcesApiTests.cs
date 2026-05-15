@@ -86,6 +86,7 @@ public sealed class AdminSourcesApiTests
             source.Status = PackageSourceStatus.Warning;
             source.LastSyncedAt = DateTimeOffset.UtcNow;
             source.LastSuccessfulSyncAt = lastSuccessfulSync;
+            source.LastSyncError = "Elsa.Email 1.0.0: download failed";
             source.PollingInterval = "PT30M";
             var package = PublicCatalogSeedData.CreatePackage(source);
             PublicCatalogSeedData.AddVersion(package);
@@ -100,6 +101,7 @@ public sealed class AdminSourcesApiTests
         var source = sources.Should().ContainSingle().Subject;
         source.Status.Should().Be(PackageSourceStatus.Warning);
         source.LastSuccessfulSyncAt.Should().BeCloseTo(lastSuccessfulSync, TimeSpan.FromSeconds(1));
+        source.LastSyncError.Should().Be("Elsa.Email 1.0.0: download failed");
         source.PackageCount.Should().Be(1);
         source.PollingInterval.Should().Be("PT30M");
     }

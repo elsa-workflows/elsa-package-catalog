@@ -216,6 +216,10 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                     b.Property<DateTimeOffset?>("LastSuccessfulSyncAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("LastSyncError")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
                     b.Property<DateTimeOffset?>("LastSyncedAt")
                         .HasColumnType("datetimeoffset");
 

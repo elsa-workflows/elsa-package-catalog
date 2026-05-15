@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { RefreshCw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Badge, EmptyState, Input, SecondaryButton, Table } from "@/components/ui";
+import { Badge, EmptyState, Input, SecondaryButton, Table, buttonClassName } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
 import { SourceActions } from "@/features/sources/SourceActions";
 import { listSources } from "@/features/sources/sourceApi";
@@ -17,7 +17,7 @@ export function SourcesPage() {
   const filtered = useMemo(() => {
     const term = filter.trim().toLowerCase();
     if (!term) return sources.data ?? [];
-    return (sources.data ?? []).filter((source) => `${source.name} ${source.url} ${source.status}`.toLowerCase().includes(term));
+    return (sources.data ?? []).filter((source) => `${source.name} ${source.url} ${source.status} ${source.lastSyncError ?? ""}`.toLowerCase().includes(term));
   }, [filter, sources.data]);
 
   if (sources.isLoading) return <RequestStateView state="loading" title="Loading sources" />;
@@ -35,7 +35,7 @@ export function SourcesPage() {
             <RefreshCw className="h-4 w-4" />
             Refresh
           </SecondaryButton>
-          <Link className="inline-flex h-9 items-center justify-center rounded-ui border border-border bg-foreground px-3 text-sm font-medium text-background" to="/admin/sources/new">
+          <Link className={buttonClassName()} to="/admin/sources/new">
             New Source
           </Link>
         </div>
@@ -70,7 +70,10 @@ export function SourcesPage() {
                   <td className="px-3 py-3 font-medium"><Link to={`/admin/sources/${source.id}`}>{source.name}</Link></td>
                   <td className="max-w-xs truncate px-3 py-3 text-muted-foreground">{source.url}</td>
                   <td className="px-3 py-3">
-                    <Badge className={statusToneClass(sourceStatusTone(source.status))}>{sourceHealthText(source)}</Badge>
+                    <div className="max-w-xs space-y-1">
+                      <Badge className={statusToneClass(sourceStatusTone(source.status))}>{sourceHealthText(source)}</Badge>
+                      {source.lastSyncError ? <p className="break-words text-xs leading-5 text-destructive">{source.lastSyncError}</p> : null}
+                    </div>
                   </td>
                   <td className="px-3 py-3">{source.approvalPolicy}</td>
                   <td className="px-3 py-3">{formatDateTime(source.lastSuccessfulSyncAt ?? source.lastSyncedAt)}</td>

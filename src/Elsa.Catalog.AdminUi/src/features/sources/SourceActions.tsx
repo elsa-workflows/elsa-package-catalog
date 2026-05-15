@@ -1,12 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Play, Power, Trash2 } from "lucide-react";
+import { Pencil, Play, Power, Trash2 } from "lucide-react";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { Button, DialogPanel, SecondaryButton } from "@/components/ui";
+import { Link } from "react-router-dom";
+import { Button, DialogPanel, SecondaryButton, buttonClassName } from "@/components/ui";
 import { deleteSource, setSourceEnabled, syncSource } from "@/features/sources/sourceApi";
 import type { PackageSource } from "@/features/sources/sourceModels";
 import { queryKeys } from "@/lib/query/queryClient";
 
-export function SourceActions({ source, onDeleted }: { source: PackageSource; onDeleted?: () => void }) {
+export function SourceActions({ source, onDeleted, showEdit = true }: { source: PackageSource; onDeleted?: () => void; showEdit?: boolean }) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
@@ -49,6 +50,12 @@ export function SourceActions({ source, onDeleted }: { source: PackageSource; on
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {showEdit ? (
+        <Link className={buttonClassName("secondary")} to={`/admin/sources/${source.id}/edit`} title="Edit source">
+          <Pencil className="h-4 w-4" />
+          Edit
+        </Link>
+      ) : null}
       <SecondaryButton onClick={() => sync.mutate()} disabled={sync.isPending} title="Sync now">
         <Play className="h-4 w-4" />
         Sync
