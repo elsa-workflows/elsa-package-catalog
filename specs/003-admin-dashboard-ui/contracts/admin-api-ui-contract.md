@@ -1,0 +1,284 @@
+# Admin API UI Contract
+
+This contract documents the admin API surface the dashboard needs. It builds on
+the existing Catalog Admin APIs and highlights required deltas for the clarified
+MVP.
+
+## Authentication
+
+All requests use the existing admin authentication boundary. The UI must treat
+`401` and `403` as access failures and must not present stale protected data as
+current after those responses.
+
+## Source List
+
+`GET /api/admin/sources`
+
+Returns active package sources by default.
+
+Required UI fields per item:
+
+- `id`
+- `name`
+- `type`
+- `url`
+- `enabled`
+- `includePatterns`
+- `excludePatterns`
+- `approvalPolicy`
+- `status`
+- `lastSuccessfulSyncAt`
+- `lastSyncedAt`
+- `packageCount`
+- `createdAt`
+- `updatedAt`
+
+Notes:
+
+- `status` and `lastSuccessfulSyncAt` are guaranteed source health fields.
+- `packageCount` may be zero when no packages have been indexed.
+- Soft-deleted sources are omitted from the default list.
+
+## Source Upsert
+
+`POST /api/admin/sources`
+
+`PUT /api/admin/sources/{id}`
+
+Request:
+
+```json
+{
+  "name": "Elsa Official",
+  "url": "https://api.nuget.org/v3/index.json",
+  "enabled": true,
+  "includePatterns": ["Elsa.*"],
+  "excludePatterns": ["*.Tests"],
+  "approvalPolicy": "Manual",
+  "pollingInterval": "PT30M"
+}
+```
+
+Response: updated source object.
+
+Validation errors should map to fields when possible.
+
+## Source Soft-Delete
+
+`DELETE /api/admin/sources/{id}`
+
+MVP semantics:
+
+- Soft-delete only.
+- Hard-delete is not exposed.
+- Source leaves default active source list after success.
+- Historical package, validation, and sync records may remain.
+
+Expected responses:
+
+- `204`: soft-deleted.
+- `404`: source missing or already inaccessible.
+- `409`: source changed and should be refreshed before retry.
+
+## Source Sync
+
+`POST /api/admin/sync/sources/{sourceId}`
+
+Triggers a manual source sync.
+
+Response should include a sync run or sync run ID so the UI can link to Sync Run
+Details.
+
+## Pattern Tester
+
+The UI may run pattern tests locally using documented glob semantics:
+
+- Case-insensitive.
+- `*` matches any text.
+- `?` matches one character.
+- Excludes take precedence.
+
+If a backend tester endpoint is added later, it should return:
+
+```json
+{
+  "items": [
+    {
+      "packageId": "Elsa.Persistence.PostgreSql",
+      "included": true,
+      "matchedIncludePatterns": ["Elsa.*"],
+      "matchedExcludePatterns": []
+    }
+  ]
+}
+```
+
+## Package List
+
+`GET /api/admin/packages`
+
+Query parameters should support, when implemented:
+
+- `q`
+- `approvalStatus`
+- `validationStatus`
+- `sourceId`
+- `listed`
+- `suspicious`
+- `sort`
+- `page`
+- `pageSize`
+
+Required UI fields:
+
+- `packageId`
+- `sourceId`
+- `latestVersion`
+- `approvalStatus` summary for display only
+- `validationStatus` summary
+- `listed`
+- `featuresCount`
+- `updatedAt`
+- `versions`
+
+Trust-changing actions are not performed on package identity rows in the MVP.
+
+## Package Details
+
+`GET /api/admin/packages/{packageId}`
+
+Required UI fields:
+
+- Package identity and source.
+- Available versions.
+- Per-version approval, validation, listing, suspicious, schema, and hash state.
+- Feature metadata for selected version when available.
+- Visibility explanation inputs.
+
+## Package Version Manifest
+
+Required for Manifest Viewer. Endpoint shape may be either included in package
+details or exposed separately:
+
+`GET /api/admin/packages/{packageId}/versions/{version}/manifest`
+
+Response:
+
+```json
+{
+  "packageId": "Elsa.Persistence.PostgreSql",
+  "version": "1.0.2",
+  "schemaVersion": "1",
+  "manifestHash": "sha256:...",
+  "manifestJson": "{...}"
+}
+```
+
+## Validation Results
+
+`GET /api/admin/packages/{packageId}/versions/{version}/validation`
+
+Returns errors and warnings for the selected package version. If the current API
+stores JSON-encoded error and warning payloads, the UI adapter normalizes them
+to finding arrays with:
+
+- `severity`
+- `code` or `ruleId`
+- `message`
+- `path` or `fieldPath`
+
+## Version Approval
+
+`POST /api/admin/packages/{packageId}/versions/{version}/approve`
+
+Request body may include optional reason for audit, but the UI does not require
+one for approval:
+
+```json
+{
+  "reason": "Reviewed manifest and source ownership."
+}
+```
+
+Package identity approval endpoints must not be surfaced in the MVP UI.
+
+## Version Rejection
+
+`POST /api/admin/packages/{packageId}/versions/{version}/reject`
+
+Request body:
+
+```json
+{
+  "reason": "Manifest is missing required feature descriptions."
+}
+```
+
+UI rule:
+
+- Reason is required before submission.
+
+Backend expectation:
+
+- Reject empty or whitespace reason for dashboard-originated rejection requests.
+
+## Bulk Version Actions
+
+The first UI can implement bulk actions as repeated per-version requests if no
+bulk endpoint exists. The UI must report item-level success and failure.
+
+Future bulk endpoint shape:
+
+```json
+{
+  "items": [
+    { "packageId": "Elsa.Persistence.PostgreSql", "version": "1.0.2" }
+  ],
+  "reason": "Approved after review."
+}
+```
+
+## Sync Runs
+
+`GET /api/admin/sync-runs`
+
+`GET /api/admin/sync-runs/{id}`
+
+Required UI fields:
+
+- `id`
+- `trigger`
+- `status`
+- `startedAt`
+- `completedAt`
+- `duration`
+- `error`
+- `summaryCounters`
+- `items`
+
+Sync run item fields:
+
+- `id`
+- `sourceId`
+- `packageId`
+- `version`
+- `status`
+- `message`
+- `error`
+- `startedAt`
+- `completedAt`
+
+## Error Response Normalization
+
+The UI adapter normalizes failures into:
+
+- `Unauthorized`
+- `Forbidden`
+- `Validation`
+- `Conflict`
+- `NotFound`
+- `Unavailable`
+- `Unexpected`
+
+Every mutation result exposed to screens must include enough information to show
+pending, success, failure, or partial failure.
