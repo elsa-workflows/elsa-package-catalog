@@ -78,6 +78,8 @@ Required GitHub Actions variables:
   `elsa-package-catalog`.
 - `AZURE_LOCATION`: Azure region for the `azd` environment, for example
   `westeurope`.
+- `AZURE_CONTAINER_REGISTRY_ENDPOINT`: ACR login server for app image pushes,
+  for example `elsapackagecatalogacrk35qdj734hds2.azurecr.io`.
 
 Required GitHub Actions secrets:
 
