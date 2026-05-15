@@ -53,6 +53,18 @@ public sealed class PackageSourceValidationTests
         _validator.Validate(manual).IsValid.Should().BeTrue();
     }
 
+    [Fact]
+    public void Rejects_overflowing_polling_intervals_as_validation_errors()
+    {
+        var source = ValidSource();
+        source.PollingInterval = "P999999999999999999999D";
+
+        var result = _validator.Validate(source);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(x => x.Contains("Polling interval", StringComparison.Ordinal));
+    }
+
     private static PackageSource ValidSource() => new()
     {
         Name = "NuGet",

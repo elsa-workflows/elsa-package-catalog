@@ -8,7 +8,8 @@ public sealed record AdminSourceRequest(
     bool Enabled,
     IReadOnlyList<string> IncludePatterns,
     IReadOnlyList<string>? ExcludePatterns,
-    PackageSourceApprovalPolicy ApprovalPolicy);
+    PackageSourceApprovalPolicy ApprovalPolicy,
+    string? PollingInterval = null);
 
 public sealed record AdminSourceResponse(
     Guid Id,
@@ -19,7 +20,12 @@ public sealed record AdminSourceResponse(
     IReadOnlyList<string> IncludePatterns,
     IReadOnlyList<string> ExcludePatterns,
     PackageSourceApprovalPolicy ApprovalPolicy,
+    PackageSourceStatus Status,
     DateTimeOffset? LastSyncedAt,
+    DateTimeOffset? LastSuccessfulSyncAt,
+    int PackageCount,
+    DateTimeOffset? SoftDeletedAt,
+    string? PollingInterval,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt);
 

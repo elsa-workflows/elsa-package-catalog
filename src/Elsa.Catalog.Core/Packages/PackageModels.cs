@@ -10,7 +10,11 @@ public sealed class PackageSource
     public List<string> IncludePatterns { get; set; } = [];
     public List<string> ExcludePatterns { get; set; } = [];
     public PackageSourceApprovalPolicy ApprovalPolicy { get; set; } = PackageSourceApprovalPolicy.Manual;
+    public PackageSourceStatus Status { get; set; } = PackageSourceStatus.Healthy;
     public DateTimeOffset? LastSyncedAt { get; set; }
+    public DateTimeOffset? LastSuccessfulSyncAt { get; set; }
+    public string? PollingInterval { get; set; }
+    public DateTimeOffset? SoftDeletedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
     public List<Package> Packages { get; set; } = [];
