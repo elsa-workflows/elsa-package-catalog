@@ -38,6 +38,58 @@ azd up
 When `azd init` asks how to initialize the app, scan the current directory and
 confirm the detected Aspire AppHost.
 
+## GitHub Actions Deployment
+
+The `Azure API Deploy` workflow runs on pushes to `main` and can also be run
+manually from GitHub Actions. Normal `main` deployments run:
+
+```bash
+azd deploy --no-prompt
+```
+
+This is the fast path for application-only updates because the Azure resources
+are expected to already exist for the selected `azd` environment. If the AppHost
+infrastructure shape changes, run the same workflow manually and choose
+`deploy_mode: infra`; that path runs:
+
+```bash
+azd up --no-prompt
+```
+
+`azd up` provisions infrastructure incrementally before deploying. Keep it as a
+manual choice so routine code changes do not spend time checking and updating
+Azure resources on every push.
+
+Configure the workflow in a GitHub environment named `production` unless you
+change the workflow environment name. With OIDC, the Microsoft Entra federated
+credential should trust this repository and environment. If using the default
+GitHub environment subject, it is:
+
+```text
+repo:<owner>/<repo>:environment:production
+```
+
+Required GitHub Actions variables:
+
+- `AZURE_CLIENT_ID`: application/client ID for the federated identity.
+- `AZURE_TENANT_ID`: Microsoft Entra tenant ID.
+- `AZURE_SUBSCRIPTION_ID`: target Azure subscription ID.
+- `AZURE_ENV_NAME`: existing or desired `azd` environment name, for example
+  `elsa-package-catalog`.
+- `AZURE_LOCATION`: Azure region for the `azd` environment, for example
+  `westeurope`.
+
+Required GitHub Actions secrets:
+
+- `ADMIN_API_KEY`: strong API key passed to the AppHost `adminApiKey` parameter
+  and surfaced to the API as `Authentication__ApiKey`.
+
+The workflow validates the configuration, restores the solution, builds the
+Aspire AppHost, runs the API test project, signs in with `azd auth login` using
+GitHub federated credentials, creates the local CI `azd` environment metadata,
+sets the secured `infra.parameters.adminApiKey` parameter for the run, and
+deploys.
+
 ## Removing Existing Resources
 
 If the old resources are in a dedicated resource group, delete the group:

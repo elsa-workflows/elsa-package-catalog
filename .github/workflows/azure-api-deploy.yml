@@ -1,0 +1,110 @@
+name: Azure API Deploy
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      deploy_mode:
+        description: "Use app for code-only deployment; use infra after AppHost infrastructure changes."
+        required: true
+        default: app
+        type: choice
+        options:
+          - app
+          - infra
+
+concurrency:
+  group: azure-api-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Validate and Deploy API
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
+      ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
+      DOTNET_NOLOGO: true
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install azd
+        uses: Azure/setup-azd@v2
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required=(
+            AZURE_CLIENT_ID
+            AZURE_TENANT_ID
+            AZURE_SUBSCRIPTION_ID
+            AZURE_ENV_NAME
+            AZURE_LOCATION
+            ADMIN_API_KEY
+          )
+
+          for name in "${required[@]}"; do
+            if [ -z "${!name:-}" ]; then
+              echo "$name is not configured."
+              exit 1
+            fi
+          done
+
+      - name: Restore
+        run: dotnet restore Elsa.PackageCatalog.sln
+
+      - name: Build AppHost
+        run: dotnet build src/Elsa.Catalog.AppHost/Elsa.Catalog.AppHost.csproj --configuration Release --no-restore
+
+      - name: Test API
+        run: dotnet test tests/Elsa.Catalog.Api.Tests/Elsa.Catalog.Api.Tests.csproj --configuration Release --no-restore --verbosity normal
+
+      - name: Log in with Azure federated credentials
+        shell: bash
+        run: |
+          azd auth login \
+            --client-id "$AZURE_CLIENT_ID" \
+            --tenant-id "$AZURE_TENANT_ID" \
+            --federated-credential-provider github
+
+      - name: Configure azd environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          azd env new "$AZURE_ENV_NAME" \
+            --location "$AZURE_LOCATION" \
+            --subscription "$AZURE_SUBSCRIPTION_ID" \
+            --no-prompt
+
+          azd env config set infra.parameters.adminApiKey "$ADMIN_API_KEY"
+
+      - name: Deploy API app
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.deploy_mode }}" = "infra" ]; then
+            azd up --no-prompt
+          else
+            azd deploy --no-prompt
+          fi
