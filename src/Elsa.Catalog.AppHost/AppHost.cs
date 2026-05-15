@@ -14,6 +14,7 @@ if (builder.ExecutionContext.IsPublishMode)
     var database = sql.AddDatabase("Catalog");
 
     api.WithReference(database)
+        .WithEnvironment("AZURE_TOKEN_CREDENTIALS", "prod")
         .WithEnvironment("Database__Provider", "SqlServer");
 }
 else
