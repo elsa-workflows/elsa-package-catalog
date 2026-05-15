@@ -25,6 +25,8 @@ The first version uses an MSBuild-integrated generator because the output is an 
 - Q: Can the override file change package identity fields? → A: The override file may not change package ID or package version; conflicts with NuGet metadata are validation errors.
 - Q: What size limits should apply to generated manifests and override files? → A: Generated manifests may be up to 1 MB, and override files may be up to 256 KB.
 - Q: What extension metadata shape should attributes support? → A: Attributes support simple string key/value extension metadata only; rich extension data belongs in the override file.
+- Q: Which namespace should source-only annotation attributes use? → A: Use `Elsa.PackageManifest.Generator.Annotations` for source-only annotation attributes.
+- Q: How should CShells feature base and interface type names be identified for convention discovery? → A: Support configurable MSBuild properties for CShells feature base and interface type names, with documented defaults.
 
 ## Goals
 
@@ -93,7 +95,7 @@ A package author exposes CShells feature classes and public configurable setting
 
 **Acceptance Scenarios**:
 
-1. **Given** a public feature class derives from a known CShells feature base class or implements a known feature interface, **When** generation runs, **Then** the feature is included in the manifest.
+1. **Given** a public feature class derives from a configured CShells feature base class or implements a configured feature interface, **When** generation runs, **Then** the feature is included in the manifest.
 2. **Given** a feature class uses an explicit feature annotation, **When** generation runs, **Then** annotation values enrich or override inferred feature metadata.
 3. **Given** a feature setting property is public and settable, **When** generation runs, **Then** the property is included as a setting unless explicitly ignored.
 4. **Given** a property is static, read-only, computed-only, or ignored, **When** generation runs, **Then** it is excluded unless explicitly included by supported metadata.
@@ -200,8 +202,9 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-027**: The generator MUST report override entries that reference nonexistent features or settings.
 - **FR-027a**: The override file MUST NOT change package ID or package version, and any conflict with NuGet package identity MUST be treated as a validation error.
 - **FR-028**: The generator MUST discover CShells feature classes from the project assembly.
-- **FR-029**: A feature class MUST be discoverable when it derives from a known CShells feature base class.
-- **FR-030**: A feature class MUST be discoverable when it implements a known CShells feature interface.
+- **FR-029**: A feature class MUST be discoverable when it derives from a configured CShells feature base class.
+- **FR-030**: A feature class MUST be discoverable when it implements a configured CShells feature interface.
+- **FR-030a**: CShells feature base class and interface type names used for convention discovery MUST be configurable through MSBuild properties with documented defaults.
 - **FR-031**: A feature class MUST be discoverable when it has an explicit feature annotation.
 - **FR-032**: Explicit feature annotations MUST be preferred where convention-based discovery is ambiguous.
 - **FR-033**: Abstract feature classes MUST NOT be included as exposed features by default.
@@ -245,6 +248,7 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-071**: The first version SHOULD support feature, setting, ignore, extension, compatibility, dependency, conflict, required-feature, and conflicts-with annotations where useful.
 - **FR-071a**: Annotation attributes MUST be provided as source-only compile assets from `Elsa.PackageManifest.Generator` so consuming packages can use annotations without emitting a runtime dependency for them.
 - **FR-071b**: Attribute-based extension metadata MUST be limited to simple string key/value pairs; rich extension payloads MUST be supplied through the override file.
+- **FR-071c**: Source-only annotation attributes MUST use the namespace `Elsa.PackageManifest.Generator.Annotations`.
 - **FR-072**: The generator MUST produce clear diagnostics for discovered feature count, generated manifest path, missing XML documentation, invalid settings, unsupported property types, schema validation errors, and package inclusion.
 - **FR-073**: Default diagnostics MUST avoid noisy per-property success logs.
 - **FR-074**: The generator MUST support multi-targeted projects.
@@ -315,11 +319,11 @@ Suggested package boundaries:
 
 Feature discovery supports both convention-based and explicit discovery.
 
-Convention-based discovery includes concrete exposed types that derive from a known CShells feature base class or implement a known CShells feature interface. Explicit discovery includes types annotated as Elsa features. Explicit metadata is preferred when convention-based discovery would be ambiguous.
+Convention-based discovery includes concrete exposed types that derive from a configured CShells feature base class or implement a configured CShells feature interface. The generator provides documented default type names and allows package projects to override them through MSBuild properties. Explicit discovery includes types annotated as Elsa features. Explicit metadata is preferred when convention-based discovery would be ambiguous.
 
 Default inclusion rules:
 
-- Include concrete public feature classes that match a known CShells base class, known feature interface, or explicit feature annotation.
+- Include concrete public feature classes that match a configured CShells base class, configured feature interface, or explicit feature annotation.
 - Exclude abstract classes, generic type definitions, static classes, and ignored classes.
 - Exclude internal classes unless explicitly included.
 - Use stable type identity metadata for CLR type names.
@@ -365,7 +369,7 @@ Extraction behavior:
 
 Attributes are optional source annotations for generation input only. They enrich inference and reduce override-file noise, but the generated JSON still uses `Elsa.PackageManifests`.
 
-Annotation attributes are shipped as source-only compile assets from `Elsa.PackageManifest.Generator`. This preserves the one-reference package author experience and avoids introducing annotation-only runtime dependencies into packages that use the generator.
+Annotation attributes are shipped as source-only compile assets from `Elsa.PackageManifest.Generator`. This preserves the one-reference package author experience and avoids introducing annotation-only runtime dependencies into packages that use the generator. The annotation namespace is `Elsa.PackageManifest.Generator.Annotations`, making it clear that annotations are generator inputs rather than part of the `Elsa.PackageManifests` wire contract.
 
 Recommended first-version annotations:
 
@@ -487,6 +491,8 @@ The generator supports these project properties:
 - `ElsaPackageManifestFailOnWarnings`: Treats generator warnings as build failures. Default: `false`.
 - `ElsaPackageManifestAllowTargetFrameworkDifferences`: Allows target-specific differences when explicitly accepted. Default: `false`.
 - `ElsaPackageManifestDiagnosticsVerbosity`: Controls generator diagnostic verbosity. Default: concise.
+- `ElsaPackageManifestFeatureBaseTypes`: Configures CShells feature base type names used for convention discovery. Default: documented CShells defaults.
+- `ElsaPackageManifestFeatureInterfaceTypes`: Configures CShells feature interface type names used for convention discovery. Default: documented CShells defaults.
 
 ## NuGet Package Inclusion Behavior
 
@@ -645,6 +651,4 @@ Testing should cover generator behavior from package author and build-system per
 
 ## Open Questions
 
-- What exact CShells base class and interface names should be treated as first-class discovery conventions?
-- Which annotation namespace should be owned by the generator package versus the shared manifest contract package?
 - Which JSON Schema library and schema draft should `Elsa.PackageManifests` standardize on?
