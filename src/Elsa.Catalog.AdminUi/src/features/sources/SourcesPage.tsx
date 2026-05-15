@@ -17,7 +17,7 @@ export function SourcesPage() {
   const filtered = useMemo(() => {
     const term = filter.trim().toLowerCase();
     if (!term) return sources.data ?? [];
-    return (sources.data ?? []).filter((source) => `${source.name} ${source.url} ${source.status}`.toLowerCase().includes(term));
+    return (sources.data ?? []).filter((source) => `${source.name} ${source.url} ${source.status} ${source.lastSyncError ?? ""}`.toLowerCase().includes(term));
   }, [filter, sources.data]);
 
   if (sources.isLoading) return <RequestStateView state="loading" title="Loading sources" />;
@@ -70,7 +70,10 @@ export function SourcesPage() {
                   <td className="px-3 py-3 font-medium"><Link to={`/admin/sources/${source.id}`}>{source.name}</Link></td>
                   <td className="max-w-xs truncate px-3 py-3 text-muted-foreground">{source.url}</td>
                   <td className="px-3 py-3">
-                    <Badge className={statusToneClass(sourceStatusTone(source.status))}>{sourceHealthText(source)}</Badge>
+                    <div className="max-w-xs space-y-1">
+                      <Badge className={statusToneClass(sourceStatusTone(source.status))}>{sourceHealthText(source)}</Badge>
+                      {source.lastSyncError ? <p className="break-words text-xs leading-5 text-destructive">{source.lastSyncError}</p> : null}
+                    </div>
                   </td>
                   <td className="px-3 py-3">{source.approvalPolicy}</td>
                   <td className="px-3 py-3">{formatDateTime(source.lastSuccessfulSyncAt ?? source.lastSyncedAt)}</td>

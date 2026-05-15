@@ -93,7 +93,8 @@ References:
 Rationale: The MVP intentionally supports primitive, enum, nullable,
 array/list, and dictionary settings and defers complex object settings. Manual
 schema construction keeps behavior deterministic, avoids recursive reflection,
-and makes unsupported settings easy to diagnose.
+and makes unsupported settings easy to diagnose and omit without treating them
+as build-blocking manifest entries.
 
 Alternatives considered:
 

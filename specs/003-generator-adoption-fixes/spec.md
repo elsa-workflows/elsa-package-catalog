@@ -15,6 +15,7 @@
 - Q: Should ignored delegate-shaped hooks produce default warnings that can trigger fail-on-warnings? → A: No; log low-importance or verbose diagnostics only, with no default warning.
 - Q: What should validation severity set to warning downgrade? → A: Manifest validation findings only; infrastructure and invalid input failures still fail.
 - Q: Which target framework supplies the canonical package manifest when manifest surfaces are equivalent? → A: The first declared target framework.
+- Q: Should unsupported non-delegate property types such as `System.Type` or complex option objects fail normal builds? → A: No; omit the property from manifest settings, log a low-importance non-warning diagnostic, and allow the build to complete.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -34,13 +35,13 @@ An Elsa Core module maintainer adds a private reference to the preview generator
 
 ---
 
-### User Story 2 - Treat Code Configuration Hooks as Non-Configurable (Priority: P1)
+### User Story 2 - Treat Non-Manifestable Properties as Non-Configurable (Priority: P1)
 
-An Elsa Core module maintainer exposes fluent setup hooks, service factories, HTTP client configuration callbacks, or delegate-valued collections on shell features without those hooks being treated as deploy-time settings.
+An Elsa Core module maintainer exposes fluent setup hooks, service factories, HTTP client configuration callbacks, delegate-valued collections, or other CLR-only property types on shell features without those properties being treated as deploy-time settings.
 
-**Why this priority**: Existing Elsa shell features commonly expose code configuration hooks that cannot be represented as deployment configuration. Treating them as settings blocks adoption across otherwise valid modules.
+**Why this priority**: Existing Elsa shell features commonly expose code configuration hooks and CLR-only values such as provider `Type` references that cannot be represented as deployment configuration. Treating them as settings blocks adoption across otherwise valid modules.
 
-**Independent Test**: Build a shell-feature module that exposes public settable delegate-shaped properties, including direct delegates and collections or dictionaries containing delegates, and verify that the manifest is still generated without unsupported-setting failures.
+**Independent Test**: Build a shell-feature module that exposes public settable delegate-shaped properties and unsupported non-delegate properties such as `System.Type`, then verify that the manifest is still generated without unsupported-setting failures and includes only supported deploy-time settings.
 
 **Acceptance Scenarios**:
 
@@ -49,6 +50,7 @@ An Elsa Core module maintainer exposes fluent setup hooks, service factories, HT
 3. **Given** a shell feature exposes a collection or dictionary whose values are delegate-shaped factories or callbacks, **When** manifest generation runs, **Then** the property is excluded from configurable settings by default.
 4. **Given** delegate-shaped properties are excluded, **When** normal diagnostics are emitted, **Then** the build does not log warnings for those exclusions by default.
 5. **Given** a normal deploy-time setting is public and settable, **When** manifest generation runs, **Then** that setting is still discovered and represented in the manifest.
+6. **Given** a shell feature exposes a public settable property with an unsupported CLR-only type, **When** manifest generation runs, **Then** the property is excluded from configurable settings, a low-importance non-warning diagnostic identifies the omission, and the build completes.
 
 ---
 
@@ -88,7 +90,7 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 - A shell feature exposes nested generic delegate shapes such as dictionaries, lists, arrays, nullable wrappers, or interface-based collections containing callback or factory delegates.
 - A shell feature exposes both delegate-shaped hooks and normal deploy-time settings in the same type.
 - A delegate-shaped property has documentation or manifest hint metadata but remains a code hook unless explicitly supported by a future configurable-setting contract.
-- A non-delegate complex object setting remains unsupported and follows the configured diagnostic severity policy.
+- A non-delegate complex object setting, `System.Type` setting, or other CLR-only setting shape remains unsupported, is omitted from the manifest, and emits only a low-importance diagnostic by default.
 - Multiple target frameworks produce the same manifest-relevant shell-feature surface.
 - Multiple target frameworks produce different manifest-relevant shell-feature surfaces.
 - A package is packed directly without an earlier separate build.
@@ -108,7 +110,9 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 - **FR-006**: Public settable properties whose collection or dictionary element values are delegate-shaped callbacks or factories MUST be excluded from deploy-time setting discovery by default.
 - **FR-007**: Excluded delegate-shaped properties MUST NOT produce unsupported-setting errors under the default workflow.
 - **FR-008**: Excluded delegate-shaped properties MUST NOT produce warnings by default and MAY produce concise low-importance or verbose diagnostics that identify them as ignored code configuration hooks when verbose diagnostics are enabled.
-- **FR-009**: Non-delegate unsupported setting shapes MUST continue to produce configurable diagnostics.
+- **FR-009**: Non-delegate unsupported setting shapes MUST be excluded from deploy-time setting discovery by default.
+- **FR-009a**: Excluded unsupported setting shapes MUST emit low-importance non-warning diagnostics by default and MUST NOT fail builds, including when fail-on-warnings is enabled.
+- **FR-009b**: Unsupported setting omissions MUST include enough context to identify the owning feature, property name, and CLR type.
 - **FR-010**: Validation severity set to warning MUST log mapped manifest validation findings as warnings.
 - **FR-011**: Validation severity set to warning MUST allow the task to succeed when fail-on-warnings is false and no infrastructure or invalid input failure occurs.
 - **FR-012**: Validation severity set to warning MUST fail the task when fail-on-warnings is true and warnings are present.
@@ -123,6 +127,7 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 - **FR-020**: Custom manifest package paths MUST continue to be honored while preserving the one-manifest default behavior.
 - **FR-021**: Tests MUST cover task return behavior for warning severity with fail-on-warnings both false and true.
 - **FR-022**: Tests MUST cover delegate-shaped direct properties and delegate-shaped collection or dictionary values.
+- **FR-022a**: Tests MUST cover unsupported non-delegate properties, including `System.Type`, and verify that they are omitted without warnings or errors.
 - **FR-023**: Tests MUST cover multi-target package inclusion and verify exactly one root manifest in the produced package.
 - **FR-024**: Tests MUST cover that required schema validation errors still fail under the default policy.
 
@@ -143,6 +148,7 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 - **SC-002a**: Equivalent multi-target packages use the first declared target framework as the canonical manifest source in every covered package inspection test.
 - **SC-003**: Representative shell features with action callbacks, service factories, HTTP-client callbacks, and delegate-valued dictionaries or lists generate manifests without unsupported-setting build failures.
 - **SC-003a**: Ignored delegate-shaped hooks do not cause fail-on-warnings builds to fail unless another warning or error is present.
+- **SC-003b**: Representative shell features with `System.Type` or complex object properties generate manifests that omit those properties and do not fail fail-on-warnings builds unless another warning or error is present.
 - **SC-004**: Warning severity with fail-on-warnings disabled produces a successful build with warning diagnostics in every covered test case.
 - **SC-005**: Warning severity with fail-on-warnings enabled produces a failed build in every covered warning-diagnostic test case.
 - **SC-006**: Default validation policy still fails every covered required-schema-error test case.
@@ -153,6 +159,7 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 
 - Elsa Core shell-feature modules expose CShells `IShellFeature` types through class library packages.
 - Delegate-shaped hooks are application-code extension points and are not useful as deploy-time configuration settings in the current manifest contract.
+- Unsupported CLR-only property shapes are not useful as deploy-time configuration settings until the manifest contract explicitly supports them.
 - Excluding delegate-shaped hooks by default is preferred over requiring every existing module to annotate those hooks individually.
 - Existing explicit ignore metadata remains supported and continues to take precedence.
 - Target-framework-specific manifest differences remain out of the default happy path and should continue to be diagnosed.

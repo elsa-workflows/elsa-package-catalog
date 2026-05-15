@@ -10,6 +10,7 @@ export const sourceFixture = {
   status: "Healthy",
   lastSuccessfulSyncAt: "2026-05-15T08:00:00Z",
   lastSyncedAt: "2026-05-15T08:00:00Z",
+  lastSyncError: null,
   packageCount: 12,
   createdAt: "2026-05-15T07:00:00Z",
   updatedAt: "2026-05-15T08:00:00Z"

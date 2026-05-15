@@ -101,20 +101,31 @@ public sealed class PackageSyncService(
             Increment(counters, "failed");
             source.LastSyncedAt = DateTimeOffset.UtcNow;
             source.Status = PackageSourceStatus.Error;
+            source.LastSyncError = LimitFailureDetail(ex.Message);
             return;
         }
 
+        var failureCount = 0;
+        SyncRunItem? firstFailure = null;
         foreach (var item in discovered)
-            await SyncPackageVersionAsync(run, source, item, counters, cancellationToken);
+        {
+            var runItem = await SyncPackageVersionAsync(run, source, item, counters, cancellationToken);
+            if (runItem.Status != SyncRunItemStatus.Failed)
+                continue;
+
+            failureCount++;
+            firstFailure ??= runItem;
+        }
 
         source.LastSyncedAt = DateTimeOffset.UtcNow;
-        var hasFailures = run.Items.Any(x => x.SourceId == source.Id && x.Status is SyncRunItemStatus.Failed);
+        var hasFailures = failureCount > 0;
         source.Status = hasFailures ? PackageSourceStatus.Warning : PackageSourceStatus.Healthy;
+        source.LastSyncError = hasFailures ? BuildSourceFailureDetail(firstFailure, failureCount) : null;
         if (!hasFailures)
             source.LastSuccessfulSyncAt = source.LastSyncedAt;
     }
 
-    private async Task SyncPackageVersionAsync(SyncRun run, PackageSource source, DiscoveredPackageVersion discovered, Dictionary<string, int> counters, CancellationToken cancellationToken)
+    private async Task<SyncRunItem> SyncPackageVersionAsync(SyncRun run, PackageSource source, DiscoveredPackageVersion discovered, Dictionary<string, int> counters, CancellationToken cancellationToken)
     {
         var runItem = await AddItemAsync(run, source.Id, discovered.PackageId, discovered.Version, SyncRunItemStatus.Discovered, cancellationToken);
         try
@@ -136,7 +147,7 @@ public sealed class PackageSyncService(
                 runItem.Status = SyncRunItemStatus.Invalid;
                 runItem.Message = "Package does not contain elsa-package.json.";
                 Increment(counters, "invalid");
-                return;
+                return runItem;
             }
 
             UpdateLatestVersion(package, discovered.Version);
@@ -162,7 +173,7 @@ public sealed class PackageSyncService(
                     Increment(counters, "unchanged");
                 }
 
-                return;
+                return runItem;
             }
 
             var validation = validator.Validate(read.ManifestJson, discovered.PackageId, discovered.Version);
@@ -218,6 +229,8 @@ public sealed class PackageSyncService(
             runItem.CompletedAt = DateTimeOffset.UtcNow;
             await catalog.SaveChangesAsync(CancellationToken.None);
         }
+
+        return runItem;
     }
 
     private async Task<SyncRunItem> AddItemAsync(
@@ -284,6 +297,35 @@ public sealed class PackageSyncService(
 
     private static void Increment(Dictionary<string, int> counters, string name) =>
         counters[name] = counters.GetValueOrDefault(name) + 1;
+
+    private static string BuildSourceFailureDetail(SyncRunItem? firstFailure, int failureCount)
+    {
+        if (firstFailure is null)
+            return "Sync failed.";
+
+        var subject = FormatPackageSubject(firstFailure);
+        var detail = string.IsNullOrWhiteSpace(subject)
+            ? firstFailure.Error ?? "Sync failed."
+            : $"{subject}: {firstFailure.Error ?? "Sync failed."}";
+
+        if (failureCount > 1)
+            detail = $"{detail} ({failureCount - 1} more failed)";
+
+        return LimitFailureDetail(detail);
+    }
+
+    private static string FormatPackageSubject(SyncRunItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.PackageId))
+            return "";
+
+        return string.IsNullOrWhiteSpace(item.Version)
+            ? item.PackageId
+            : $"{item.PackageId} {item.Version}";
+    }
+
+    private static string LimitFailureDetail(string detail) =>
+        detail.Length <= 2048 ? detail : string.Concat(detail.AsSpan(0, 2045), "...");
 }
 
 public interface ISyncCatalogStore

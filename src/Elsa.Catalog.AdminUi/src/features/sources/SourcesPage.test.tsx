@@ -44,6 +44,13 @@ describe("SourcesPage", () => {
     expect(await screen.findByRole("link", { name: "Edit" })).toHaveAttribute("href", "/admin/sources/source-1/edit");
   });
 
+  it("shows the latest sync failure detail", async () => {
+    renderSourcesPage([{ ...sourceFixture, status: "Error", lastSyncError: "Feed index is unreachable." }]);
+
+    expect(await screen.findByText("Sync failing")).toBeInTheDocument();
+    expect(screen.getByText("Feed index is unreachable.")).toBeInTheDocument();
+  });
+
   it("filters populated source rows", async () => {
     renderSourcesPage([sourceFixture]);
 

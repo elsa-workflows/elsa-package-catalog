@@ -57,13 +57,13 @@ Fields:
 - `FeatureId`: Owning feature identifier.
 - `Name`: Property name.
 - `ClrType`: Property CLR type name.
-- `Shape`: Supported setting, unsupported setting, ignored code hook, ignored by
-  metadata, or excluded member.
+- `Shape`: Supported setting, unsupported setting omitted, ignored code hook,
+  ignored by metadata, or excluded member.
 - `ContainerShape`: None, array, enumerable, list, dictionary, read-only
   dictionary, or nested generic container.
 - `ElementOrValueShape`: Supported value, unsupported value, or delegate-shaped
   code hook.
-- `DiagnosticVisibility`: None, concise, or verbose.
+- `DiagnosticVisibility`: None, low-importance, concise, or verbose.
 
 Validation rules:
 
@@ -72,8 +72,9 @@ Validation rules:
   become ignored code hooks.
 - Ignored code hooks are excluded before setting schema generation.
 - Ignored code hooks do not emit default warnings.
-- Non-delegate unsupported candidates continue through existing unsupported
-  setting diagnostics.
+- Non-delegate unsupported candidates are excluded from manifest settings.
+- Non-delegate unsupported candidates emit low-importance non-warning
+  diagnostics with feature, property, and CLR type context.
 
 ## Code Configuration Hook
 
@@ -94,6 +95,26 @@ Validation rules:
 - Must not appear in generated manifest settings.
 - Must not create unsupported-setting errors.
 - May appear in verbose diagnostics only.
+
+## Unsupported Setting Candidate
+
+Represents a public settable property that looks configurable by shape but
+cannot be represented by the current manifest setting contract.
+
+Fields:
+
+- `FeatureId`: Owning feature identifier.
+- `PropertyName`: Property name.
+- `ClrType`: Unsupported CLR type name such as `System.Type` or a complex
+  options object.
+- `Reason`: Omitted because the shape has no supported deploy-time schema.
+
+Validation rules:
+
+- Must not appear in generated manifest settings.
+- Must not create warning or error diagnostics by default.
+- Must emit a low-importance diagnostic that allows maintainers to understand
+  why the property is absent.
 
 ## Target Framework Manifest Surface
 
