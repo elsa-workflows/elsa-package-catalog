@@ -11,12 +11,14 @@ public sealed class ApprovalStore(CatalogDbContext dbContext) : IApprovalStore
         await dbContext.Packages
             .AsNoTracking()
             .Include(x => x.Versions)
+            .ThenInclude(x => x.Features)
             .OrderBy(x => x.PackageId)
             .ToListAsync(cancellationToken);
 
     public Task<Package?> GetPackageAsync(string packageId, CancellationToken cancellationToken = default) =>
         dbContext.Packages
             .Include(x => x.Versions)
+            .ThenInclude(x => x.Features)
             .SingleOrDefaultAsync(x => x.PackageId == packageId, cancellationToken);
 
     public Task<PackageVersion?> GetPackageVersionAsync(string packageId, string version, CancellationToken cancellationToken = default) =>

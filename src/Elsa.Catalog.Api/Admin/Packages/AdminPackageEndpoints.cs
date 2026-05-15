@@ -24,12 +24,20 @@ public static class AdminPackageEndpoints
         return endpoints;
     }
 
-    internal static AdminPackageResponse ToResponse(Package package) =>
-        new(
+    internal static AdminPackageResponse ToResponse(Package package)
+    {
+        var latestVersion = package.Versions.FirstOrDefault(version => version.Version == package.LatestVersion) ?? package.Versions.FirstOrDefault();
+
+        return new(
             package.PackageId,
             package.Approved,
             package.Listed,
+            package.SourceId,
             package.LatestVersion,
+            ToApprovalStatus(package, latestVersion),
+            ToValidationStatus(latestVersion),
+            latestVersion?.Features.Count ?? 0,
+            package.UpdatedAt,
             package.Versions.Select(version => new AdminPackageVersionResponse(
                 version.Version,
                 version.ValidationStatus,
@@ -37,4 +45,11 @@ public static class AdminPackageEndpoints
                 version.IsListed,
                 version.SuspiciousChangeDetected,
                 version.SchemaVersion)).ToList());
+    }
+
+    private static PackageApprovalStatus ToApprovalStatus(Package package, PackageVersion? latestVersion) =>
+        latestVersion?.ApprovalStatus ?? (package.Approved ? PackageApprovalStatus.Approved : PackageApprovalStatus.Pending);
+
+    private static ValidationStatus ToValidationStatus(PackageVersion? latestVersion) =>
+        latestVersion?.ValidationStatus ?? ValidationStatus.NotValidated;
 }

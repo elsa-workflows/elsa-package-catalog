@@ -4,6 +4,7 @@ import { RequestStateView } from "@/components/states/RequestStateViews";
 import { NewSourcePage, EditSourcePage } from "@/features/sources/SourceFormPage";
 import { SourceDetailsPage } from "@/features/sources/SourceDetailsPage";
 import { SourcesPage } from "@/features/sources/SourcesPage";
+import { PackagesPage } from "@/features/packages/PackagesPage";
 import { SyncRunDetailsPage } from "@/features/sync-runs/SyncRunDetailsPage";
 import { SyncRunsPage } from "@/features/sync-runs/SyncRunsPage";
 
@@ -32,7 +33,7 @@ export const router = createBrowserRouter([
       { path: "sources/new", element: <NewSourcePage /> },
       { path: "sources/:sourceId", element: <SourceDetailsPage /> },
       { path: "sources/:sourceId/edit", element: <EditSourcePage /> },
-      { path: "packages", element: <PlaceholderPage title="Packages" /> },
+      { path: "packages", element: <PackagesPage /> },
       { path: "packages/:packageId", element: <PlaceholderPage title="Package Details" /> },
       { path: "packages/:packageId/versions/:version", element: <PlaceholderPage title="Package Version" /> },
       { path: "sync-runs", element: <SyncRunsPage /> },
