@@ -46,4 +46,16 @@ describe("sync run models", () => {
   it("returns raw sync item status labels intentionally", () => {
     expect(syncRunItemStatusLabel("Unchanged")).toBe("Unchanged");
   });
+
+  it("uses legacy packages scanned when canonical counters only contain per-status counts", () => {
+    const run = normalizeSyncRun({
+      ...baseRun,
+      summaryCountersJson: JSON.stringify({ indexed: 4, failed: 1 }),
+      packagesScanned: 52
+    });
+
+    expect(packagesScanned(run)).toBe(52);
+    expect(packagesUpdated(run)).toBe(4);
+    expect(syncFailures(run)).toBe(1);
+  });
 });

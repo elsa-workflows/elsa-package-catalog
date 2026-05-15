@@ -39,6 +39,7 @@ type SyncRunResponse = Omit<SyncRun, "summaryCounters" | "items"> & {
 const scannedKeys = ["scanned", "packagesscanned", "discovered", "downloaded", "indexed", "unchanged", "skipped", "invalid", "suspicious", "failed"];
 const updatedKeys = ["updated", "packagesupdated", "indexed"];
 const failureKeys = ["failures", "failed"];
+const scannedGuardKeys = ["scanned", "packagesscanned"];
 const warningStatuses: SyncRunItemStatus[] = ["Invalid", "Suspicious"];
 
 export function normalizeSyncRuns(response: unknown): SyncRun[] {
@@ -139,7 +140,7 @@ function parseCounterJson(value: string): SummaryCounters {
 
 function withLegacyCounterFallbacks(counters: SummaryCounters, run: SyncRunResponse): SummaryCounters {
   return {
-    ...(typeof run.packagesScanned === "number" && !hasNumericCounter(counters, scannedKeys) ? { scanned: run.packagesScanned } : {}),
+    ...(typeof run.packagesScanned === "number" && !hasNumericCounter(counters, scannedGuardKeys) ? { scanned: run.packagesScanned } : {}),
     ...(typeof run.packagesUpdated === "number" && !hasNumericCounter(counters, updatedKeys) ? { updated: run.packagesUpdated } : {}),
     ...(typeof run.failures === "number" && !hasNumericCounter(counters, failureKeys) ? { failed: run.failures } : {}),
     ...counters
