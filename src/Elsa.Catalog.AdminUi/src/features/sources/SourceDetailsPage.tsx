@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Badge } from "@/components/ui";
+import { Badge, buttonClassName } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
 import { SourceActions } from "@/features/sources/SourceActions";
 import { getSource } from "@/features/sources/sourceApi";
@@ -25,7 +25,7 @@ export function SourceDetailsPage() {
           <p className="mt-1 break-all text-sm text-muted-foreground">{source.data.url}</p>
         </div>
         <div className="flex gap-2">
-          <Link className="inline-flex h-9 items-center justify-center rounded-ui border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-muted" to={`/admin/sources/${source.data.id}/edit`}>
+          <Link className={buttonClassName("secondary")} to={`/admin/sources/${source.data.id}/edit`}>
             Edit
           </Link>
         </div>
@@ -45,7 +45,7 @@ export function SourceDetailsPage() {
           <PatternList title="Exclude" items={source.data.excludePatterns} />
         </div>
       </div>
-      <SourceActions source={source.data} onDeleted={() => navigate("/admin/sources")} />
+      <SourceActions source={source.data} onDeleted={() => navigate("/admin/sources")} showEdit={false} />
     </section>
   );
 }

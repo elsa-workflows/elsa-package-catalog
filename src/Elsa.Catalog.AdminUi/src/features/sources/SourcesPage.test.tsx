@@ -38,6 +38,12 @@ describe("SourcesPage", () => {
     expect(screen.getByText("12")).toBeInTheDocument();
   });
 
+  it("links each source row to the edit form", async () => {
+    renderSourcesPage([sourceFixture]);
+
+    expect(await screen.findByRole("link", { name: "Edit" })).toHaveAttribute("href", "/admin/sources/source-1/edit");
+  });
+
   it("filters populated source rows", async () => {
     renderSourcesPage([sourceFixture]);
 
