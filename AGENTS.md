@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/003-admin-dashboard-ui/plan.md
+specs/004-admin-dashboard-auth/plan.md
 <!-- SPECKIT END -->
 
 ## Active Technologies
@@ -13,6 +13,8 @@ specs/003-admin-dashboard-ui/plan.md
 - No frontend-owned durable storage; transient UI state only, with durable catalog state remaining in existing backend persistence (003-admin-dashboard-ui)
 - C# on .NET 10 LTS with nullable reference types + existing MSBuild task APIs, metadata inspection, System.Text.Json, Elsa.PackageManifests validation, xUnit, FluentAssertions (003-generator-adoption-fixes)
 - File artifact generation only: compiled assemblies/XML docs/project metadata in; deterministic `elsa-package.json` and NuGet package root inclusion out (003-generator-adoption-fixes)
+- C# on .NET 10 LTS for API host; existing React + TypeScript admin UI remains a static asset build. + ASP.NET Core authentication/authorization, existing custom API key authentication handler, existing admin UI build output. (004-admin-dashboard-auth)
+- Existing configuration secret for the admin API key; no new persistent storage. (004-admin-dashboard-auth)
 
 ## Recent Changes
 - 001-package-catalog: Added implementation plan, research, data model, OpenAPI contract, quickstart, and current plan reference.
