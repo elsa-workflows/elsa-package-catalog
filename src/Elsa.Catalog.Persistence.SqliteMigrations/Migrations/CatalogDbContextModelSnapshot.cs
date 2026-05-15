@@ -57,6 +57,10 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("InfrastructureJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("PackageVersionId")
                         .HasColumnType("TEXT");
 

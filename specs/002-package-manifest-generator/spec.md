@@ -193,7 +193,7 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-020**: The generator MUST support an optional override file named `elsa-package.overrides.json` by default.
 - **FR-021**: The generator MUST support configuring a custom override file path.
 - **FR-022**: The override file MUST be optional.
-- **FR-023**: The override file MUST support package metadata, documentation metadata, icon metadata, tags, compatibility metadata, license metadata, feature metadata overrides, setting metadata overrides, dependencies, conflicts, required capabilities, and extension metadata.
+- **FR-023**: The override file MUST support package metadata, documentation metadata, icon metadata, tags, compatibility metadata, license metadata, feature metadata overrides, setting metadata overrides, dependencies, conflicts, required capabilities, feature-level infrastructure requirements, and extension metadata.
 - **FR-023a**: Override files larger than 256 KB MUST be rejected with a validation diagnostic.
 - **FR-024**: The final manifest MUST be produced by merging inferred metadata, XML documentation, CShells metadata, optional manifest hints, and override file values in that order.
 - **FR-025**: Later merge sources MUST take precedence over earlier merge sources for scalar values.
@@ -209,7 +209,8 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-033**: Abstract feature classes MUST NOT be included as exposed features by default.
 - **FR-034**: Generic feature type definitions MUST NOT be included as exposed features by default.
 - **FR-035**: Internal feature classes MUST be excluded in the MVP.
-- **FR-036**: Feature metadata MUST include feature ID, CShells feature name, CLR type name, display name, description, category, settings, dependencies, conflicts, required capabilities, advanced flag, experimental flag, and extension metadata when available.
+- **FR-036**: Feature metadata MUST include feature ID, CShells feature name, CLR type name, display name, description, category, settings, dependencies, conflicts, required capabilities, abstract infrastructure requirements, advanced flag, experimental flag, and extension metadata when available.
+- **FR-036a**: Feature infrastructure requirements MUST describe abstract dependency needs such as database, message-broker, cache, blob-storage, smtp, or secret-store, and MUST NOT contain Docker Compose fragments or provider-specific deployment templates.
 - **FR-037**: Feature IDs MUST be stable and deterministic.
 - **FR-038**: When no explicit feature ID is provided by the manifest contract or override file, the generator MUST infer a stable feature ID from the package ID and CShells feature name.
 - **FR-039**: The generator MUST discover feature settings from public configurable properties on discovered feature classes.

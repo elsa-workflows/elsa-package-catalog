@@ -212,6 +212,16 @@ Add `elsa-package.overrides.json`:
   "features": [
     {
       "id": "Elsa.Samples.Email",
+      "infrastructure": [
+        {
+          "id": "smtp",
+          "kind": "smtp",
+          "optional": false,
+          "reason": "Email delivery needs an SMTP-compatible service.",
+          "providers": ["smtp", "mailpit"],
+          "configurationKeys": ["Email:SmtpHost", "Email:Port"]
+        }
+      ],
       "settings": [
         {
           "name": "SmtpHost",
@@ -227,6 +237,8 @@ Add `elsa-package.overrides.json`:
 Expected result:
 
 - Override values win over inferred, XML, and attribute metadata.
+- Feature infrastructure requirements are emitted as abstract manifest metadata;
+  they do not contain Docker Compose fragments or deployment templates.
 - Override file references resolve to discovered features and settings.
 - Override files larger than 256 KB fail validation.
 - Override package ID/version conflicts fail validation.

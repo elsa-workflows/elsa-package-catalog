@@ -225,7 +225,10 @@ Manifest tooling, catalog ingestion, and future runtime validation can all use o
 - **FR-040**: Manifest validity MUST be separate from approval status.
 - **FR-040a**: For sources using `Manual` approval, every newly indexed package version MUST remain pending until explicitly approved, even when the package itself is already approved.
 - **FR-041**: Public APIs MUST return only package versions that are listed, approved, and valid.
-- **FR-042**: Public APIs MUST expose package listing, package details, package versions, package version details, feature listing, feature details, and compatibility checking.
+- **FR-042**: Public APIs MUST expose package listing, package details, package versions, package version details, feature listing, feature details, builder catalog aggregation, infrastructure provider discovery, and compatibility checking.
+- **FR-042a**: Runtime Builder-facing APIs MUST expose source/feed provenance for returned package versions and features without exposing source credentials.
+- **FR-042b**: Runtime Builder-facing APIs MUST expose manifest-derived feature dependencies, conflicts, required capabilities, settings metadata, and abstract infrastructure requirements for valid, approved, listed package versions.
+- **FR-042c**: Infrastructure provider discovery MUST remain separate from package manifests; manifests declare abstract requirements, while builder infrastructure providers describe concrete sidecar, external-service, or platform-managed fulfillment options.
 - **FR-043**: Public package listings MUST support filtering by package ID, tag, feature ID, compatibility target, and listed status where applicable.
 - **FR-044**: Public feature listings MUST support filtering by package ID, category, required capability, advanced flag, experimental flag, and compatibility target where applicable.
 - **FR-045**: Public compatibility checks MUST accept selected package versions, selected features, requested Elsa version, requested Docker image version, runtime capabilities, and license constraints.

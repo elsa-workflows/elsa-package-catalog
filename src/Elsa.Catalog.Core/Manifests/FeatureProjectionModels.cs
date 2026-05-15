@@ -15,6 +15,7 @@ public sealed class FeatureRecord
     public string RequiredCapabilitiesJson { get; set; } = "[]";
     public string DependenciesJson { get; set; } = "[]";
     public string ConflictsJson { get; set; } = "[]";
+    public string InfrastructureJson { get; set; } = "[]";
     public bool Advanced { get; set; }
     public bool Experimental { get; set; }
     public string ExtensionsJson { get; set; } = "{}";
