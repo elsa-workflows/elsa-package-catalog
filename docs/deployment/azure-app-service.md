@@ -97,8 +97,8 @@ Required GitHub Actions secrets:
 The workflow validates the configuration, restores the solution, builds the
 Aspire AppHost, runs the API test project, signs in with `azd auth login` using
 GitHub federated credentials, creates the local CI `azd` environment metadata,
-sets the secured `infra.parameters.adminApiKey` parameter for the run, and
-deploys.
+sets the secured `infra.parameters.adminApiKey` parameter and required azd
+environment outputs for the run, and deploys.
 
 ## Removing Existing Resources
 
