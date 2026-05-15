@@ -7,8 +7,6 @@ public sealed class PackageVersionPolicy
         if (string.Equals(existingVersion.ManifestHash, observedManifestHash, StringComparison.OrdinalIgnoreCase))
             return new PackageVersionContentChange(false, null);
 
-        existingVersion.SuspiciousChangeDetected = true;
-        existingVersion.SuspiciousManifestHash = observedManifestHash;
         return new PackageVersionContentChange(true, observedManifestHash);
     }
 }

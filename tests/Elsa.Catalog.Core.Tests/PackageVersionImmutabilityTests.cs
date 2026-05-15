@@ -6,7 +6,7 @@ namespace Elsa.Catalog.Core.Tests;
 public sealed class PackageVersionImmutabilityTests
 {
     [Fact]
-    public void CompareManifest_marks_changed_hash_as_suspicious_without_replacing_existing_hash()
+    public void CompareManifest_reports_changed_hash_without_mutating_existing_version()
     {
         var version = new PackageVersion { ManifestHash = "old" };
         var policy = new PackageVersionPolicy();
@@ -14,8 +14,9 @@ public sealed class PackageVersionImmutabilityTests
         var result = policy.CompareManifest(version, "new");
 
         result.IsSuspicious.Should().BeTrue();
+        result.ObservedHash.Should().Be("new");
         version.ManifestHash.Should().Be("old");
-        version.SuspiciousChangeDetected.Should().BeTrue();
-        version.SuspiciousManifestHash.Should().Be("new");
+        version.SuspiciousChangeDetected.Should().BeFalse();
+        version.SuspiciousManifestHash.Should().BeNull();
     }
 }
