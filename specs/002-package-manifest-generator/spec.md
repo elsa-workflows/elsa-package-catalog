@@ -16,6 +16,16 @@ The generated manifest is the distribution contract consumed later by Elsa Packa
 
 The first version uses an MSBuild-integrated generator because the output is an external artifact that must be created during build or pack and included in the NuGet package. The generator inspects compiled assembly metadata, project and NuGet metadata, XML documentation files, referenced metadata needed for type identification, optional source annotations, and an optional override file. It must not execute package code or invoke feature constructors.
 
+## Clarifications
+
+### Session 2026-05-15
+
+- Q: Where should source annotation attributes be packaged? → A: Ship annotation attributes as source-only compile assets from `Elsa.PackageManifest.Generator`, so package authors keep a one-reference workflow without emitting a runtime dependency for annotations.
+- Q: Should complex object settings be supported in the MVP? → A: Defer complex object settings in the MVP; support primitives, enums, nullable values, arrays, lists, and dictionaries only.
+- Q: Can the override file change package identity fields? → A: The override file may not change package ID or package version; conflicts with NuGet metadata are validation errors.
+- Q: What size limits should apply to generated manifests and override files? → A: Generated manifests may be up to 1 MB, and override files may be up to 256 KB.
+- Q: What extension metadata shape should attributes support? → A: Attributes support simple string key/value extension metadata only; rich extension data belongs in the override file.
+
 ## Goals
 
 - Automatically generate `elsa-package.json` during build or pack for participating package projects.
@@ -183,10 +193,12 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-021**: The generator MUST support configuring a custom override file path.
 - **FR-022**: The override file MUST be optional.
 - **FR-023**: The override file MUST support package metadata, documentation metadata, icon metadata, tags, compatibility metadata, license metadata, feature metadata overrides, setting metadata overrides, dependencies, conflicts, required capabilities, and extension metadata.
+- **FR-023a**: Override files larger than 256 KB MUST be rejected with a validation diagnostic.
 - **FR-024**: The final manifest MUST be produced by merging inferred metadata, XML documentation, source annotations, and override file values in that order.
 - **FR-025**: Later merge sources MUST take precedence over earlier merge sources for scalar values.
 - **FR-026**: Collection merge behavior MUST be deterministic and documented per collection type.
 - **FR-027**: The generator MUST report override entries that reference nonexistent features or settings.
+- **FR-027a**: The override file MUST NOT change package ID or package version, and any conflict with NuGet package identity MUST be treated as a validation error.
 - **FR-028**: The generator MUST discover CShells feature classes from the project assembly.
 - **FR-029**: A feature class MUST be discoverable when it derives from a known CShells feature base class.
 - **FR-030**: A feature class MUST be discoverable when it implements a known CShells feature interface.
@@ -222,7 +234,7 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-060**: URI settings MUST map to string schema with URI metadata.
 - **FR-061**: Arrays and list settings MUST map to array schema.
 - **FR-062**: Dictionary settings MUST map to object schema with additional property metadata.
-- **FR-063**: Complex object settings MUST map to object schema when they can be described safely from metadata.
+- **FR-063**: Complex object settings MUST be deferred from the MVP unless they are represented through a supported primitive, enum, nullable, array, list, or dictionary shape.
 - **FR-064**: Nullable settings MUST be represented consistently with the shared manifest contract and schema version.
 - **FR-065**: XML documentation class summaries SHOULD populate feature descriptions when no higher-priority description is supplied.
 - **FR-066**: XML documentation property summaries SHOULD populate setting descriptions when no higher-priority description is supplied.
@@ -231,6 +243,8 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-069**: Source annotations MUST be lightweight metadata annotations used only as generator inputs.
 - **FR-070**: Source annotations MUST NOT replace or duplicate the shared manifest wire contract.
 - **FR-071**: The first version SHOULD support feature, setting, ignore, extension, compatibility, dependency, conflict, required-feature, and conflicts-with annotations where useful.
+- **FR-071a**: Annotation attributes MUST be provided as source-only compile assets from `Elsa.PackageManifest.Generator` so consuming packages can use annotations without emitting a runtime dependency for them.
+- **FR-071b**: Attribute-based extension metadata MUST be limited to simple string key/value pairs; rich extension payloads MUST be supplied through the override file.
 - **FR-072**: The generator MUST produce clear diagnostics for discovered feature count, generated manifest path, missing XML documentation, invalid settings, unsupported property types, schema validation errors, and package inclusion.
 - **FR-073**: Default diagnostics MUST avoid noisy per-property success logs.
 - **FR-074**: The generator MUST support multi-targeted projects.
@@ -244,6 +258,7 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-082**: The generator SHOULD complete quickly enough for normal package builds and SHOULD avoid repeated expensive inspection when inputs are unchanged.
 - **FR-083**: Generated JSON MUST be stable enough for meaningful diffs and reproducible package builds.
 - **FR-084**: Pack behavior MUST work when packing directly, even if the manifest was not generated by a separate explicit build command first.
+- **FR-085**: Generated manifests larger than 1 MB MUST be treated as validation failures before package inclusion.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -273,7 +288,7 @@ The architecture decision for the first version is:
 
 Suggested package boundaries:
 
-- `Elsa.PackageManifest.Generator`: Public package referenced by package authors; brings in build assets, annotations if exposed, and task assets.
+- `Elsa.PackageManifest.Generator`: Public package referenced by package authors; brings in build assets, task assets, and source-only compile assets for optional annotations.
 - `Elsa.PackageManifest.Generator.Core`: Optional internal/shared library for generation logic if it removes meaningful duplication between task, tests, or future analyzers.
 - `Elsa.PackageManifest.Generator.MSBuild`: Optional packaging/task assembly if separating MSBuild assets keeps the public package cleaner.
 - `Elsa.PackageManifests`: Required shared contract package for manifest DTOs, schema resources, validation behavior, and serialization rules.
@@ -350,6 +365,8 @@ Extraction behavior:
 
 Attributes are optional source annotations for generation input only. They enrich inference and reduce override-file noise, but the generated JSON still uses `Elsa.PackageManifests`.
 
+Annotation attributes are shipped as source-only compile assets from `Elsa.PackageManifest.Generator`. This preserves the one-reference package author experience and avoids introducing annotation-only runtime dependencies into packages that use the generator.
+
 Recommended first-version annotations:
 
 - `ElsaFeatureAttribute`: Supplies feature ID, display name, category, description, advanced flag, experimental flag, and extension metadata where supported.
@@ -360,7 +377,7 @@ Recommended first-version annotations:
 - `RequiresFeatureAttribute`: Declares feature dependencies.
 - `ConflictsWithFeatureAttribute`: Declares feature conflicts.
 
-Attribute metadata must be intentionally small. Rich metadata such as long documentation, complex compatibility matrices, icon metadata, and broad extension payloads should live in the override file.
+Attribute metadata must be intentionally small. Attribute-based extension metadata is limited to simple string key/value pairs. Rich metadata such as long documentation, complex compatibility matrices, icon metadata, and broad extension payloads should live in the override file.
 
 ## Override File Model
 
@@ -383,7 +400,7 @@ The override file may provide:
 - Advanced and experimental flags.
 - Extension metadata.
 
-The override file must be validated for structure before merge. Unknown fields are allowed only where the manifest contract or override schema defines extension data. References to unknown features or settings produce diagnostics.
+The override file must be validated for structure before merge. Unknown fields are allowed only where the manifest contract or override schema defines extension data. References to unknown features or settings produce diagnostics. Override files larger than 256 KB are rejected before merge to keep overrides focused on enrichment rather than becoming a parallel manifest source.
 
 ## Merge Behavior
 
@@ -404,7 +421,7 @@ Conflict rules:
 - Setting override entries match by feature ID plus setting name.
 - Duplicate entries in the same source produce diagnostics.
 - Override references to nonexistent features or settings produce diagnostics.
-- The merge must not silently change package identity or package version to values that conflict with NuGet package identity unless explicitly allowed by future policy.
+- The override file may not change package ID or package version; conflicts with NuGet package identity are validation errors.
 
 ## JSON Schema Generation
 
@@ -422,7 +439,7 @@ Type mapping:
 - URI values map to `string` with URI metadata.
 - Arrays and lists map to `array`.
 - Dictionaries map to `object`.
-- Safe complex objects map to `object`.
+- Complex object settings are deferred from the MVP unless represented through supported primitive, enum, nullable, array, list, or dictionary shapes.
 - Nullable values are represented according to the active manifest schema version.
 - Unsupported types produce diagnostics according to configured severity.
 
@@ -437,6 +454,8 @@ Validation includes:
 - Required manifest fields.
 - Supported schema version.
 - Package identity and version consistency.
+- Override identity consistency with NuGet package ID and version.
+- Generated manifest size no greater than 1 MB.
 - Feature identity uniqueness.
 - Setting identity uniqueness within each feature.
 - JSON Schema validity for generated setting metadata.
@@ -522,13 +541,16 @@ Hard errors include:
 - Missing compiled assembly when generation is enabled and required.
 - Unable to inspect assembly metadata.
 - Malformed override JSON.
+- Override file exceeds 256 KB.
 - Inability to load the manifest contract or validation schema.
 - Failure to write the output manifest.
 
 Validation errors include:
 
 - Required manifest fields missing.
+- Override file package ID or package version conflicts with NuGet package identity.
 - Invalid generated schema.
+- Generated manifest exceeds 1 MB.
 - Duplicate feature IDs.
 - Duplicate setting names within a feature.
 - Unsupported critical setting types.
@@ -570,7 +592,9 @@ Testing should cover generator behavior from package author and build-system per
 - Integration tests for common validation annotations.
 - Integration tests for unsupported setting types and configured severity behavior.
 - Integration tests for malformed and valid override files.
+- Integration tests for override files larger than 256 KB and generated manifests larger than 1 MB.
 - Integration tests for multi-targeted projects with identical and divergent feature surfaces.
+- Integration tests that complex object settings produce the configured diagnostic rather than inferred recursive schemas.
 - Package inspection tests that verify exactly one root `elsa-package.json` is included.
 - Determinism tests that build the same sample project twice and compare normalized manifest output.
 - Safety tests that verify constructors and property getters are not invoked during generation.
@@ -623,9 +647,4 @@ Testing should cover generator behavior from package author and build-system per
 
 - What exact CShells base class and interface names should be treated as first-class discovery conventions?
 - Which annotation namespace should be owned by the generator package versus the shared manifest contract package?
-- Should annotation types live in the generator package, a tiny abstractions package, or `Elsa.PackageManifests` to avoid leaking build-only dependencies into runtime packages?
 - Which JSON Schema library and schema draft should `Elsa.PackageManifests` standardize on?
-- Should complex object settings be supported in the MVP or limited to primitive, enum, collection, and dictionary shapes first?
-- What exact extension metadata shape should be allowed in attributes without becoming a second manifest language?
-- Should direct manifest override identity fields ever be allowed to differ from NuGet package identity, or should that always be an error?
-- What is the maximum recommended size for generated manifests and override files?
