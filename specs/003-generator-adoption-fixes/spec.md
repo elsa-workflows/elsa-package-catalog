@@ -8,6 +8,14 @@
 
 **Input**: User description: "Improve `Elsa.PackageManifest.Generator` adoption by Elsa Core shell-feature modules by fixing warning severity task failures, excluding delegate/service-factory configuration hooks from deploy-time settings, and ensuring multi-targeted packages include exactly one root `elsa-package.json` without consumer-side targets."
 
+## Clarifications
+
+### Session 2026-05-15
+
+- Q: Should ignored delegate-shaped hooks produce default warnings that can trigger fail-on-warnings? → A: No; log low-importance or verbose diagnostics only, with no default warning.
+- Q: What should validation severity set to warning downgrade? → A: Manifest validation findings only; infrastructure and invalid input failures still fail.
+- Q: Which target framework supplies the canonical package manifest when manifest surfaces are equivalent? → A: The first declared target framework.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Adopt the Generator Without Custom Project Workarounds (Priority: P1)
@@ -22,7 +30,7 @@ An Elsa Core module maintainer adds a private reference to the preview generator
 
 1. **Given** a multi-targeted module project references `Elsa.PackageManifest.Generator` with private assets, **When** the maintainer runs a normal build, **Then** the build succeeds and creates a manifest for the discovered shell features.
 2. **Given** the same project has no custom manifest packaging targets, **When** the maintainer packs the project, **Then** the package contains exactly one `elsa-package.json` at the package root.
-3. **Given** a project targets one or many frameworks, **When** the package is created, **Then** duplicate root manifests are not produced.
+3. **Given** a project targets one or many frameworks, **When** the package is created, **Then** duplicate root manifests are not produced and equivalent multi-target surfaces use the first declared target framework as the canonical package manifest source.
 
 ---
 
@@ -39,7 +47,7 @@ An Elsa Core module maintainer exposes fluent setup hooks, service factories, HT
 1. **Given** a shell feature exposes a public settable property shaped like an action callback, **When** manifest generation runs, **Then** the property is excluded from configurable settings by default.
 2. **Given** a shell feature exposes a public settable property shaped like a factory callback, **When** manifest generation runs, **Then** the property is excluded from configurable settings by default.
 3. **Given** a shell feature exposes a collection or dictionary whose values are delegate-shaped factories or callbacks, **When** manifest generation runs, **Then** the property is excluded from configurable settings by default.
-4. **Given** delegate-shaped properties are excluded, **When** diagnostics are emitted, **Then** diagnostics are concise and explain that the properties are code configuration hooks rather than deploy-time settings.
+4. **Given** delegate-shaped properties are excluded, **When** normal diagnostics are emitted, **Then** the build does not log warnings for those exclusions by default.
 5. **Given** a normal deploy-time setting is public and settable, **When** manifest generation runs, **Then** that setting is still discovered and represented in the manifest.
 
 ---
@@ -73,7 +81,7 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 
 1. **Given** a generated manifest is missing required package or feature data, **When** the default policy is used, **Then** generation fails the build with actionable diagnostics.
 2. **Given** a generated manifest has recommended metadata findings only, **When** the default policy is used, **Then** the build reports warnings without failing unless fail-on-warnings is enabled.
-3. **Given** a team explicitly chooses warning severity for adoption, **When** required validation findings are mapped to warnings, **Then** the build succeeds only when fail-on-warnings is false.
+3. **Given** a team explicitly chooses warning severity for adoption, **When** required manifest validation findings are mapped to warnings, **Then** the build succeeds only when fail-on-warnings is false.
 
 ### Edge Cases
 
@@ -86,7 +94,7 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 - A package is packed directly without an earlier separate build.
 - A project customizes the manifest package path.
 - Fail-on-warnings is enabled while all diagnostics are warnings.
-- Warning severity is selected but the generator encounters an unrecoverable infrastructure error, such as an unreadable assembly or invalid override file.
+- Warning severity is selected but the generator encounters an unrecoverable infrastructure or invalid input error, such as an unreadable assembly or invalid override file.
 
 ## Requirements *(mandatory)*
 
@@ -99,16 +107,17 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 - **FR-005**: Direct delegate-shaped public settable properties MUST be excluded from deploy-time setting discovery by default.
 - **FR-006**: Public settable properties whose collection or dictionary element values are delegate-shaped callbacks or factories MUST be excluded from deploy-time setting discovery by default.
 - **FR-007**: Excluded delegate-shaped properties MUST NOT produce unsupported-setting errors under the default workflow.
-- **FR-008**: Excluded delegate-shaped properties SHOULD produce concise diagnostics that identify them as ignored code configuration hooks when diagnostics are enabled.
+- **FR-008**: Excluded delegate-shaped properties MUST NOT produce warnings by default and MAY produce concise low-importance or verbose diagnostics that identify them as ignored code configuration hooks when verbose diagnostics are enabled.
 - **FR-009**: Non-delegate unsupported setting shapes MUST continue to produce configurable diagnostics.
-- **FR-010**: Validation severity set to warning MUST log mapped validation findings as warnings.
-- **FR-011**: Validation severity set to warning MUST allow the task to succeed when fail-on-warnings is false and no non-mappable fatal condition occurs.
+- **FR-010**: Validation severity set to warning MUST log mapped manifest validation findings as warnings.
+- **FR-011**: Validation severity set to warning MUST allow the task to succeed when fail-on-warnings is false and no infrastructure or invalid input failure occurs.
 - **FR-012**: Validation severity set to warning MUST fail the task when fail-on-warnings is true and warnings are present.
 - **FR-013**: The default validation policy MUST continue to fail builds for required manifest schema errors.
 - **FR-014**: Recommended metadata findings MUST remain warnings by default and MUST fail only when fail-on-warnings is enabled or another explicit strict policy requires it.
 - **FR-015**: The task result MUST be consistent with the diagnostics it logs so a build never fails with a task-returned-false message when only warnings were logged.
+- **FR-015a**: Infrastructure and invalid input failures MUST fail the build regardless of validation severity.
 - **FR-016**: Multi-targeted package projects MUST avoid duplicate root manifest package entries.
-- **FR-017**: Multi-targeted package projects MUST choose one canonical manifest for package root inclusion when target frameworks produce equivalent manifest-relevant output.
+- **FR-017**: Multi-targeted package projects MUST choose the first declared target framework as the canonical manifest source for package root inclusion when target frameworks produce equivalent manifest-relevant output.
 - **FR-018**: Multi-targeted package projects MUST report target-framework manifest differences according to the configured severity policy.
 - **FR-019**: Direct pack operations MUST generate and include the root manifest without requiring a prior explicit build.
 - **FR-020**: Custom manifest package paths MUST continue to be honored while preserving the one-manifest default behavior.
@@ -131,11 +140,14 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 
 - **SC-001**: A representative multi-target Elsa shell-feature module builds and packs successfully after adding only the private generator package reference.
 - **SC-002**: Package inspection for a representative multi-target module finds exactly one root `elsa-package.json` and no duplicate root manifest entries.
+- **SC-002a**: Equivalent multi-target packages use the first declared target framework as the canonical manifest source in every covered package inspection test.
 - **SC-003**: Representative shell features with action callbacks, service factories, HTTP-client callbacks, and delegate-valued dictionaries or lists generate manifests without unsupported-setting build failures.
+- **SC-003a**: Ignored delegate-shaped hooks do not cause fail-on-warnings builds to fail unless another warning or error is present.
 - **SC-004**: Warning severity with fail-on-warnings disabled produces a successful build with warning diagnostics in every covered test case.
 - **SC-005**: Warning severity with fail-on-warnings enabled produces a failed build in every covered warning-diagnostic test case.
 - **SC-006**: Default validation policy still fails every covered required-schema-error test case.
 - **SC-007**: No covered warning-only scenario emits the misleading task-returned-false build failure.
+- **SC-008**: Warning severity does not allow covered infrastructure or invalid input failures to produce a successful build.
 
 ## Assumptions
 
