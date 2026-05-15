@@ -4,13 +4,15 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import { SourceForm } from "@/features/sources/SourceForm";
+import type { PackageSource } from "@/features/sources/sourceModels";
+import { sourceFixture } from "@/test/fixtures";
 
-function renderForm(onSubmit = vi.fn(async () => undefined)) {
+function renderForm(onSubmit = vi.fn(async () => undefined), source?: PackageSource) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter>
-        <SourceForm onSubmit={onSubmit} />
+        <SourceForm source={source} onSubmit={onSubmit} />
       </MemoryRouter>
     </QueryClientProvider>
   );
@@ -50,5 +52,17 @@ describe("SourceForm", () => {
     await userEvent.type(screen.getByLabelText("Exclude Patterns"), "*.Tests");
 
     expect(screen.getByText("Elsa.Tests").previousSibling).toHaveTextContent("NO");
+  });
+
+  it("loads an existing source and submits edited values", async () => {
+    const onSubmit = renderForm(vi.fn(async () => undefined), sourceFixture as PackageSource);
+
+    expect(screen.getByRole("heading", { name: "Edit Source" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Name")).toHaveValue("Elsa Official");
+    await userEvent.clear(screen.getByLabelText("Name"));
+    await userEvent.type(screen.getByLabelText("Name"), "Internal Feed");
+    await userEvent.click(screen.getByRole("button", { name: "Save Source" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ name: "Internal Feed" }));
   });
 });

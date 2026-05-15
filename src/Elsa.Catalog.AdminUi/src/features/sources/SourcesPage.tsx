@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { RefreshCw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Badge, EmptyState, Input, SecondaryButton, Table } from "@/components/ui";
+import { Badge, EmptyState, Input, SecondaryButton, Table, buttonClassName } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
 import { SourceActions } from "@/features/sources/SourceActions";
 import { listSources } from "@/features/sources/sourceApi";
@@ -35,7 +35,7 @@ export function SourcesPage() {
             <RefreshCw className="h-4 w-4" />
             Refresh
           </SecondaryButton>
-          <Link className="inline-flex h-9 items-center justify-center rounded-ui border border-border bg-foreground px-3 text-sm font-medium text-background" to="/admin/sources/new">
+          <Link className={buttonClassName()} to="/admin/sources/new">
             New Source
           </Link>
         </div>
