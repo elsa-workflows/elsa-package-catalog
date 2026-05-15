@@ -94,7 +94,9 @@ public sealed class AdminDashboardAuthenticationTests
             ["apiKey"] = "local-dev-key"
         }));
 
-        var logout = await client.PostAsync(AdminDashboardAuthenticationDefaults.LogoutPath, null);
+        using var logoutRequest = new HttpRequestMessage(HttpMethod.Post, AdminDashboardAuthenticationDefaults.LogoutPath);
+        logoutRequest.Headers.Referrer = new Uri("http://localhost/admin/overview");
+        var logout = await client.SendAsync(logoutRequest);
         using var request = new HttpRequestMessage(HttpMethod.Get, "/admin/overview");
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
         var dashboard = await client.SendAsync(request);
@@ -103,6 +105,26 @@ public sealed class AdminDashboardAuthenticationTests
         logout.Headers.Location.Should().Be(AdminDashboardAuthenticationDefaults.LoginPath);
         dashboard.StatusCode.Should().Be(HttpStatusCode.Redirect);
         dashboard.Headers.Location!.OriginalString.Should().StartWith("/admin/login");
+    }
+
+    [Fact]
+    public async Task Logout_rejects_cross_site_post()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+        await client.PostAsync(AdminDashboardAuthenticationDefaults.LoginPath, new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["apiKey"] = "local-dev-key"
+        }));
+        using var logoutRequest = new HttpRequestMessage(HttpMethod.Post, AdminDashboardAuthenticationDefaults.LogoutPath);
+        logoutRequest.Headers.Add("Origin", "https://evil.example");
+
+        var logout = await client.SendAsync(logoutRequest);
+        var sources = await client.GetAsync("/api/admin/sources");
+
+        logout.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        sources.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]

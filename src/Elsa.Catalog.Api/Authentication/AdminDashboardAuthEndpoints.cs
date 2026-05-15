@@ -45,6 +45,9 @@ public static class AdminDashboardAuthEndpoints
 
         endpoints.MapPost(AdminDashboardAuthenticationDefaults.LogoutPath, async (HttpContext context) =>
         {
+            if (!AdminDashboardRequestForgeryGuard.IsSameOriginPost(context.Request))
+                return Results.Forbid();
+
             await context.SignOutAsync(AdminDashboardAuthenticationDefaults.Scheme);
             return Results.Redirect(AdminDashboardAuthenticationDefaults.LoginPath);
         }).AllowAnonymous();

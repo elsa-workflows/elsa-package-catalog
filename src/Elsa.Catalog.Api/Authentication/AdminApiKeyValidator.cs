@@ -13,7 +13,9 @@ public sealed class AdminApiKeyValidator(IConfiguration configuration)
 
         var configuredBytes = Encoding.UTF8.GetBytes(configuredApiKey);
         var suppliedBytes = Encoding.UTF8.GetBytes(suppliedApiKey);
-        return configuredBytes.Length == suppliedBytes.Length &&
-               CryptographicOperations.FixedTimeEquals(configuredBytes, suppliedBytes);
+        using var hmac = new HMACSHA256(configuredBytes);
+        var configuredHash = hmac.ComputeHash(configuredBytes);
+        var suppliedHash = hmac.ComputeHash(suppliedBytes);
+        return CryptographicOperations.FixedTimeEquals(configuredHash, suppliedHash);
     }
 }
