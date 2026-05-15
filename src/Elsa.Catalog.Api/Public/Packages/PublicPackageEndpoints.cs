@@ -35,33 +35,45 @@ public static class PublicPackageEndpoints
         return endpoints;
     }
 
-    private static PublicPackageResponse ToResponse(PublicPackageProjection package) =>
-        new(package.PackageId, package.LatestVersion, package.Versions.Select(ToResponse).ToList());
+    public static PublicPackageResponse ToResponse(PublicPackageProjection package) =>
+        new(package.PackageId, ToResponse(package.Source), package.LatestVersion, package.Versions.Select(ToResponse).ToList());
 
-    private static PublicPackageVersionResponse ToResponse(PublicPackageVersionProjection version) =>
-        new(version.PackageId, version.Version, version.SchemaVersion, version.PublishedAt, version.Features.Select(ToResponse).ToList());
+    public static PublicPackageVersionResponse ToResponse(PublicPackageVersionProjection version) =>
+        new(version.PackageId, version.Version, ToResponse(version.Source), version.SchemaVersion, version.PublishedAt, version.Features.Select(ToResponse).ToList());
 
-    private static PublicPackageFeatureResponse ToResponse(PublicFeatureProjection feature) =>
+    public static PublicPackageSourceResponse ToResponse(PublicPackageSourceProjection source) =>
+        new(source.Id, source.Name, source.Url);
+
+    public static PublicPackageFeatureResponse ToResponse(PublicFeatureProjection feature) =>
         new(
             feature.FeatureId,
             feature.TypeName,
             feature.DisplayName,
             feature.Description,
             feature.Category,
+            feature.RequiredCapabilities,
+            feature.Dependencies.Select(x => new PublicPackageDependencyResponse(x.PackageId, x.VersionRange, x.FeatureId, x.Optional, x.Reason)).ToList(),
+            feature.Conflicts.Select(x => new PublicPackageConflictResponse(x.PackageId, x.VersionRange, x.FeatureId, x.Reason)).ToList(),
+            feature.Infrastructure.Select(x => new PublicPackageInfrastructureRequirementResponse(x.Id, x.Kind, x.Optional, x.Reason, x.Capabilities, x.Providers, x.ConfigurationKeys, x.ExtensionsJson)).ToList(),
             feature.Advanced,
             feature.Experimental,
+            feature.ExtensionsJson,
             feature.Settings.Select(ToResponse).ToList());
 
-    private static PublicPackageFeatureSettingResponse ToResponse(PublicFeatureSettingProjection setting) =>
+    public static PublicPackageFeatureSettingResponse ToResponse(PublicFeatureSettingProjection setting) =>
         new(
             setting.Name,
             setting.ClrType,
             setting.JsonType,
             setting.Required,
+            setting.DefaultValueJson,
             setting.DisplayName,
             setting.Description,
             setting.Category,
+            setting.ValidationJson,
             setting.Secret,
             setting.RestartRequired,
-            setting.EnvironmentVariable);
+            setting.EnvironmentVariable,
+            setting.UiJson,
+            setting.ExtensionsJson);
 }

@@ -2,15 +2,22 @@ namespace Elsa.Catalog.Api.Public.Packages;
 
 public sealed record PublicPackageResponse(
     string PackageId,
+    PublicPackageSourceResponse Source,
     string? LatestVersion,
     IReadOnlyList<PublicPackageVersionResponse> Versions);
 
 public sealed record PublicPackageVersionResponse(
     string PackageId,
     string Version,
+    PublicPackageSourceResponse Source,
     string? SchemaVersion,
     DateTimeOffset? PublishedAt,
     IReadOnlyList<PublicPackageFeatureResponse> Features);
+
+public sealed record PublicPackageSourceResponse(
+    Guid Id,
+    string Name,
+    string Url);
 
 public sealed record PublicPackageFeatureResponse(
     string FeatureId,
@@ -18,8 +25,13 @@ public sealed record PublicPackageFeatureResponse(
     string DisplayName,
     string? Description,
     string? Category,
+    IReadOnlyList<string> RequiredCapabilities,
+    IReadOnlyList<PublicPackageDependencyResponse> Dependencies,
+    IReadOnlyList<PublicPackageConflictResponse> Conflicts,
+    IReadOnlyList<PublicPackageInfrastructureRequirementResponse> Infrastructure,
     bool Advanced,
     bool Experimental,
+    string ExtensionsJson,
     IReadOnlyList<PublicPackageFeatureSettingResponse> Settings);
 
 public sealed record PublicPackageFeatureSettingResponse(
@@ -27,9 +39,36 @@ public sealed record PublicPackageFeatureSettingResponse(
     string? ClrType,
     string JsonType,
     bool Required,
+    string? DefaultValueJson,
     string DisplayName,
     string? Description,
     string? Category,
+    string ValidationJson,
     bool Secret,
     bool RestartRequired,
-    string? EnvironmentVariable);
+    string? EnvironmentVariable,
+    string UiJson,
+    string ExtensionsJson);
+
+public sealed record PublicPackageDependencyResponse(
+    string? PackageId,
+    string? VersionRange,
+    string? FeatureId,
+    bool Optional,
+    string? Reason);
+
+public sealed record PublicPackageConflictResponse(
+    string? PackageId,
+    string? VersionRange,
+    string? FeatureId,
+    string? Reason);
+
+public sealed record PublicPackageInfrastructureRequirementResponse(
+    string Id,
+    string Kind,
+    bool Optional,
+    string? Reason,
+    IReadOnlyList<string> Capabilities,
+    IReadOnlyList<string> Providers,
+    IReadOnlyList<string> ConfigurationKeys,
+    string ExtensionsJson);

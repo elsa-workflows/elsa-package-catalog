@@ -41,4 +41,38 @@ public sealed class ManifestIngestionServiceTests
         packageVersion.Features[0].Settings.Should().ContainSingle();
         packageVersion.Features[0].Settings[0].ExtensionsJson.Should().Contain("x-setting");
     }
+
+    [Fact]
+    public void Projects_feature_infrastructure_requirements()
+    {
+        var packageVersion = new PackageVersion();
+        var manifestJson = """
+        {
+          "schemaVersion": "1.0",
+          "package": { "id": "Elsa.RabbitMq", "version": "1.0.0" },
+          "displayName": "RabbitMQ",
+          "features": [
+            {
+              "id": "rabbitmq-messaging",
+              "typeName": "Elsa.RabbitMq.RabbitMqFeature",
+              "displayName": "RabbitMQ Messaging",
+              "infrastructure": [
+                {
+                  "id": "message-broker",
+                  "kind": "message-broker",
+                  "providers": ["rabbitmq"],
+                  "configurationKeys": ["RabbitMq:ConnectionString"]
+                }
+              ]
+            }
+          ]
+        }
+        """;
+
+        new ManifestIngestionService().Ingest(packageVersion, manifestJson);
+
+        packageVersion.Features.Should().ContainSingle();
+        packageVersion.Features[0].InfrastructureJson.Should().Contain("message-broker");
+        packageVersion.Features[0].InfrastructureJson.Should().Contain("RabbitMq:ConnectionString");
+    }
 }

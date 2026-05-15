@@ -28,12 +28,18 @@ public static class PublicFeatureEndpoints
             feature.FeatureId,
             feature.PackageId,
             feature.PackageVersion,
+            new PublicFeatureSourceResponse(feature.Source.Id, feature.Source.Name, feature.Source.Url),
             feature.TypeName,
             feature.DisplayName,
             feature.Description,
             feature.Category,
+            feature.RequiredCapabilities,
+            feature.Dependencies.Select(x => new PublicFeatureDependencyResponse(x.PackageId, x.VersionRange, x.FeatureId, x.Optional, x.Reason)).ToList(),
+            feature.Conflicts.Select(x => new PublicFeatureConflictResponse(x.PackageId, x.VersionRange, x.FeatureId, x.Reason)).ToList(),
+            feature.Infrastructure.Select(x => new PublicFeatureInfrastructureRequirementResponse(x.Id, x.Kind, x.Optional, x.Reason, x.Capabilities, x.Providers, x.ConfigurationKeys, x.ExtensionsJson)).ToList(),
             feature.Advanced,
             feature.Experimental,
+            feature.ExtensionsJson,
             feature.Settings.Select(ToResponse).ToList());
 
     private static PublicFeatureSettingResponse ToResponse(PublicFeatureSettingProjection setting) =>
@@ -42,10 +48,14 @@ public static class PublicFeatureEndpoints
             setting.ClrType,
             setting.JsonType,
             setting.Required,
+            setting.DefaultValueJson,
             setting.DisplayName,
             setting.Description,
             setting.Category,
+            setting.ValidationJson,
             setting.Secret,
             setting.RestartRequired,
-            setting.EnvironmentVariable);
+            setting.EnvironmentVariable,
+            setting.UiJson,
+            setting.ExtensionsJson);
 }

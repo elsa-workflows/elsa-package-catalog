@@ -352,3 +352,12 @@ Task: "T080 [P] [US3] Add persistence diagnostics tests in tests/Elsa.Catalog.Pe
 - Public APIs expose only valid, approved, listed, non-suspicious versions.
 - Sync runs, validation failures, approval decisions, and suspicious changes are persisted and inspectable.
 - New abstractions and dependencies are introduced only where required by current tasks.
+
+## Runtime Builder Infrastructure Addendum
+
+- [X] T136 [US1] Expose source/feed provenance and builder-grade feature metadata in `src/Elsa.Catalog.Core/Packages/PublicCatalogQueryService.cs`
+- [X] T137 [US1] Project manifest infrastructure requirements into feature records in `src/Elsa.Catalog.Core/Manifests/FeatureProjectionModels.cs`
+- [X] T138 [US1] Add Runtime Builder catalog and infrastructure provider endpoints in `src/Elsa.Catalog.Api/Public/Builder/BuilderEndpoints.cs`
+- [X] T139 [US5] Extend compatibility checks to validate selected feature dependencies and conflicts in `src/Elsa.Catalog.Core/Compatibility/CompatibilityCheckService.cs`
+- [X] T140 [US1] Add SQLite and SQL Server migrations for feature infrastructure projection in `src/Elsa.Catalog.Persistence.SqliteMigrations/Migrations/` and `src/Elsa.Catalog.Persistence.SqlServerMigrations/Migrations/`
+- [X] T141 [P] [US1] Add builder API and infrastructure projection tests in `tests/Elsa.Catalog.Api.Tests/PublicBuilderApiTests.cs` and `tests/Elsa.Catalog.Core.Tests/ManifestIngestionServiceTests.cs`

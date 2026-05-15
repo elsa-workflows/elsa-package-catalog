@@ -1,4 +1,8 @@
+using System.Text.Json;
 using Elsa.Catalog.Core.Packages;
+using Elsa.PackageManifests;
+using Elsa.PackageManifests.Compatibility;
+using Elsa.PackageManifests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace Elsa.Catalog.Persistence.EntityFrameworkCore;
@@ -61,6 +65,7 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
     private IQueryable<Package> VisiblePackages() =>
         dbContext.Packages
             .AsNoTracking()
+            .Include(x => x.Source)
             .Include(x => x.Versions.Where(version =>
                 version.IsListed &&
                 version.ApprovalStatus == PackageApprovalStatus.Approved &&
@@ -82,12 +87,13 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
         !version.SuspiciousChangeDetected;
 
     private static PublicPackageProjection ToPackageProjection(Package package) =>
-        new(package.PackageId, package.LatestVersion, package.Versions.Where(IsLoadedVisibleVersion).Select(ToVersionProjection).ToList());
+        new(package.PackageId, ToSourceProjection(package), package.LatestVersion, package.Versions.Where(IsLoadedVisibleVersion).Select(ToVersionProjection).ToList());
 
     private static PublicPackageVersionProjection ToVersionProjection(PackageVersion version) =>
         new(
             version.Package?.PackageId ?? "",
             version.Version,
+            ToSourceProjection(version.Package),
             version.SchemaVersion,
             version.PublishedAt,
             version.Features.Select(feature => ToFeatureProjection(feature, version)).ToList());
@@ -97,23 +103,70 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
             feature.FeatureId,
             version.Package?.PackageId ?? "",
             version.Version,
+            ToSourceProjection(version.Package),
             feature.TypeName,
             feature.DisplayName,
             feature.Description,
             feature.Category,
+            DeserializeList<string>(feature.RequiredCapabilitiesJson),
+            DeserializeList<DependencyManifest>(feature.DependenciesJson)
+                .Select(x => new PublicDependencyProjection(x.PackageId, x.VersionRange, x.FeatureId, x.Optional, x.Reason))
+                .ToList(),
+            DeserializeList<ConflictManifest>(feature.ConflictsJson)
+                .Select(x => new PublicConflictProjection(x.PackageId, x.VersionRange, x.FeatureId, x.Reason))
+                .ToList(),
+            DeserializeList<InfrastructureRequirementManifest>(feature.InfrastructureJson)
+                .Select(x => new PublicInfrastructureRequirementProjection(
+                    x.Id,
+                    x.Kind,
+                    x.Optional,
+                    x.Reason,
+                    x.Capabilities,
+                    x.Providers,
+                    x.ConfigurationKeys,
+                    JsonSerializer.Serialize(x.Extensions, ManifestJsonSerializerOptions.Default)))
+                .ToList(),
             feature.Advanced,
             feature.Experimental,
+            feature.ExtensionsJson,
             feature.Settings
                 .Select(setting => new PublicFeatureSettingProjection(
                     setting.Name,
                     setting.ClrType,
                     setting.JsonType,
                     setting.Required,
+                    setting.DefaultValueJson,
                     setting.DisplayName,
                     setting.Description,
                     setting.Category,
+                    setting.ValidationJson,
                     setting.Secret,
                     setting.RestartRequired,
-                    setting.EnvironmentVariable))
+                    setting.EnvironmentVariable,
+                    setting.UiJson,
+                    setting.ExtensionsJson))
                 .ToList());
+
+    private static PublicPackageSourceProjection ToSourceProjection(Package? package)
+    {
+        var source = package?.Source;
+        return source is null
+            ? new PublicPackageSourceProjection(Guid.Empty, "", "")
+            : new PublicPackageSourceProjection(source.Id, source.Name, source.Url);
+    }
+
+    private static IReadOnlyList<T> DeserializeList<T>(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize<IReadOnlyList<T>>(json, ManifestJsonSerializerOptions.Default) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
 }

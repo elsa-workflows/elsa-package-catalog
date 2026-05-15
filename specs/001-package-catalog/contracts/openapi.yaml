@@ -9,6 +9,7 @@ security: []
 tags:
   - name: Public Packages
   - name: Public Features
+  - name: Runtime Builder
   - name: Public Compatibility
   - name: Admin Sources
   - name: Admin Sync
@@ -150,6 +151,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CompatibilityCheckResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /api/builder/catalog:
+    get:
+      tags: [Runtime Builder]
+      summary: Get Runtime Builder package and infrastructure catalog
+      responses:
+        '200':
+          description: Builder-ready package catalog with source provenance and infrastructure providers.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuilderCatalog'
+  /api/builder/infrastructure/providers:
+    get:
+      tags: [Runtime Builder]
+      summary: List infrastructure providers that can satisfy abstract requirements
+      responses:
+        '200':
+          description: Infrastructure providers.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InfrastructureProvider'
+  /api/builder/resolve:
+    post:
+      tags: [Runtime Builder]
+      summary: Resolve selected packages and features for builder feedback
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BuilderResolveRequest'
+      responses:
+        '200':
+          description: Builder compatibility findings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BuilderResolveResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
   /api/admin/sources:
@@ -513,6 +557,8 @@ components:
       properties:
         packageId:
           type: string
+        source:
+          $ref: '#/components/schemas/PackageSourceProvenance'
         displayName:
           type: string
         description:
@@ -544,6 +590,8 @@ components:
           type: string
         version:
           type: string
+        source:
+          $ref: '#/components/schemas/PackageSourceProvenance'
         publishedAt:
           type: string
           format: date-time
@@ -583,6 +631,8 @@ components:
           type: string
         packageVersion:
           type: string
+        source:
+          $ref: '#/components/schemas/PackageSourceProvenance'
         displayName:
           type: string
         description:
@@ -593,6 +643,10 @@ components:
           type: boolean
         experimental:
           type: boolean
+        infrastructure:
+          type: array
+          items:
+            $ref: '#/components/schemas/InfrastructureRequirement'
     FeatureDetails:
       allOf:
         - $ref: '#/components/schemas/FeatureSummary'
@@ -647,6 +701,85 @@ components:
         ui:
           type: object
           additionalProperties: true
+    PackageSourceProvenance:
+      type: object
+      required: [id, name, url]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        url:
+          type: string
+    InfrastructureRequirement:
+      type: object
+      required: [id, kind]
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+        optional:
+          type: boolean
+        reason:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        providers:
+          type: array
+          items:
+            type: string
+        configurationKeys:
+          type: array
+          items:
+            type: string
+        extensions:
+          type: object
+          additionalProperties: true
+    InfrastructureProvider:
+      type: object
+      required: [id, displayName, kind, strategy, provider]
+      properties:
+        id:
+          type: string
+        displayName:
+          type: string
+        kind:
+          type: string
+        strategy:
+          type: string
+          enum: [compose-sidecar, external-service, platform-managed]
+        provider:
+          type: string
+        capabilities:
+          type: array
+          items:
+            type: string
+        outputs:
+          type: array
+          items:
+            type: string
+    BuilderCatalog:
+      type: object
+      required: [packages, infrastructureProviders]
+      properties:
+        packages:
+          type: array
+          items:
+            $ref: '#/components/schemas/PackageDetails'
+        infrastructureProviders:
+          type: array
+          items:
+            $ref: '#/components/schemas/InfrastructureProvider'
+    BuilderResolveRequest:
+      allOf:
+        - $ref: '#/components/schemas/CompatibilityCheckRequest'
+    BuilderResolveResponse:
+      allOf:
+        - $ref: '#/components/schemas/CompatibilityCheckResponse'
     CompatibilityCheckRequest:
       type: object
       required: [packages]

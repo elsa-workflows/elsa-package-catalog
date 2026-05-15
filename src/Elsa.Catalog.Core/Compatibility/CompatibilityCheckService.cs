@@ -63,7 +63,40 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
             }
         }
 
+        if (request.Features.Count > 0)
+            ValidateSelectedFeatures(request.Features, selected.Select(x => x.Manifest), findings);
+
         return new CompatibilityCheckResult(findings.Count == 0, findings);
+    }
+
+    private static void ValidateSelectedFeatures(IReadOnlyList<string> selectedFeatureIds, IEnumerable<ElsaPackageManifest> manifests, List<CompatibilityFinding> findings)
+    {
+        var selectedFeatures = new HashSet<string>(selectedFeatureIds, StringComparer.OrdinalIgnoreCase);
+        var features = manifests
+            .SelectMany(x => x.Features)
+            .Where(x => selectedFeatures.Contains(x.Id))
+            .ToList();
+
+        foreach (var requestedFeatureId in selectedFeatures)
+        {
+            if (features.All(x => !string.Equals(x.Id, requestedFeatureId, StringComparison.OrdinalIgnoreCase)))
+                findings.Add(CompatibilityFinding.Error("feature.missing", $"Feature {requestedFeatureId} is not present in the selected packages."));
+        }
+
+        foreach (var feature in features)
+        {
+            foreach (var dependency in feature.Dependencies.Where(x => !x.Optional && x.FeatureId is not null))
+            {
+                if (!selectedFeatures.Contains(dependency.FeatureId!))
+                    findings.Add(CompatibilityFinding.Error("feature.dependency", $"{feature.Id} requires feature {dependency.FeatureId}."));
+            }
+
+            foreach (var conflict in feature.Conflicts.Where(x => x.FeatureId is not null))
+            {
+                if (selectedFeatures.Contains(conflict.FeatureId!))
+                    findings.Add(CompatibilityFinding.Error("feature.conflict", $"{feature.Id} conflicts with feature {conflict.FeatureId}."));
+            }
+        }
     }
 
     private static bool TryParseManifest(string manifestJson, out ElsaPackageManifest? manifest)

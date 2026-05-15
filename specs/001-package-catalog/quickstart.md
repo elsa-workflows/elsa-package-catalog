@@ -126,6 +126,23 @@ Expected result:
 
 - Only package versions that are valid, approved, listed, and not suspicious are
   returned.
+- Package and feature responses include source/feed provenance and builder-grade
+  feature metadata for Runtime Builder clients.
+
+## Runtime Builder Catalog
+
+```bash
+curl http://localhost:5000/api/builder/catalog
+curl http://localhost:5000/api/builder/infrastructure/providers
+```
+
+Expected result:
+
+- The builder catalog returns approved package versions, their source feed,
+  manifest-derived features, settings, dependencies, conflicts, required
+  capabilities, and abstract infrastructure requirements.
+- Infrastructure providers are concrete fulfillment options such as compose
+  sidecars or external services. They are separate from package manifests.
 
 ## Compatibility Check
 

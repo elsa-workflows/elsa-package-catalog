@@ -30,6 +30,7 @@ public sealed class ManifestIngestionService
                 RequiredCapabilitiesJson = JsonSerializer.Serialize(feature.RequiredCapabilities),
                 DependenciesJson = JsonSerializer.Serialize(feature.Dependencies, ManifestJsonSerializerOptions.Default),
                 ConflictsJson = JsonSerializer.Serialize(feature.Conflicts, ManifestJsonSerializerOptions.Default),
+                InfrastructureJson = JsonSerializer.Serialize(feature.Infrastructure, ManifestJsonSerializerOptions.Default),
                 ExtensionsJson = SerializeExtensions(feature.Extensions, feature.ExtensionData)
             };
 

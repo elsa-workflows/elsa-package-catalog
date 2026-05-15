@@ -201,6 +201,7 @@ Fields:
 - `RequiredCapabilitiesJson`: serialized required capabilities
 - `DependenciesJson`: serialized feature dependencies
 - `ConflictsJson`: serialized feature conflicts
+- `InfrastructureJson`: serialized abstract infrastructure requirements
 - `Advanced`: advanced flag
 - `Experimental`: experimental flag
 - `ExtensionsJson`: extension metadata projection when needed

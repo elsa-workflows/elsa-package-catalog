@@ -221,6 +221,31 @@ Validation:
 - Enum value ordering is deterministic.
 - Unsupported CLR types produce configured diagnostics.
 
+### InfrastructureRequirementManifest
+
+Abstract infrastructure dependency declared by a feature.
+
+Fields:
+
+- `Id`: stable requirement identifier within the declaring feature
+- `Kind`: abstract kind such as `database`, `message-broker`, `cache`,
+  `blob-storage`, `smtp`, or `secret-store`
+- `Optional`: whether the feature can run without the dependency
+- `Reason`: human-readable explanation
+- `Capabilities`: abstract capability tags expected from a provider
+- `Providers`: provider hints such as `postgres`, `rabbitmq`, or
+  `azure-service-bus`
+- `ConfigurationKeys`: CShells/IConfiguration paths that can be bound from the
+  selected infrastructure provider
+- `Extensions`: future metadata
+
+Validation:
+
+- `Id` and `Kind` are required when a requirement is declared.
+- Requirements are declarative and must not include deployment fragments.
+- Override files are the MVP source for infrastructure requirements; inference
+  from package references is deferred.
+
 ### GenerationDiagnostic
 
 Build diagnostic produced by the generator.

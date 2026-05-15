@@ -342,3 +342,10 @@ Task: "T093 Add package inspection test verifying one root manifest for multi-ta
 - Tests should be written before implementation for the corresponding story.
 - Stop at each checkpoint and validate the story independently.
 - Keep generator code deterministic and metadata-only; do not execute package code.
+
+## Runtime Builder Infrastructure Addendum
+
+- [X] T096 [US3] Add abstract feature infrastructure requirement DTOs to `src/Elsa.PackageManifests/Infrastructure/InfrastructureRequirementManifest.cs`
+- [X] T097 [US3] Extend override models and schemas with feature-level infrastructure requirements in `src/Elsa.PackageManifest.Generator.Core/Overrides/ManifestOverrideModels.cs`
+- [X] T098 [US3] Emit override-declared infrastructure requirements from generated manifests in `src/Elsa.PackageManifest.Generator.Core/Generation/ManifestGenerator.cs`
+- [X] T099 [P] [US3] Add manifest contract and generator override tests in `tests/Elsa.PackageManifests.Tests/` and `tests/Elsa.PackageManifest.Generator.Core.Tests/FeatureDiscoveryTests.cs`
