@@ -80,6 +80,14 @@ Required GitHub Actions variables:
   `westeurope`.
 - `AZURE_CONTAINER_REGISTRY_ENDPOINT`: ACR login server for app image pushes,
   for example `elsapackagecatalogacrk35qdj734hds2.azurecr.io`.
+- `API_IDENTITY_CLIENTID` and `API_IDENTITY_ID`: managed identity values emitted
+  by `azd up` for the API Web App.
+- `ELSA_PACKAGE_CATALOG_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID` and
+  `ELSA_PACKAGE_CATALOG_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID`: managed
+  identity values emitted by `azd up` for ACR image pushes.
+- `ELSA_PACKAGE_CATALOG_AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID` and
+  `ELSA_PACKAGE_CATALOG_AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID`:
+  managed identity values emitted by `azd up` for Web App updates.
 
 Required GitHub Actions secrets:
 
