@@ -18,6 +18,7 @@ using Elsa.Catalog.Persistence.EntityFrameworkCore;
 using Elsa.PackageManifests.Validation;
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,8 +28,34 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
 builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
-    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.Scheme, _ => { });
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.Scheme, _ => { })
+    .AddCookie(AdminDashboardAuthenticationDefaults.Scheme, options =>
+    {
+        options.Cookie.Name = AdminDashboardAuthenticationDefaults.CookieName;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.Path = "/";
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing")
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.LoginPath = AdminDashboardAuthenticationDefaults.LoginPath;
+        options.LogoutPath = AdminDashboardAuthenticationDefaults.LogoutPath;
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+    });
 builder.Services.AddCatalogAuthorization();
+builder.Services.AddSingleton<AdminApiKeyValidator>();
 builder.Services.AddCatalogDbContext(builder.Configuration);
 builder.Services.AddScoped<ICatalogStore, EfCoreCatalogStore>();
 builder.Services.AddScoped<IPublicCatalogQueries, PublicCatalogQueries>();
@@ -68,11 +95,15 @@ if (!app.Environment.IsEnvironment("Testing"))
 
 app.UseExceptionHandler();
 app.UseAuthentication();
+app.UseAdminDashboardAuthentication();
+app.UseStaticFiles();
 app.UseAuthorization();
 
 app.MapOpenApi();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/", () => "Elsa Package Catalog");
+app.MapGet("/admin", () => Results.Redirect("/admin/overview"));
+app.MapAdminDashboardAuthEndpoints();
 app.MapPublicPackageEndpoints();
 app.MapPublicFeatureEndpoints();
 app.MapCompatibilityEndpoints();
@@ -81,6 +112,7 @@ app.MapAdminSyncEndpoints();
 app.MapAdminPackageEndpoints();
 app.MapAdminApprovalEndpoints();
 app.MapAdminValidationEndpoints();
+app.MapFallbackToFile("/admin/{*path:nonfile}", "admin/index.html");
 
 app.Run();
 

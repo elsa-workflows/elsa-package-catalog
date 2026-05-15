@@ -12,6 +12,7 @@ public static class AdminAuthorization
             options.AddPolicy(Policy, policy =>
             {
                 policy.AuthenticationSchemes.Add(ApiKeyAuthenticationDefaults.Scheme);
+                policy.AuthenticationSchemes.Add(AdminDashboardAuthenticationDefaults.Scheme);
                 policy.RequireAuthenticatedUser();
             }));
         return services;

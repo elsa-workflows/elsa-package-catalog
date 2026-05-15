@@ -41,14 +41,21 @@ confirm the detected Aspire AppHost.
 ## GitHub Actions Deployment
 
 The `Azure API Deploy` workflow runs on pushes to `main` and can also be run
-manually from GitHub Actions. Normal `main` deployments build the API container,
-push it to ACR, and update the existing App Service site container:
+manually from GitHub Actions. Normal `main` deployments build the admin
+dashboard, build the API container with the dashboard static assets mounted
+under `/admin`, push it to ACR, and update the existing App Service site
+container:
 
 ```bash
 docker build --file src/Elsa.Catalog.Api/Dockerfile --tag <acr>/<repo>:<sha> .
 docker push <acr>/<repo>:<sha>
 az webapp sitecontainers update ...
 ```
+
+The Dockerfile uses a Node build stage for `src/Elsa.Catalog.AdminUi` and copies
+the Vite `dist` output into `src/Elsa.Catalog.Api/wwwroot/admin` before
+`dotnet publish`. ASP.NET Core serves `/admin` as the dashboard SPA and keeps the
+admin API endpoints under `/api/admin`.
 
 This is the fast path for application-only updates because the Azure resources
 are expected to already exist. It also avoids reapplying the App Service Bicep
