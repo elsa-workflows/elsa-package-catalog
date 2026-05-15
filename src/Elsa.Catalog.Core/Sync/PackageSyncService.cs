@@ -65,7 +65,10 @@ public sealed class PackageSyncService(
         try
         {
             foreach (var source in (await getSources()).Where(x => x.Enabled))
+            {
                 await SyncSourceAsync(run, source, counters, cancellationToken);
+                await sources.SaveChangesAsync(cancellationToken);
+            }
 
             run.Status = run.Items.Any(x => x.Status == SyncRunItemStatus.Failed)
                 ? SyncRunStatus.CompletedWithErrors
@@ -105,10 +108,10 @@ public sealed class PackageSyncService(
             await SyncPackageVersionAsync(run, source, item, counters, cancellationToken);
 
         source.LastSyncedAt = DateTimeOffset.UtcNow;
-        source.LastSuccessfulSyncAt = source.LastSyncedAt;
-        source.Status = run.Items.Any(x => x.SourceId == source.Id && x.Status is SyncRunItemStatus.Failed)
-            ? PackageSourceStatus.Warning
-            : PackageSourceStatus.Healthy;
+        var hasFailures = run.Items.Any(x => x.SourceId == source.Id && x.Status is SyncRunItemStatus.Failed);
+        source.Status = hasFailures ? PackageSourceStatus.Warning : PackageSourceStatus.Healthy;
+        if (!hasFailures)
+            source.LastSuccessfulSyncAt = source.LastSyncedAt;
     }
 
     private async Task SyncPackageVersionAsync(SyncRun run, PackageSource source, DiscoveredPackageVersion discovered, Dictionary<string, int> counters, CancellationToken cancellationToken)

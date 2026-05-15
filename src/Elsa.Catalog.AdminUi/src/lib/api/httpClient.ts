@@ -23,7 +23,7 @@ export type ApiClientOptions = {
   apiKey?: string;
 };
 
-const defaultBaseUrl = import.meta.env.VITE_CATALOG_API_URL ?? "";
+const defaultBaseUrl = import.meta.env.VITE_CATALOG_CLIENT_BASE_URL ?? "";
 const defaultApiKey = import.meta.env.VITE_ADMIN_API_KEY;
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}, options: ApiClientOptions = {}): Promise<T> {

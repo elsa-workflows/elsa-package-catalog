@@ -29,7 +29,7 @@ public sealed class PackageSourceValidator
             {
                 _ = XmlConvert.ToTimeSpan(source.PollingInterval);
             }
-            catch (FormatException)
+            catch (Exception ex) when (ex is FormatException or OverflowException)
             {
                 errors.Add("Polling interval must be an ISO 8601 duration, for example PT30M.");
             }

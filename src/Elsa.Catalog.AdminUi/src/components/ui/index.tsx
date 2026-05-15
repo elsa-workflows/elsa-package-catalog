@@ -1,9 +1,11 @@
+import { forwardRef } from "react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
-export function Button({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
+export const Button = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(function Button({ className, ...props }, ref) {
   return (
     <button
+      ref={ref}
       className={cn(
         "inline-flex h-9 items-center justify-center gap-2 rounded-ui border border-border bg-foreground px-3 text-sm font-medium text-background transition-colors hover:opacity-90 disabled:pointer-events-none disabled:opacity-50",
         className
@@ -11,11 +13,11 @@ export function Button({ className, ...props }: ButtonHTMLAttributes<HTMLButtonE
       {...props}
     />
   );
-}
+});
 
-export function SecondaryButton({ className, ...props }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <Button className={cn("bg-background text-foreground hover:bg-muted", className)} {...props} />;
-}
+export const SecondaryButton = forwardRef<HTMLButtonElement, ButtonHTMLAttributes<HTMLButtonElement>>(function SecondaryButton({ className, ...props }, ref) {
+  return <Button ref={ref} className={cn("bg-background text-foreground hover:bg-muted", className)} {...props} />;
+});
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
   return (

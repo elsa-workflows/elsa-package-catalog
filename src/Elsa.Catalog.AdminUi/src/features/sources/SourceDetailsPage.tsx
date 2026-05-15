@@ -1,23 +1,18 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
-import { Badge, Button, SecondaryButton } from "@/components/ui";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { Badge } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
 import { SourceActions } from "@/features/sources/SourceActions";
-import { getSource, syncSource } from "@/features/sources/sourceApi";
+import { getSource } from "@/features/sources/sourceApi";
 import { sourceHealthText } from "@/features/sources/sourceModels";
 import { formatDateTime } from "@/lib/formatters";
-import { queryKeys } from "@/lib/query/queryClient";
 import { sourceStatusTone, statusToneClass } from "@/lib/status/statusBadges";
 
 export function SourceDetailsPage() {
   const { sourceId } = useParams();
-  const queryClient = useQueryClient();
-  const source = useQuery({ queryKey: [...queryKeys.sources, sourceId], queryFn: () => getSource(sourceId!), enabled: Boolean(sourceId) });
-  const sync = useMutation({
-    mutationFn: () => syncSource(sourceId!),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.sources })
-  });
+  const navigate = useNavigate();
+  const source = useQuery({ queryKey: ["sources", sourceId], queryFn: () => getSource(sourceId!), enabled: Boolean(sourceId) });
 
   if (source.isLoading) return <RequestStateView state="loading" title="Loading source" />;
   if (source.isError || !source.data) return <RequestStateView state="not-found" title="Source not found" />;
@@ -30,8 +25,9 @@ export function SourceDetailsPage() {
           <p className="mt-1 break-all text-sm text-muted-foreground">{source.data.url}</p>
         </div>
         <div className="flex gap-2">
-          <SecondaryButton><Link to={`/admin/sources/${source.data.id}/edit`}>Edit</Link></SecondaryButton>
-          <Button onClick={() => sync.mutate()} disabled={sync.isPending}>Sync Now</Button>
+          <Link className="inline-flex h-9 items-center justify-center rounded-ui border border-border bg-background px-3 text-sm font-medium text-foreground hover:bg-muted" to={`/admin/sources/${source.data.id}/edit`}>
+            Edit
+          </Link>
         </div>
       </div>
       <div className="grid gap-3 md:grid-cols-3">
@@ -49,7 +45,7 @@ export function SourceDetailsPage() {
           <PatternList title="Exclude" items={source.data.excludePatterns} />
         </div>
       </div>
-      <SourceActions source={source.data} />
+      <SourceActions source={source.data} onDeleted={() => navigate("/admin/sources")} />
     </section>
   );
 }

@@ -10,6 +10,15 @@ public sealed class PackageSourceService(IPackageSourceStore store, PackageSourc
     public Task<PackageSource?> GetAsync(Guid id, CancellationToken cancellationToken = default) =>
         store.GetAsync(id, cancellationToken);
 
+    public Task<IReadOnlyDictionary<Guid, int>> GetPackageCountsAsync(IReadOnlyCollection<Guid> sourceIds, CancellationToken cancellationToken = default) =>
+        store.GetPackageCountsAsync(sourceIds, cancellationToken);
+
+    public async Task<int> GetPackageCountAsync(Guid sourceId, CancellationToken cancellationToken = default)
+    {
+        var counts = await store.GetPackageCountsAsync([sourceId], cancellationToken);
+        return counts.GetValueOrDefault(sourceId);
+    }
+
     public async Task<PackageSourceResult> CreateAsync(PackageSource source, CancellationToken cancellationToken = default)
     {
         var validation = validator.Validate(source);
@@ -65,6 +74,7 @@ public interface IPackageSourceStore
 {
     Task<IReadOnlyList<PackageSource>> ListAsync(CancellationToken cancellationToken = default);
     Task<PackageSource?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<Guid, int>> GetPackageCountsAsync(IReadOnlyCollection<Guid> sourceIds, CancellationToken cancellationToken = default);
     Task AddAsync(PackageSource source, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
