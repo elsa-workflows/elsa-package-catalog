@@ -85,7 +85,41 @@ public sealed class PackageSyncServiceTests
         source.Status.Should().Be(PackageSourceStatus.Warning);
         source.LastSyncedAt.Should().NotBeNull();
         source.LastSuccessfulSyncAt.Should().Be(previousLastSuccessfulSync);
+        source.LastSyncError.Should().Be("Elsa.Email 1.0.0: download failed");
         sources.SaveChangesCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Clears_last_sync_error_when_source_sync_recovers()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        source.Status = PackageSourceStatus.Warning;
+        source.LastSyncError = "Elsa.Email 1.0.0: download failed";
+        var sources = new InMemorySourceStore([source]);
+        var catalog = new InMemorySyncCatalogStore();
+        var syncRuns = new InMemorySyncRunStore();
+        var manifestJson = new ManifestFixtureBuilder().WithPackage("Elsa.Email", "1.0.0").WithFeature().BuildJson();
+        var service = CreateService(sources, catalog, syncRuns, new FakeDiscovery([new("Elsa.Email", "1.0.0")]), new FakeDownloader(manifestJson));
+
+        await service.SyncAllAsync();
+
+        source.Status.Should().Be(PackageSourceStatus.Healthy);
+        source.LastSyncError.Should().BeNull();
+        source.LastSuccessfulSyncAt.Should().Be(source.LastSyncedAt);
+    }
+
+    [Fact]
+    public async Task Records_source_discovery_failure_detail()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var sources = new InMemorySourceStore([source]);
+        var service = CreateService(sources, new InMemorySyncCatalogStore(), new InMemorySyncRunStore(), new ThrowingDiscovery(), new FakeDownloader("{}"));
+
+        var run = await service.SyncAllAsync();
+
+        run.Status.Should().Be(SyncRunStatus.CompletedWithErrors);
+        source.Status.Should().Be(PackageSourceStatus.Error);
+        source.LastSyncError.Should().Be("feed unreachable");
     }
 
     [Fact]
@@ -180,6 +214,12 @@ public sealed class PackageSyncServiceTests
     private sealed class FakeDiscovery(IReadOnlyList<DiscoveredPackageVersion> versions) : IPackageVersionDiscoveryClient
     {
         public Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default) => Task.FromResult(versions);
+    }
+
+    private sealed class ThrowingDiscovery : IPackageVersionDiscoveryClient
+    {
+        public Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default) =>
+            throw new InvalidOperationException("feed unreachable");
     }
 
     private sealed class GatedDiscovery : IPackageVersionDiscoveryClient

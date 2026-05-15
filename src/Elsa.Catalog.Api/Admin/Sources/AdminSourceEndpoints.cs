@@ -79,6 +79,7 @@ public static class AdminSourceEndpoints
             source.Status,
             source.LastSyncedAt,
             source.LastSuccessfulSyncAt,
+            source.LastSyncError,
             packageCount,
             source.SoftDeletedAt,
             source.PollingInterval,

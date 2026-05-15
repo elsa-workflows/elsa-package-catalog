@@ -38,6 +38,13 @@ describe("SourcesPage", () => {
     expect(screen.getByText("12")).toBeInTheDocument();
   });
 
+  it("shows the latest sync failure detail", async () => {
+    renderSourcesPage([{ ...sourceFixture, status: "Error", lastSyncError: "Feed index is unreachable." }]);
+
+    expect(await screen.findByText("Sync failing")).toBeInTheDocument();
+    expect(screen.getByText("Feed index is unreachable.")).toBeInTheDocument();
+  });
+
   it("filters populated source rows", async () => {
     renderSourcesPage([sourceFixture]);
 
