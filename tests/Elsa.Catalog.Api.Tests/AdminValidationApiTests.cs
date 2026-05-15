@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using Elsa.Catalog.Api.Admin.Packages;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Core.Packages;
@@ -33,7 +32,8 @@ public sealed class AdminValidationApiTests
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
 
-        var results = await client.GetFromJsonAsync<List<AdminValidationResultResponse>>("/api/admin/packages/Elsa.Email/versions/1.0.0/validation");
+        var results = await client.GetCatalogJsonAsync<List<AdminValidationResultResponse>>(
+            "/api/admin/packages/Elsa.Email/versions/1.0.0/validation");
 
         results.Should().ContainSingle(x => x.Status == ValidationStatus.Invalid);
     }
