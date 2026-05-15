@@ -71,4 +71,16 @@ describe("SyncRunDetailsPage", () => {
     expect(screen.getAllByText("Package download failed.").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Elsa.Persistence.PostgreSql" })).toBeInTheDocument();
   });
+
+  it("shows when diagnostic panels are abbreviated", async () => {
+    const failedItems = Array.from({ length: 6 }, (_, index) => ({
+      ...syncRunFixture.items[0],
+      id: `item-${index + 1}`,
+      packageId: `Elsa.Failed.${index + 1}`
+    }));
+
+    renderWithQueryClient(<SyncRunDetailsPage />, { ...syncRunFixture, items: failedItems }, 200, "/admin/sync-runs/:runId");
+
+    expect(await screen.findByText("1 more item is shown in the full table below.")).toBeInTheDocument();
+  });
 });

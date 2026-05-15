@@ -35,6 +35,7 @@ export function SyncRunDetailsPage() {
   const run = syncRun.data;
   const failures = failedItems(run);
   const warnings = warningItems(run);
+  const counterEntries = Object.entries(run.summaryCounters);
 
   return (
     <section className="space-y-5">
@@ -74,18 +75,18 @@ export function SyncRunDetailsPage() {
 
       <div className="rounded-ui border border-border p-4">
         <h2 className="text-sm font-medium">Summary counters</h2>
-        <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {Object.entries(run.summaryCounters).length > 0 ? (
-            Object.entries(run.summaryCounters).map(([key, value]) => (
+        {counterEntries.length > 0 ? (
+          <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {counterEntries.map(([key, value]) => (
               <div key={key}>
                 <dt className="text-xs uppercase text-muted-foreground">{key}</dt>
                 <dd className="mt-1 text-sm font-medium">{value}</dd>
               </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">No counters were recorded.</p>
-          )}
-        </dl>
+            ))}
+          </dl>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">No counters were recorded.</p>
+        )}
       </div>
 
       {run.items.length === 0 ? (
@@ -137,21 +138,31 @@ function Info({ label, value }: { label: string; value: ReactNode }) {
 }
 
 function DiagnosticPanel({ title, items, emptyText }: { title: string; items: SyncRunItem[]; emptyText: string }) {
+  const visibleItems = items.slice(0, 5);
+  const hiddenCount = items.length - visibleItems.length;
+
   return (
     <div className="rounded-ui border border-border p-4">
       <h2 className="text-sm font-medium">{title}</h2>
       {items.length === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">{emptyText}</p>
       ) : (
-        <ul className="mt-3 space-y-2">
-          {items.slice(0, 5).map((item) => (
-            <li key={item.id} className="text-sm">
-              <span className="font-medium">{item.packageId ?? item.sourceId ?? "Run item"}</span>
-              <span className="text-muted-foreground"> {item.version ?? ""}</span>
-              <p className="mt-1 text-muted-foreground">{item.error ?? item.message ?? syncRunItemStatusLabel(item.status)}</p>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="mt-3 space-y-2">
+            {visibleItems.map((item) => (
+              <li key={item.id} className="text-sm">
+                <span className="font-medium">{item.packageId ?? item.sourceId ?? "Run item"}</span>
+                <span className="text-muted-foreground"> {item.version ?? ""}</span>
+                <p className="mt-1 text-muted-foreground">{item.error ?? item.message ?? syncRunItemStatusLabel(item.status)}</p>
+              </li>
+            ))}
+          </ul>
+          {hiddenCount > 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {hiddenCount} more {hiddenCount === 1 ? "item is" : "items are"} shown in the full table below.
+            </p>
+          ) : null}
+        </>
       )}
     </div>
   );

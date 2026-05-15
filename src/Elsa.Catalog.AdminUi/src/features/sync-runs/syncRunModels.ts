@@ -92,7 +92,7 @@ export function syncRunStatusLabel(status: SyncRunStatus) {
 }
 
 export function syncRunItemStatusLabel(status: SyncRunItemStatus) {
-  return status === "Unchanged" ? "Unchanged" : status;
+  return status;
 }
 
 export function packagesScanned(run: SyncRun) {
@@ -124,19 +124,14 @@ export function shortId(id: string) {
 function parseSummaryCounters(run: SyncRunResponse): SummaryCounters {
   if (typeof run.summaryCountersJson === "string") return parseCounterJson(run.summaryCountersJson);
   if (typeof run.summaryCounters === "string") return parseCounterJson(run.summaryCounters);
-  if (run.summaryCounters && typeof run.summaryCounters === "object") return run.summaryCounters;
+  if (run.summaryCounters && typeof run.summaryCounters === "object") return normalizeCounterObject(run.summaryCounters);
   return {};
 }
 
 function parseCounterJson(value: string): SummaryCounters {
   try {
     const parsed = JSON.parse(value) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
-    return Object.fromEntries(
-      Object.entries(parsed)
-        .filter(([, counter]) => typeof counter === "number")
-        .map(([key, counter]) => [key.toLowerCase(), counter as number])
-    );
+    return normalizeCounterObject(parsed);
   } catch {
     return {};
   }
@@ -144,10 +139,10 @@ function parseCounterJson(value: string): SummaryCounters {
 
 function withLegacyCounterFallbacks(counters: SummaryCounters, run: SyncRunResponse): SummaryCounters {
   return {
-    ...counters,
-    ...(typeof run.packagesScanned === "number" ? { scanned: run.packagesScanned } : {}),
-    ...(typeof run.packagesUpdated === "number" ? { updated: run.packagesUpdated } : {}),
-    ...(typeof run.failures === "number" ? { failed: run.failures } : {})
+    ...(typeof run.packagesScanned === "number" && !hasNumericCounter(counters, scannedKeys) ? { scanned: run.packagesScanned } : {}),
+    ...(typeof run.packagesUpdated === "number" && !hasNumericCounter(counters, updatedKeys) ? { updated: run.packagesUpdated } : {}),
+    ...(typeof run.failures === "number" && !hasNumericCounter(counters, failureKeys) ? { failed: run.failures } : {}),
+    ...counters
   };
 }
 
@@ -159,8 +154,21 @@ function counterValue(counters: SummaryCounters, keys: string[]) {
 
 function sumCounters(counters: SummaryCounters, keys: string[]) {
   return Object.entries(counters)
-    .filter(([key]) => keys.includes(key.toLowerCase()))
+    .filter(([key, value]) => keys.includes(key.toLowerCase()) && typeof value === "number")
     .reduce((total, [, value]) => total + value, 0);
+}
+
+function hasNumericCounter(counters: SummaryCounters, keys: string[]) {
+  return Object.entries(counters).some(([key, value]) => keys.includes(key.toLowerCase()) && typeof value === "number");
+}
+
+function normalizeCounterObject(value: unknown): SummaryCounters {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, counter]) => typeof counter === "number")
+      .map(([key, counter]) => [key.toLowerCase(), counter as number])
+  );
 }
 
 function hasItems(response: unknown): response is { items: unknown[] } {
