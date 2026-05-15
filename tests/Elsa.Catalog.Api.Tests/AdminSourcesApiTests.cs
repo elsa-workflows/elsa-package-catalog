@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Elsa.Catalog.Api.Admin.Sources;
@@ -30,7 +29,7 @@ public sealed class AdminSourcesApiTests
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
 
-        var create = await client.PostAsJsonAsync("/api/admin/sources", new AdminSourceRequest(
+        var create = await client.PostCatalogJsonAsync("/api/admin/sources", new AdminSourceRequest(
             "NuGet",
             "https://example.test/v3/index.json",
             true,
@@ -136,7 +135,7 @@ public sealed class AdminSourcesApiTests
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
 
-        var response = await client.PostAsJsonAsync("/api/admin/sources", new AdminSourceRequest(
+        var response = await client.PostCatalogJsonAsync("/api/admin/sources", new AdminSourceRequest(
             "NuGet",
             "not-a-url",
             true,

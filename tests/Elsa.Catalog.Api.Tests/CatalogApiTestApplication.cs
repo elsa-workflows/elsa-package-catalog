@@ -64,7 +64,7 @@ internal sealed class CatalogApiTestApplication : WebApplicationFactory<Program>
     private static JsonSerializerOptions CreateJsonOptions()
     {
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        options.Converters.Add(new JsonStringEnumConverter());
+        options.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
         return options;
     }
 }
@@ -73,6 +73,12 @@ internal static class CatalogApiJsonExtensions
 {
     public static Task<T?> GetCatalogJsonAsync<T>(this HttpClient client, string requestUri, CancellationToken cancellationToken = default) =>
         client.GetFromJsonAsync<T>(requestUri, CatalogApiTestApplication.JsonOptions, cancellationToken);
+
+    public static Task<HttpResponseMessage> PostCatalogJsonAsync<T>(this HttpClient client, string requestUri, T value, CancellationToken cancellationToken = default) =>
+        client.PostAsJsonAsync(requestUri, value, CatalogApiTestApplication.JsonOptions, cancellationToken);
+
+    public static Task<HttpResponseMessage> PutCatalogJsonAsync<T>(this HttpClient client, string requestUri, T value, CancellationToken cancellationToken = default) =>
+        client.PutAsJsonAsync(requestUri, value, CatalogApiTestApplication.JsonOptions, cancellationToken);
 
     public static Task<T?> ReadCatalogJsonAsync<T>(this HttpContent content, CancellationToken cancellationToken = default) =>
         content.ReadFromJsonAsync<T>(CatalogApiTestApplication.JsonOptions, cancellationToken);

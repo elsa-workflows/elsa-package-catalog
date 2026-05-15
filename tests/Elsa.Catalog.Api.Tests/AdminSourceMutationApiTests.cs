@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using Elsa.Catalog.Api.Admin.Sources;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Core.Packages;
@@ -17,10 +16,10 @@ public sealed class AdminSourceMutationApiTests
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
 
-        var created = await (await client.PostAsJsonAsync("/api/admin/sources", Request("NuGet")))
+        var created = await (await client.PostCatalogJsonAsync("/api/admin/sources", Request("NuGet")))
             .Content.ReadCatalogJsonAsync<AdminSourceResponse>();
 
-        var updatedResponse = await client.PutAsJsonAsync($"/api/admin/sources/{created!.Id}", Request("Internal NuGet"));
+        var updatedResponse = await client.PutCatalogJsonAsync($"/api/admin/sources/{created!.Id}", Request("Internal NuGet"));
         var updated = await updatedResponse.Content.ReadCatalogJsonAsync<AdminSourceResponse>();
 
         updatedResponse.StatusCode.Should().Be(HttpStatusCode.OK);

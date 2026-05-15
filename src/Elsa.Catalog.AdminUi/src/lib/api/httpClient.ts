@@ -82,7 +82,7 @@ async function readProblem(response: Response) {
 function problemMessage(details: unknown) {
   const errors = validationErrors(details);
   if (errors.length > 0) {
-    return errors.join(" ");
+    return errors.join(" | ");
   }
   if (details && typeof details === "object" && "detail" in details && typeof details.detail === "string") {
     return details.detail;
