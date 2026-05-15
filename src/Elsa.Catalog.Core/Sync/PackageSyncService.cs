@@ -101,6 +101,7 @@ public sealed class PackageSyncService(
             Increment(counters, "failed");
             source.LastSyncedAt = DateTimeOffset.UtcNow;
             source.Status = PackageSourceStatus.Error;
+            source.LastSyncError = LimitFailureDetail(ex.Message);
             return;
         }
 
@@ -110,6 +111,7 @@ public sealed class PackageSyncService(
         source.LastSyncedAt = DateTimeOffset.UtcNow;
         var hasFailures = run.Items.Any(x => x.SourceId == source.Id && x.Status is SyncRunItemStatus.Failed);
         source.Status = hasFailures ? PackageSourceStatus.Warning : PackageSourceStatus.Healthy;
+        source.LastSyncError = hasFailures ? BuildSourceFailureDetail(run, source.Id) : null;
         if (!hasFailures)
             source.LastSuccessfulSyncAt = source.LastSyncedAt;
     }
@@ -284,6 +286,36 @@ public sealed class PackageSyncService(
 
     private static void Increment(Dictionary<string, int> counters, string name) =>
         counters[name] = counters.GetValueOrDefault(name) + 1;
+
+    private static string BuildSourceFailureDetail(SyncRun run, Guid sourceId)
+    {
+        var failures = run.Items
+            .Where(x => x.SourceId == sourceId && x.Status == SyncRunItemStatus.Failed)
+            .ToList();
+        var firstFailure = failures[0];
+        var subject = FormatPackageSubject(firstFailure);
+        var detail = string.IsNullOrWhiteSpace(subject)
+            ? firstFailure.Error ?? "Sync failed."
+            : $"{subject}: {firstFailure.Error ?? "Sync failed."}";
+
+        if (failures.Count > 1)
+            detail = $"{detail} ({failures.Count - 1} more failed)";
+
+        return LimitFailureDetail(detail);
+    }
+
+    private static string FormatPackageSubject(SyncRunItem item)
+    {
+        if (string.IsNullOrWhiteSpace(item.PackageId))
+            return "";
+
+        return string.IsNullOrWhiteSpace(item.Version)
+            ? item.PackageId
+            : $"{item.PackageId} {item.Version}";
+    }
+
+    private static string LimitFailureDetail(string detail) =>
+        detail.Length <= 2048 ? detail : string.Concat(detail.AsSpan(0, 2045), "...");
 }
 
 public interface ISyncCatalogStore

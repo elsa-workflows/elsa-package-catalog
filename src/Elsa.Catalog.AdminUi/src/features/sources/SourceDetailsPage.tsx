@@ -38,6 +38,12 @@ export function SourceDetailsPage() {
         <Info label="Approval policy" value={source.data.approvalPolicy} />
         <Info label="Enabled" value={source.data.enabled ? "Yes" : "No"} />
       </div>
+      {source.data.lastSyncError ? (
+        <div className="rounded-ui border border-destructive/30 bg-destructive/5 p-4">
+          <div className="text-xs uppercase text-destructive">Last sync error</div>
+          <p className="mt-2 break-words text-sm text-foreground">{source.data.lastSyncError}</p>
+        </div>
+      ) : null}
       <div className="rounded-ui border border-border p-4">
         <h2 className="text-sm font-medium">Indexing boundaries</h2>
         <div className="mt-3 grid gap-4 md:grid-cols-2">

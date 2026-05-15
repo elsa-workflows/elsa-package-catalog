@@ -15,6 +15,7 @@ test.describe("source operations", () => {
       status: "Healthy",
       lastSyncedAt: null,
       lastSuccessfulSyncAt: null,
+      lastSyncError: null,
       packageCount: 0,
       softDeletedAt: null,
       pollingInterval: "PT30M",
