@@ -220,7 +220,19 @@ UI rule:
 
 Backend expectation:
 
-- Reject empty or whitespace reason for dashboard-originated rejection requests.
+- Reject empty or whitespace reason for all package version rejection requests.
+
+## Version Operational Actions
+
+These package-version actions are optional until the backend supports them. When
+exposed, the UI must call version-scoped endpoints only:
+
+- `POST /api/admin/packages/{packageId}/versions/{version}/resync`
+- `POST /api/admin/packages/{packageId}/versions/{version}/revalidate`
+- `POST /api/admin/packages/{packageId}/versions/{version}/recompute-metadata`
+
+If an action is not supported by the admin API, the UI must omit or disable that
+action and explain that it is unavailable.
 
 ## Bulk Version Actions
 

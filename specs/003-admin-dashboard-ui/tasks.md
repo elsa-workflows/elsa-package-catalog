@@ -20,7 +20,7 @@
 
 - [ ] T001 Create the Vite React TypeScript admin UI project manifest in `src/Elsa.Catalog.AdminUi/package.json`
 - [ ] T002 Configure TypeScript, Vite, and path aliases in `src/Elsa.Catalog.AdminUi/tsconfig.json` and `src/Elsa.Catalog.AdminUi/vite.config.ts`
-- [ ] T003 Configure TailwindCSS and global stylesheet entry in `src/Elsa.Catalog.AdminUi/tailwind.config.ts` and `src/Elsa.Catalog.AdminUi/src/styles.css`
+- [ ] T003 Configure TailwindCSS, dark-mode theme tokens, and global stylesheet entry in `src/Elsa.Catalog.AdminUi/tailwind.config.ts` and `src/Elsa.Catalog.AdminUi/src/styles.css`
 - [ ] T004 [P] Configure frontend unit/component test runner in `src/Elsa.Catalog.AdminUi/vitest.config.ts` and `src/Elsa.Catalog.AdminUi/src/test/setupTests.ts`
 - [ ] T005 [P] Configure browser E2E test project in `tests/Elsa.Catalog.AdminUi.E2E/package.json` and `tests/Elsa.Catalog.AdminUi.E2E/playwright.config.ts`
 - [ ] T006 Add admin UI development configuration sample in `src/Elsa.Catalog.AdminUi/.env.example`
@@ -68,15 +68,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] Add soft-delete and health fields to package source model in `src/Elsa.Catalog.Core/Packages/PackageModels.cs`
-- [ ] T027 [US1] Update EF Core source mapping for soft-delete and health fields in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/Models/CatalogModelConfiguration.cs`
-- [ ] T028 [US1] Add provider migrations for source soft-delete and health fields in `src/Elsa.Catalog.Persistence.SqliteMigrations/Migrations/20260515_AddPackageSourceSoftDeleteAndHealth.cs` and `src/Elsa.Catalog.Persistence.SqlServerMigrations/Migrations/20260515_AddPackageSourceSoftDeleteAndHealth.cs`
+- [ ] T026 [US1] Add soft-delete, health, and polling interval fields to package source model in `src/Elsa.Catalog.Core/Packages/PackageModels.cs`
+- [ ] T027 [US1] Update EF Core source mapping for soft-delete, health, and polling interval fields in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/Models/CatalogModelConfiguration.cs`
+- [ ] T028 [US1] Add provider migrations for source soft-delete, health, and polling interval fields in `src/Elsa.Catalog.Persistence.SqliteMigrations/Migrations/20260515_AddPackageSourceSoftDeleteAndHealth.cs` and `src/Elsa.Catalog.Persistence.SqlServerMigrations/Migrations/20260515_AddPackageSourceSoftDeleteAndHealth.cs`
 - [ ] T029 [US1] Update source store queries to hide soft-deleted sources by default and preserve history in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/PackageSourceStore.cs`
-- [ ] T030 [US1] Update source service soft-delete behavior and source health projection in `src/Elsa.Catalog.Core/Sources/PackageSourceService.cs`
+- [ ] T030 [US1] Update source service soft-delete behavior, polling interval validation, and source health projection in `src/Elsa.Catalog.Core/Sources/PackageSourceService.cs`
 - [ ] T031 [US1] Update admin source contracts with status, lastSuccessfulSyncAt, packageCount, softDeletedAt, and pollingInterval fields in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceContracts.cs`
 - [ ] T032 [US1] Update admin source endpoints to expose active sources, soft-delete semantics, source health fields, and sync-linkable IDs in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceEndpoints.cs`
 - [ ] T033 [US1] Create source API adapter functions in `src/Elsa.Catalog.AdminUi/src/features/sources/sourceApi.ts`
-- [ ] T034 [US1] Create source view models and status derivation helpers in `src/Elsa.Catalog.AdminUi/src/features/sources/sourceModels.ts`
+- [ ] T034 [US1] Create source view models, polling interval mapping, and status derivation helpers in `src/Elsa.Catalog.AdminUi/src/features/sources/sourceModels.ts`
 - [ ] T035 [US1] Implement include/exclude pattern tester logic with case-insensitive glob matching in `src/Elsa.Catalog.AdminUi/src/features/sources/patternTester.ts`
 - [ ] T036 [US1] Implement Sources list page with table columns, status badges, row actions, empty states, and refresh handling in `src/Elsa.Catalog.AdminUi/src/features/sources/SourcesPage.tsx`
 - [ ] T037 [US1] Implement create/edit source form with field validation, pattern tester preview, and failed-save value preservation in `src/Elsa.Catalog.AdminUi/src/features/sources/SourceForm.tsx`
@@ -96,7 +96,7 @@
 
 ### Tests for User Story 2
 
-- [ ] T041 [P] [US2] Add API tests that dashboard-originated version rejection requires a non-empty reason in `tests/Elsa.Catalog.Api.Tests/AdminApprovalApiTests.cs`
+- [ ] T041 [P] [US2] Add API tests that every package version rejection requires a non-empty reason in `tests/Elsa.Catalog.Api.Tests/AdminApprovalApiTests.cs`
 - [ ] T042 [P] [US2] Add API tests that package identity approval endpoints are not needed by dashboard version workflows in `tests/Elsa.Catalog.Api.Tests/AdminApprovalApiTests.cs`
 - [ ] T043 [P] [US2] Add component tests for package search, filters, sorting, selection, and bulk selected count in `src/Elsa.Catalog.AdminUi/src/features/packages/PackagesPage.test.tsx`
 - [ ] T044 [P] [US2] Add component tests for approve/reject dialogs and required rejection reason validation in `src/Elsa.Catalog.AdminUi/src/features/packages/PackageVersionActions.test.tsx`
@@ -104,15 +104,15 @@
 
 ### Implementation for User Story 2
 
-- [ ] T046 [US2] Update approval request handling to reject empty version rejection reasons for dashboard requests in `src/Elsa.Catalog.Api/Admin/Packages/AdminApprovalEndpoints.cs`
+- [ ] T046 [US2] Update approval request handling to reject empty package version rejection reasons in `src/Elsa.Catalog.Api/Admin/Packages/AdminApprovalEndpoints.cs`
 - [ ] T047 [US2] Update approval store/service to persist and expose version rejection reasons in `src/Elsa.Catalog.Core/Approvals/ApprovalService.cs`
 - [ ] T048 [US2] Update approval persistence for rejection reasons in `src/Elsa.Catalog.Persistence.EntityFrameworkCore/ApprovalStore.cs`
 - [ ] T049 [US2] Add package list query/filter/sort support needed by the dashboard in `src/Elsa.Catalog.Api/Admin/Packages/AdminPackageEndpoints.cs`
 - [ ] T050 [US2] Update admin package contracts with sourceId, updatedAt, feature count, aggregate statuses, and version rejection reason fields in `src/Elsa.Catalog.Api/Admin/Packages/AdminPackageContracts.cs`
-- [ ] T051 [US2] Create package API adapter functions for list, details, approve version, reject version, and repeated bulk mutations in `src/Elsa.Catalog.AdminUi/src/features/packages/packageApi.ts`
+- [ ] T051 [US2] Create package API adapter functions for list, details, approve version, reject version, optional re-sync, optional revalidate, optional recompute metadata, and repeated bulk mutations in `src/Elsa.Catalog.AdminUi/src/features/packages/packageApi.ts`
 - [ ] T052 [US2] Create package list and package-version view models in `src/Elsa.Catalog.AdminUi/src/features/packages/packageModels.ts`
 - [ ] T053 [US2] Implement Packages page with URL-backed search, filters, sorting, selection, bulk action bar, and status badges in `src/Elsa.Catalog.AdminUi/src/features/packages/PackagesPage.tsx`
-- [ ] T054 [US2] Implement approve/reject package-version dialogs with required rejection reason and partial-failure reporting in `src/Elsa.Catalog.AdminUi/src/features/packages/PackageVersionActions.tsx`
+- [ ] T054 [US2] Implement package-version action dialogs for approve, reject, optional re-sync, optional revalidate, optional recompute metadata, required rejection reason, unavailable-action messaging, and partial-failure reporting in `src/Elsa.Catalog.AdminUi/src/features/packages/PackageVersionActions.tsx`
 - [ ] T055 [US2] Implement package detail shell and version selector without package identity approval controls in `src/Elsa.Catalog.AdminUi/src/features/packages/PackageDetailsPage.tsx`
 - [ ] T056 [US2] Wire Packages routes into the app route tree in `src/Elsa.Catalog.AdminUi/src/app/routes.tsx`
 
@@ -136,14 +136,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T062 [US3] Add or extend admin package version detail endpoint with manifest hash, suspicious hash, feature metadata, visibility inputs, and raw manifest JSON in `src/Elsa.Catalog.Api/Admin/Packages/AdminPackageEndpoints.cs`
+- [ ] T062 [US3] Add or extend admin package version detail endpoint with manifest hash, suspicious hash, feature metadata, visibility inputs, supported action flags, and raw manifest JSON in `src/Elsa.Catalog.Api/Admin/Packages/AdminPackageEndpoints.cs`
 - [ ] T063 [US3] Normalize admin validation result contract to expose finding arrays for UI consumption in `src/Elsa.Catalog.Api/Admin/Packages/AdminValidationEndpoints.cs`
 - [ ] T064 [US3] Create validation finding normalization helpers for current and future response shapes in `src/Elsa.Catalog.AdminUi/src/features/packages/validationModels.ts`
 - [ ] T065 [US3] Implement feature metadata section for package version details in `src/Elsa.Catalog.AdminUi/src/features/packages/FeaturesPanel.tsx`
 - [ ] T066 [US3] Implement validation diagnostics panel with grouped severity, code, message, and path rendering in `src/Elsa.Catalog.AdminUi/src/features/packages/ValidationPanel.tsx`
 - [ ] T067 [US3] Implement read-only manifest viewer with formatted JSON, raw fallback, and collapsible sections in `src/Elsa.Catalog.AdminUi/src/features/packages/ManifestViewer.tsx`
 - [ ] T068 [US3] Implement visibility explanation component for approval, validation, listing, and suspicious states in `src/Elsa.Catalog.AdminUi/src/features/packages/VisibilityExplanation.tsx`
-- [ ] T069 [US3] Integrate features, validation, manifest, visibility explanation, and version actions into package version detail route in `src/Elsa.Catalog.AdminUi/src/features/packages/PackageVersionDetailsPage.tsx`
+- [ ] T069 [US3] Integrate features, validation, manifest, visibility explanation, supported-action flags, and version actions into package version detail route in `src/Elsa.Catalog.AdminUi/src/features/packages/PackageVersionDetailsPage.tsx`
 
 **Checkpoint**: User Story 3 is independently functional for package diagnostics and manifest inspection.
 
@@ -226,8 +226,8 @@
 
 **Purpose**: Verify quality gates, accessibility, responsiveness, docs, and final quickstart behavior across all completed stories.
 
-- [ ] T095 [P] Run axe-focused accessibility checks for navigation, dialogs, tables, status badges, and manifest viewer in `tests/Elsa.Catalog.AdminUi.E2E/accessibility.spec.ts`
-- [ ] T096 [P] Add responsive layout tests for desktop, tablet, and narrow mobile viewports in `tests/Elsa.Catalog.AdminUi.E2E/responsive.spec.ts`
+- [ ] T095 [P] Run axe-focused accessibility and dark-mode status contrast checks for navigation, dialogs, tables, status badges, and manifest viewer in `tests/Elsa.Catalog.AdminUi.E2E/accessibility.spec.ts`
+- [ ] T096 [P] Add responsive layout and 2-second initial-content performance tests for representative source, package, and sync-run datasets in `tests/Elsa.Catalog.AdminUi.E2E/responsive.spec.ts`
 - [ ] T097 [P] Add frontend build, test, lint, and typecheck commands to CI documentation in `src/Elsa.Catalog.AdminUi/README.md`
 - [ ] T098 Verify the quickstart end-to-end and record any implementation-specific notes in `specs/003-admin-dashboard-ui/quickstart.md`
 - [ ] T099 Run `dotnet test` from repository root and fix regressions documented in `specs/003-admin-dashboard-ui/quickstart.md`
