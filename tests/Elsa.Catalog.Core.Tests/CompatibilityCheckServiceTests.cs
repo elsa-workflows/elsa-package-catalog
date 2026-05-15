@@ -55,6 +55,64 @@ public sealed class CompatibilityCheckServiceTests
         result.Findings.Should().ContainSingle(x => x.Code == "manifest.invalidJson");
     }
 
+    [Fact]
+    public async Task Reports_missing_package_dependency_for_selected_feature()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var package = PublicCatalogSeedData.CreatePackage(source);
+        var version = PublicCatalogSeedData.AddVersion(package);
+        version.ManifestJson = """
+        {
+          "schemaVersion": "1.0",
+          "package": { "id": "Elsa.Email", "version": "1.0.0" },
+          "displayName": "Email",
+          "features": [
+            {
+              "id": "email",
+              "typeName": "Elsa.Email.EmailFeature",
+              "displayName": "Email",
+              "dependencies": [{ "packageId": "Elsa.Smtp" }]
+            }
+          ]
+        }
+        """;
+        var service = new CompatibilityCheckService(new FakeQueries(package.Versions), new VersionRangeEvaluator());
+
+        var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [new("Elsa.Email", "1.0.0")], ["email"]));
+
+        result.Findings.Should().ContainSingle(x => x.Code == "feature.packageDependency");
+    }
+
+    [Fact]
+    public async Task Checks_feature_dependency_package_version_range()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var email = PublicCatalogSeedData.CreatePackage(source);
+        var smtp = PublicCatalogSeedData.CreatePackage(source, "Elsa.Smtp");
+        var emailVersion = PublicCatalogSeedData.AddVersion(email);
+        PublicCatalogSeedData.AddVersion(smtp, "1.0.0");
+        emailVersion.ManifestJson = """
+        {
+          "schemaVersion": "1.0",
+          "package": { "id": "Elsa.Email", "version": "1.0.0" },
+          "displayName": "Email",
+          "features": [
+            {
+              "id": "email",
+              "typeName": "Elsa.Email.EmailFeature",
+              "displayName": "Email",
+              "dependencies": [{ "packageId": "Elsa.Smtp", "versionRange": ">=2.0.0" }]
+            }
+          ]
+        }
+        """;
+        var service = new CompatibilityCheckService(new FakeQueries(email.Versions.Concat(smtp.Versions).ToList()), new VersionRangeEvaluator());
+
+        var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [new("Elsa.Email", "1.0.0"), new("Elsa.Smtp", "1.0.0")], ["email"]));
+
+        result.Findings.Should().ContainSingle(x => x.Code == "feature.packageDependency");
+    }
+
     private sealed class FakeQueries(IReadOnlyList<PackageVersion> versions) : ICompatibilityQueries
     {
         public Task<PackageVersion?> GetPackageVersionAsync(string packageId, string version, CancellationToken cancellationToken = default) =>

@@ -15,7 +15,7 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
                 table: "Features",
                 type: "TEXT",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "[]");
         }
 
         /// <inheritdoc />

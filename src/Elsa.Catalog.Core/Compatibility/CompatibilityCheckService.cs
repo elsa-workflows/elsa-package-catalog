@@ -64,16 +64,21 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
         }
 
         if (request.Features.Count > 0)
-            ValidateSelectedFeatures(request.Features, selected.Select(x => x.Manifest), findings);
+            ValidateSelectedFeatures(request.Features, selected.Select(x => x.Manifest), selectedVersions, ranges, findings);
 
         return new CompatibilityCheckResult(findings.Count == 0, findings);
     }
 
-    private static void ValidateSelectedFeatures(IReadOnlyList<string> selectedFeatureIds, IEnumerable<ElsaPackageManifest> manifests, List<CompatibilityFinding> findings)
+    private static void ValidateSelectedFeatures(
+        IReadOnlyList<string> selectedFeatureIds,
+        IEnumerable<ElsaPackageManifest> manifests,
+        IReadOnlyDictionary<string, List<string>> selectedVersions,
+        VersionRangeEvaluator ranges,
+        List<CompatibilityFinding> findings)
     {
         var selectedFeatures = new HashSet<string>(selectedFeatureIds, StringComparer.OrdinalIgnoreCase);
         var features = manifests
-            .SelectMany(x => x.Features)
+            .SelectMany(manifest => manifest.Features.Select(feature => new SelectedFeatureManifest(manifest.Package.Id, manifest.Package.Version, feature)))
             .Where(x => selectedFeatures.Contains(x.Id))
             .ToList();
 
@@ -83,21 +88,40 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
                 findings.Add(CompatibilityFinding.Error("feature.missing", $"Feature {requestedFeatureId} is not present in the selected packages."));
         }
 
-        foreach (var feature in features)
+        foreach (var selectedFeature in features)
         {
-            foreach (var dependency in feature.Dependencies.Where(x => !x.Optional && x.FeatureId is not null))
+            var feature = selectedFeature.Feature;
+            foreach (var dependency in feature.Dependencies.Where(x => !x.Optional))
             {
-                if (!selectedFeatures.Contains(dependency.FeatureId!))
+                if (dependency.PackageId is not null && !PackageMatches(dependency.PackageId, dependency.VersionRange, selectedVersions, ranges))
+                {
+                    findings.Add(CompatibilityFinding.Error("feature.packageDependency", $"{feature.Id} requires package {dependency.PackageId}."));
+                    continue;
+                }
+
+                if (dependency.FeatureId is not null && !FeatureMatches(dependency.PackageId, dependency.VersionRange, dependency.FeatureId, features, ranges))
                     findings.Add(CompatibilityFinding.Error("feature.dependency", $"{feature.Id} requires feature {dependency.FeatureId}."));
             }
 
-            foreach (var conflict in feature.Conflicts.Where(x => x.FeatureId is not null))
+            foreach (var conflict in feature.Conflicts)
             {
-                if (selectedFeatures.Contains(conflict.FeatureId!))
+                if (conflict.PackageId is not null && !PackageMatches(conflict.PackageId, conflict.VersionRange, selectedVersions, ranges))
+                    continue;
+
+                if (conflict.FeatureId is null || FeatureMatches(conflict.PackageId, conflict.VersionRange, conflict.FeatureId, features, ranges))
                     findings.Add(CompatibilityFinding.Error("feature.conflict", $"{feature.Id} conflicts with feature {conflict.FeatureId}."));
             }
         }
     }
+
+    private static bool PackageMatches(string packageId, string? versionRange, IReadOnlyDictionary<string, List<string>> selectedVersions, VersionRangeEvaluator ranges) =>
+        selectedVersions.TryGetValue(packageId, out var versions) && versions.Any(version => ranges.Includes(versionRange, version));
+
+    private static bool FeatureMatches(string? packageId, string? versionRange, string featureId, IReadOnlyList<SelectedFeatureManifest> features, VersionRangeEvaluator ranges) =>
+        features.Any(feature =>
+            string.Equals(feature.Id, featureId, StringComparison.OrdinalIgnoreCase)
+            && (packageId is null || string.Equals(feature.PackageId, packageId, StringComparison.OrdinalIgnoreCase))
+            && (packageId is null || ranges.Includes(versionRange, feature.PackageVersion)));
 
     private static bool TryParseManifest(string manifestJson, out ElsaPackageManifest? manifest)
     {
@@ -133,4 +157,9 @@ public sealed record CompatibilityFinding(string Severity, string Code, string M
 {
     public static CompatibilityFinding Error(string code, string message) => new("error", code, message);
     public static CompatibilityFinding Warning(string code, string message) => new("warning", code, message);
+}
+
+internal sealed record SelectedFeatureManifest(string PackageId, string PackageVersion, FeatureManifest Feature)
+{
+    public string Id => Feature.Id;
 }

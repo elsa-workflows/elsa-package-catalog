@@ -25,11 +25,19 @@ public static class BuilderEndpoints
 
         group.MapPost("/resolve", async (BuilderResolveRequest request, CompatibilityCheckService compatibility, CancellationToken cancellationToken) =>
         {
+            if (request.Packages is null)
+                return Results.BadRequest(new { error = "packages is required." });
+
+            var features = request.Features ?? request.Packages
+                .SelectMany(x => x.SelectedFeatures ?? [])
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
             var result = await compatibility.CheckAsync(new CompatibilityCheckRequest(
                 request.ElsaVersion,
                 request.DockerImageVersion,
                 request.Packages.Select(x => new SelectedPackageVersion(x.PackageId, x.Version)).ToList(),
-                request.Features ?? []), cancellationToken);
+                features), cancellationToken);
 
             return Results.Ok(new BuilderResolveResponse(
                 result.Compatible,

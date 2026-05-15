@@ -19,12 +19,13 @@ public sealed record BuilderInfrastructureProviderResponse(
 public sealed record BuilderResolveRequest(
     string? ElsaVersion,
     string? DockerImageVersion,
-    IReadOnlyList<BuilderSelectedPackageRequest> Packages,
+    IReadOnlyList<BuilderSelectedPackageRequest>? Packages,
     IReadOnlyList<string>? Features);
 
 public sealed record BuilderSelectedPackageRequest(
     string PackageId,
-    string Version);
+    string Version,
+    IReadOnlyList<string>? SelectedFeatures);
 
 public sealed record BuilderResolveResponse(
     bool Compatible,

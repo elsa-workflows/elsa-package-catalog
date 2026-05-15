@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Elsa.Catalog.Api.Public.Packages;
 
 public sealed record PublicPackageResponse(
@@ -31,7 +33,7 @@ public sealed record PublicPackageFeatureResponse(
     IReadOnlyList<PublicPackageInfrastructureRequirementResponse> Infrastructure,
     bool Advanced,
     bool Experimental,
-    string ExtensionsJson,
+    IReadOnlyDictionary<string, JsonElement> Extensions,
     IReadOnlyList<PublicPackageFeatureSettingResponse> Settings);
 
 public sealed record PublicPackageFeatureSettingResponse(
@@ -39,16 +41,16 @@ public sealed record PublicPackageFeatureSettingResponse(
     string? ClrType,
     string JsonType,
     bool Required,
-    string? DefaultValueJson,
+    JsonElement? DefaultValue,
     string DisplayName,
     string? Description,
     string? Category,
-    string ValidationJson,
+    IReadOnlyDictionary<string, JsonElement> Validation,
     bool Secret,
     bool RestartRequired,
     string? EnvironmentVariable,
-    string UiJson,
-    string ExtensionsJson);
+    IReadOnlyDictionary<string, JsonElement> Ui,
+    IReadOnlyDictionary<string, JsonElement> Extensions);
 
 public sealed record PublicPackageDependencyResponse(
     string? PackageId,
@@ -71,4 +73,4 @@ public sealed record PublicPackageInfrastructureRequirementResponse(
     IReadOnlyList<string> Capabilities,
     IReadOnlyList<string> Providers,
     IReadOnlyList<string> ConfigurationKeys,
-    string ExtensionsJson);
+    IReadOnlyDictionary<string, JsonElement> Extensions);

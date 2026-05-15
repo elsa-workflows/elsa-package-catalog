@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace Elsa.Catalog.Api.Public.Features;
 
 public sealed record PublicFeatureResponse(
@@ -15,7 +17,7 @@ public sealed record PublicFeatureResponse(
     IReadOnlyList<PublicFeatureInfrastructureRequirementResponse> Infrastructure,
     bool Advanced,
     bool Experimental,
-    string ExtensionsJson,
+    IReadOnlyDictionary<string, JsonElement> Extensions,
     IReadOnlyList<PublicFeatureSettingResponse> Settings);
 
 public sealed record PublicFeatureSourceResponse(
@@ -28,16 +30,16 @@ public sealed record PublicFeatureSettingResponse(
     string? ClrType,
     string JsonType,
     bool Required,
-    string? DefaultValueJson,
+    JsonElement? DefaultValue,
     string DisplayName,
     string? Description,
     string? Category,
-    string ValidationJson,
+    IReadOnlyDictionary<string, JsonElement> Validation,
     bool Secret,
     bool RestartRequired,
     string? EnvironmentVariable,
-    string UiJson,
-    string ExtensionsJson);
+    IReadOnlyDictionary<string, JsonElement> Ui,
+    IReadOnlyDictionary<string, JsonElement> Extensions);
 
 public sealed record PublicFeatureDependencyResponse(
     string? PackageId,
@@ -60,4 +62,4 @@ public sealed record PublicFeatureInfrastructureRequirementResponse(
     IReadOnlyList<string> Capabilities,
     IReadOnlyList<string> Providers,
     IReadOnlyList<string> ConfigurationKeys,
-    string ExtensionsJson);
+    IReadOnlyDictionary<string, JsonElement> Extensions);

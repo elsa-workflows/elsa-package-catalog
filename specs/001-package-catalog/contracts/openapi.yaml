@@ -643,6 +643,9 @@ components:
           type: boolean
         experimental:
           type: boolean
+        extensions:
+          type: object
+          additionalProperties: true
         infrastructure:
           type: array
           items:
@@ -699,6 +702,9 @@ components:
         environmentVariable:
           type: string
         ui:
+          type: object
+          additionalProperties: true
+        extensions:
           type: object
           additionalProperties: true
     PackageSourceProvenance:
@@ -775,11 +781,42 @@ components:
           items:
             $ref: '#/components/schemas/InfrastructureProvider'
     BuilderResolveRequest:
-      allOf:
-        - $ref: '#/components/schemas/CompatibilityCheckRequest'
+      type: object
+      required: [packages]
+      properties:
+        elsaVersion:
+          type: string
+        dockerImageVersion:
+          type: string
+        packages:
+          type: array
+          items:
+            type: object
+            required: [packageId, version]
+            properties:
+              packageId:
+                type: string
+              version:
+                type: string
+              selectedFeatures:
+                type: array
+                items:
+                  type: string
+        features:
+          type: array
+          description: Optional flat selected feature list. When absent, selected features are read from packages[].selectedFeatures.
+          items:
+            type: string
     BuilderResolveResponse:
-      allOf:
-        - $ref: '#/components/schemas/CompatibilityCheckResponse'
+      type: object
+      required: [compatible, findings]
+      properties:
+        compatible:
+          type: boolean
+        findings:
+          type: array
+          items:
+            $ref: '#/components/schemas/CompatibilityFinding'
     CompatibilityCheckRequest:
       type: object
       required: [packages]
@@ -811,30 +848,31 @@ components:
           additionalProperties: true
     CompatibilityCheckResponse:
       type: object
-      required: [status, findings]
+      required: [compatible, findings]
       properties:
-        status:
-          type: string
-          enum: [Pass, Warning, Error]
+        compatible:
+          type: boolean
         findings:
           type: array
           items:
-            type: object
-            required: [severity, code, message]
-            properties:
-              severity:
-                type: string
-                enum: [Info, Warning, Error]
-              code:
-                type: string
-              packageId:
-                type: string
-              version:
-                type: string
-              featureId:
-                type: string
-              message:
-                type: string
+            $ref: '#/components/schemas/CompatibilityFinding'
+    CompatibilityFinding:
+      type: object
+      required: [severity, code, message]
+      properties:
+        severity:
+          type: string
+          enum: [info, warning, error]
+        code:
+          type: string
+        packageId:
+          type: string
+        version:
+          type: string
+        featureId:
+          type: string
+        message:
+          type: string
     Compatibility:
       type: object
       properties:

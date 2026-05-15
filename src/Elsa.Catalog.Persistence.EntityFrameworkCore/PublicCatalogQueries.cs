@@ -149,10 +149,24 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
 
     private static PublicPackageSourceProjection ToSourceProjection(Package? package)
     {
-        var source = package?.Source;
-        return source is null
-            ? new PublicPackageSourceProjection(Guid.Empty, "", "")
-            : new PublicPackageSourceProjection(source.Id, source.Name, source.Url);
+        var source = package?.Source ?? throw new InvalidOperationException("Visible package source was not loaded.");
+        return new PublicPackageSourceProjection(source.Id, source.Name, SanitizeSourceUrl(source.Url));
+    }
+
+    private static string SanitizeSourceUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return "";
+
+        var builder = new UriBuilder(uri)
+        {
+            UserName = "",
+            Password = "",
+            Query = "",
+            Fragment = ""
+        };
+
+        return builder.Uri.ToString();
     }
 
     private static IReadOnlyList<T> DeserializeList<T>(string json)

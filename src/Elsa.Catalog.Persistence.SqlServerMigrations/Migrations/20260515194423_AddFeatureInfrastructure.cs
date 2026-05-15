@@ -15,7 +15,7 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                 table: "Features",
                 type: "nvarchar(max)",
                 nullable: false,
-                defaultValue: "");
+                defaultValue: "[]");
         }
 
         /// <inheritdoc />
