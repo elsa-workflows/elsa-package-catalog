@@ -78,16 +78,24 @@ Required GitHub Actions variables:
   `elsa-package-catalog`.
 - `AZURE_LOCATION`: Azure region for the `azd` environment, for example
   `westeurope`.
+- `AZURE_APP_SERVICE_DASHBOARD_URI`: Aspire dashboard URL emitted by `azd up`.
 - `AZURE_CONTAINER_REGISTRY_ENDPOINT`: ACR login server for app image pushes,
   for example `elsapackagecatalogacrk35qdj734hds2.azurecr.io`.
 - `API_IDENTITY_CLIENTID` and `API_IDENTITY_ID`: managed identity values emitted
   by `azd up` for the API Web App.
+- `CATALOG_SQL_SQLSERVERFQDN`: Azure SQL server FQDN emitted by `azd up`.
+- `ELSA_PACKAGE_CATALOG_AZURE_APP_SERVICE_DASHBOARD_URI`: Aspire dashboard URL
+  emitted by `azd up`.
+- `ELSA_PACKAGE_CATALOG_AZURE_CONTAINER_REGISTRY_ENDPOINT`: ACR login server
+  emitted by `azd up`.
 - `ELSA_PACKAGE_CATALOG_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID` and
   `ELSA_PACKAGE_CATALOG_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID`: managed
   identity values emitted by `azd up` for ACR image pushes.
 - `ELSA_PACKAGE_CATALOG_AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID` and
   `ELSA_PACKAGE_CATALOG_AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID`:
   managed identity values emitted by `azd up` for Web App updates.
+- `ELSA_PACKAGE_CATALOG_PLANID`: App Service plan resource ID emitted by
+  `azd up`.
 
 Required GitHub Actions secrets:
 
