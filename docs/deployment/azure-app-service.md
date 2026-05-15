@@ -38,6 +38,121 @@ azd up
 When `azd init` asks how to initialize the app, scan the current directory and
 confirm the detected Aspire AppHost.
 
+## GitHub Actions Deployment
+
+The `Azure API Deploy` workflow runs on pushes to `main` and can also be run
+manually from GitHub Actions. Normal `main` deployments build the API container,
+push it to ACR, and update the existing App Service site container:
+
+```bash
+docker build --file src/Elsa.Catalog.Api/Dockerfile --tag <acr>/<repo>:<sha> .
+docker push <acr>/<repo>:<sha>
+az webapp sitecontainers update ...
+```
+
+This is the fast path for application-only updates because the Azure resources
+are expected to already exist. It also avoids reapplying the App Service Bicep
+module on every code change. If the AppHost infrastructure shape changes, run
+the same workflow manually and choose `deploy_mode: infra`; that path runs:
+
+```bash
+azd up --no-prompt
+```
+
+`azd up` provisions infrastructure incrementally before deploying. Keep it as a
+manual choice so routine code changes do not spend time checking and updating
+Azure resources on every push.
+
+Configure the workflow in a GitHub environment named `production` unless you
+change the workflow environment name. With OIDC, the Microsoft Entra federated
+credential should trust this repository and environment. If using the default
+GitHub environment subject, it is:
+
+```text
+repo:<owner>/<repo>:environment:production
+```
+
+Required GitHub Actions variables:
+
+- `AZURE_CLIENT_ID`: application/client ID for the federated identity.
+- `AZURE_TENANT_ID`: Microsoft Entra tenant ID.
+- `AZURE_SUBSCRIPTION_ID`: target Azure subscription ID.
+- `AZURE_ENV_NAME`: existing or desired `azd` environment name, for example
+  `elsa-package-catalog`.
+- `AZURE_LOCATION`: Azure region for the `azd` environment, for example
+  `westeurope`.
+- `AZURE_RESOURCE_GROUP`: resource group containing the deployed App Service,
+  for example `rg-elsa-package-catalog`.
+- `AZURE_WEBAPP_NAME`: API App Service name, for example `api-k35qdj734hds2`.
+- `AZURE_APP_SERVICE_DASHBOARD_URI`: Aspire dashboard URL emitted by `azd up`.
+- `AZURE_CONTAINER_REGISTRY_ENDPOINT`: ACR login server for app image pushes,
+  for example `elsapackagecatalogacrk35qdj734hds2.azurecr.io`.
+- `API_IDENTITY_CLIENTID` and `API_IDENTITY_ID`: managed identity values emitted
+  by `azd up` for the API Web App.
+- `CATALOG_SQL_SQLSERVERFQDN`: Azure SQL server FQDN emitted by `azd up`.
+- `ELSA_PACKAGE_CATALOG_AZURE_APP_SERVICE_DASHBOARD_URI`: Aspire dashboard URL
+  emitted by `azd up`.
+- `ELSA_PACKAGE_CATALOG_AZURE_CONTAINER_REGISTRY_ENDPOINT`: ACR login server
+  emitted by `azd up`.
+- `ELSA_PACKAGE_CATALOG_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_CLIENT_ID` and
+  `ELSA_PACKAGE_CATALOG_AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID`: managed
+  identity values emitted by `azd up` for ACR image pushes.
+- `ELSA_PACKAGE_CATALOG_AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID` and
+  `ELSA_PACKAGE_CATALOG_AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID`:
+  managed identity values emitted by `azd up` for Web App updates.
+- `ELSA_PACKAGE_CATALOG_PLANID`: App Service plan resource ID emitted by
+  `azd up`.
+
+Required GitHub Actions secrets:
+
+- `ADMIN_API_KEY`: strong API key passed to the AppHost `adminApiKey` parameter
+  and surfaced to the API as `Authentication__ApiKey`.
+
+The workflow validates the configuration, restores the solution, builds the
+Aspire AppHost, runs the API test project, signs in to Azure with GitHub
+federated credentials, creates the local CI `azd` environment metadata, sets the
+secured `infra.parameters.adminApiKey` parameter and required azd environment
+outputs for the run, then deploys either the application container or the full
+infrastructure path.
+
+## GitHub/Azure Bootstrap
+
+Use the bootstrap script to recreate or refresh the GitHub `production`
+environment wiring from the selected `azd` environment:
+
+```bash
+scripts/bootstrap-github-azure.sh --azd-environment elsa-package-catalog
+```
+
+The script:
+
+- creates the GitHub environment if needed;
+- optionally runs `azd pipeline config --provider github --auth-type federated`
+  to configure the Microsoft Entra federated credential;
+- reads deployment outputs from `azd env get-value`;
+- sets the required GitHub environment variables with `gh variable set`;
+- sets `ADMIN_API_KEY` with `gh secret set` without printing the value.
+
+If the federated credential already exists and only the GitHub variables/secrets
+need to be refreshed, skip the Azure pipeline setup step:
+
+```bash
+scripts/bootstrap-github-azure.sh --skip-pipeline-config
+```
+
+For a preview that does not modify Azure or GitHub:
+
+```bash
+scripts/bootstrap-github-azure.sh --skip-pipeline-config --dry-run
+```
+
+Set `ADMIN_API_KEY` in the shell to override the value discovered from the local
+`azd` environment:
+
+```bash
+ADMIN_API_KEY='<strong-secret>' scripts/bootstrap-github-azure.sh
+```
+
 ## Removing Existing Resources
 
 If the old resources are in a dedicated resource group, delete the group:

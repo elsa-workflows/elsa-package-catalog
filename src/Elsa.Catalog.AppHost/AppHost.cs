@@ -1,7 +1,20 @@
+using Azure.Provisioning.AppService;
+using Azure.Provisioning.Sql;
+
 var builder = DistributedApplication.CreateBuilder(args);
 var adminApiKey = builder.AddParameter("adminApiKey", secret: true);
 
-builder.AddAzureAppServiceEnvironment("elsa-package-catalog");
+builder.AddAzureAppServiceEnvironment("elsa-package-catalog")
+    .ConfigureInfrastructure(infrastructure =>
+    {
+        var plan = infrastructure.GetProvisionableResources().OfType<AppServicePlan>().Single();
+        plan.Sku = new AppServiceSkuDescription
+        {
+            Name = "B1",
+            Tier = "Basic",
+            Capacity = 1
+        };
+    });
 
 var api = builder.AddProject<Projects.Elsa_Catalog_Api>("api")
     .WithExternalHttpEndpoints()
@@ -10,7 +23,24 @@ var api = builder.AddProject<Projects.Elsa_Catalog_Api>("api")
 
 if (builder.ExecutionContext.IsPublishMode)
 {
-    var sql = builder.AddAzureSqlServer("catalog-sql");
+    var sql = builder.AddAzureSqlServer("catalog-sql")
+        .ConfigureInfrastructure(infrastructure =>
+        {
+            var sqlDatabase = infrastructure.GetProvisionableResources().OfType<SqlDatabase>().Single();
+            sqlDatabase.Sku = new SqlSku
+            {
+                Name = "GP_S_Gen5",
+                Tier = "GeneralPurpose",
+                Family = "Gen5",
+                Capacity = 1
+            };
+            sqlDatabase.MinCapacity = 0.5;
+            sqlDatabase.AutoPauseDelay = 60;
+            sqlDatabase.RequestedBackupStorageRedundancy = SqlBackupStorageRedundancy.Local;
+            sqlDatabase.IsZoneRedundant = false;
+            sqlDatabase.UseFreeLimit = true;
+            sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
+        });
     var database = sql.AddDatabase("Catalog");
 
     api.WithReference(database)
