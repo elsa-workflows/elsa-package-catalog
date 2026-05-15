@@ -1,0 +1,6 @@
+name: elsa-package-catalog
+services:
+  api:
+    project: src/Elsa.Catalog.AppHost/Elsa.Catalog.AppHost.csproj
+    host: containerapp
+    language: dotnet
