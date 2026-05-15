@@ -30,6 +30,16 @@ Polling-based refresh is acceptable. Real-time infrastructure, advanced metrics,
 complex dashboards, role matrices, and large-scale visualization features are
 out of scope.
 
+## Clarifications
+
+### Session 2026-05-15
+
+- Q: Should package approval operate at package identity, package version, or both in the first UI slice? -> A: Package version approval only.
+- Q: Should package version rejection require an administrator-provided reason? -> A: Rejection reason required.
+- Q: Should Settings be included in the first dashboard slice? -> A: Defer Settings from MVP.
+- Q: How should source deletion behave when source history or indexed packages may exist? -> A: Soft-delete.
+- Q: Which source health fields are guaranteed by the admin API versus inferred from sync history? -> A: Status and last successful sync are guaranteed; other health details are inferred from recent sync runs when available.
+
 ## Goals
 
 - Keep the admin experience small, operational, technical, and inspectable.
@@ -78,8 +88,8 @@ out of scope.
 
 ### User Story 1 - Operate Package Sources (Priority: P1)
 
-A Catalog Administrator can view, create, edit, enable, disable, delete, and
-manually synchronize package sources from one focused operational screen.
+A Catalog Administrator can view, create, edit, enable, disable, soft-delete,
+and manually synchronize package sources from one focused operational screen.
 
 **Why this priority**: Source configuration controls which packages can enter
 the catalog and is the primary daily operating workflow.
@@ -87,7 +97,7 @@ the catalog and is the primary daily operating workflow.
 **Independent Test**: Start with no sources, create a source with include and
 exclude patterns, verify the source appears in the list with health information,
 edit it, test patterns against sample package IDs, disable it, re-enable it,
-trigger sync, and delete it after confirmation.
+trigger sync, and soft-delete it after confirmation.
 
 **Acceptance Scenarios**:
 
@@ -105,26 +115,32 @@ trigger sync, and delete it after confirmation.
    precedence.
 4. **Given** a source has not synced recently or has health warnings, **When**
    the administrator opens its details, **Then** the dashboard shows last
-   successful sync, current health, validation failure count, authentication or
-   connectivity issues when present, and the most relevant recent sync runs.
+   successful sync, current health, and the most relevant recent sync runs, with
+   additional validation, authentication, or connectivity details inferred from
+   recent runs when available.
 5. **Given** a source is enabled, **When** the administrator chooses Disable,
    **Then** the dashboard requires confirmation and reflects that scheduled sync
    will skip the source after the update succeeds.
+6. **Given** an administrator removes a source, **When** the source has sync
+   history or indexed packages, **Then** the dashboard performs a soft-delete
+   flow that removes it from active source management without implying
+   historical package, validation, or sync records are erased.
 
 ---
 
 ### User Story 2 - Review and Approve Packages (Priority: P1)
 
 A Catalog Administrator can browse indexed packages, filter by operational
-state, inspect approval and validation status, and approve or reject packages or
-selected package versions.
+state, inspect approval and validation status, and approve or reject selected
+package versions. Rejection requires an administrator-provided reason.
 
 **Why this priority**: Approval determines public catalog visibility and must
 remain simple, deliberate, and separate from validation.
 
 **Independent Test**: Seed approved, pending, rejected, invalid, suspicious, and
-unlisted packages, then verify search, filters, table state, package details,
-single approval, single rejection, and bulk approval or rejection behavior.
+unlisted package versions, then verify search, filters, table state, package
+details, single version approval, single version rejection, and bulk approval or
+rejection behavior, including required rejection reasons.
 
 **Acceptance Scenarios**:
 
@@ -135,13 +151,17 @@ single approval, single rejection, and bulk approval or rejection behavior.
 2. **Given** packages are awaiting approval, **When** the administrator filters
    to Pending, **Then** only pending packages or versions are shown and the total
    result count is updated.
-3. **Given** one or more packages are selected, **When** the administrator uses
-   Approve Selected or Reject Selected, **Then** a confirmation summarizes the
-   affected items and the table updates after the operation completes.
-4. **Given** a package has validation failures, **When** the administrator opens
+3. **Given** one or more package versions are selected, **When** the
+   administrator uses Approve Selected or Reject Selected, **Then** a
+   confirmation summarizes the affected versions and the table updates after the
+   operation completes.
+4. **Given** an administrator rejects one or more package versions, **When** the
+   confirmation is shown, **Then** the dashboard requires a rejection reason
+   before submitting the operation.
+5. **Given** a package has validation failures, **When** the administrator opens
    package details, **Then** approval controls are still visible but public
    visibility remains blocked until validation is valid.
-5. **Given** a package is hidden from public APIs, **When** the administrator
+6. **Given** a package is hidden from public APIs, **When** the administrator
    views package details, **Then** the dashboard explains each reason such as
    validation failed, package not approved, version rejected, package unlisted,
    or suspicious manifest change.
@@ -291,7 +311,8 @@ partial bulk failures, then verify visible states and recovery actions.
 - The admin API returns paged data with an empty page after filters change.
 - A bulk action is attempted on items that have changed state since selection.
 - Polling refresh returns newer data while a form has unsaved changes.
-- A delete operation is requested for a source that still has indexed packages.
+- A soft-delete operation is requested for a source that still has indexed
+  packages or sync history.
 - A sync run contains item-level failures but the overall run completed.
 - Dates arrive in UTC and must be displayed consistently with timezone context.
 - The dashboard is used on a narrow screen where tables cannot fit comfortably.
@@ -305,12 +326,11 @@ partial bulk failures, then verify visible states and recovery actions.
   boundary.
 - **FR-002**: The dashboard MUST present a small primary navigation with
   Overview, Sources, Packages, and Sync Runs.
-- **FR-003**: The dashboard MAY include Settings only for minimal operational
-  configuration and system information; Settings MUST NOT become a broad admin
-  platform in the MVP.
+- **FR-003**: The MVP MUST defer Settings and use only Overview, Sources,
+  Packages, and Sync Runs as primary destinations.
 - **FR-004**: The dashboard MUST make Sources a primary workflow and MUST allow
-  administrators to list, create, view, edit, enable, disable, delete, and sync
-  package sources when permitted by the admin API.
+  administrators to list, create, view, edit, enable, disable, soft-delete, and
+  sync package sources when permitted by the admin API.
 - **FR-005**: The Sources list MUST show name, type, URL, status, approval
   policy, last sync, package count, enabled state, and row actions.
 - **FR-006**: Source create and edit forms MUST include name, feed URL, enabled
@@ -321,11 +341,15 @@ partial bulk failures, then verify visible states and recovery actions.
   excluded outcomes.
 - **FR-008**: The pattern tester MUST make exclude precedence visually obvious.
 - **FR-009**: The dashboard MUST provide a source health view showing overall
-  health, last successful sync, validation failure count, authentication
-  failures when available, connectivity issues when available, and recent sync
-  activity.
-- **FR-010**: Source destructive actions MUST require confirmation and MUST
-  explain likely operational impact.
+  health, last successful sync, and recent sync activity.
+- **FR-009a**: Source status and last successful sync MUST be treated as
+  guaranteed source health fields; validation failure counts, authentication
+  failures, and connectivity issues MUST be shown only when inferable from
+  recent sync runs or explicit admin API diagnostics.
+- **FR-010**: Source soft-delete actions MUST require confirmation and MUST
+  explain that active source management changes while historical package,
+  validation, and sync records may remain.
+- **FR-010a**: The MVP MUST NOT expose hard-delete controls for package sources.
 - **FR-011**: The Packages screen MUST allow administrators to browse indexed
   packages and versions with search, filtering, sorting, pagination or incremental
   loading, and bulk selection.
@@ -340,9 +364,12 @@ partial bulk failures, then verify visible states and recovery actions.
 - **FR-016**: Package bulk selection MUST persist only for the current filtered
   result set and MUST clearly show how many items are selected.
 - **FR-017**: Bulk actions MUST include Approve Selected, Reject Selected, and
-  Re-sync Selected where supported by the admin API.
+  Re-sync Selected for explicitly selected package versions where supported by
+  the admin API.
 - **FR-018**: Bulk actions MUST require confirmation, summarize affected items,
   report partial failures, and refresh affected rows after completion.
+- **FR-018a**: Rejection actions for one or more package versions MUST require
+  an administrator-entered reason before submission.
 - **FR-019**: The Package Details screen MUST include Overview, Features,
   Validation, Manifest Viewer, Visibility Explanation, and Actions sections.
 - **FR-020**: Package Overview MUST show package ID, available versions, source,
@@ -361,8 +388,11 @@ partial bulk failures, then verify visible states and recovery actions.
 - **FR-025**: The Visibility Explanation section MUST explain why a package or
   version is hidden from public APIs, including validation failure, pending
   approval, rejection, unlisted state, or suspicious manifest state.
-- **FR-026**: Package actions MUST include Approve, Reject, Re-sync, Revalidate,
-  and Recompute Metadata when those operations are supported by the admin API.
+- **FR-026**: Package version actions MUST include Approve, Reject, Re-sync,
+  Revalidate, and Recompute Metadata when those operations are supported by the
+  admin API.
+- **FR-026a**: The MVP approval workflow MUST operate on package versions only
+  and MUST NOT introduce package identity approval controls.
 - **FR-027**: The Sync Runs screen MUST list synchronization operations with
   started time, duration, trigger, status, packages scanned, packages updated,
   and failure count.
@@ -387,8 +417,8 @@ partial bulk failures, then verify visible states and recovery actions.
 - **FR-036**: The dashboard MUST display field-level API validation errors beside
   matching fields when possible and show general request errors otherwise.
 - **FR-037**: The dashboard MUST prevent duplicate submissions for create, edit,
-  delete, approval, rejection, sync, and revalidation operations while a request
-  is pending.
+  soft-delete, approval, rejection, sync, and revalidation operations while a
+  request is pending.
 - **FR-038**: The dashboard MUST clearly distinguish current data from data that
   failed to refresh.
 - **FR-039**: The dashboard MUST provide consistent status badges for source
@@ -412,25 +442,22 @@ partial bulk failures, then verify visible states and recovery actions.
 - **FR-046**: The dashboard MUST NOT expose invalid, rejected, suspicious, or
   unlisted packages as public-safe; admin views MUST label them as operational
   records.
-- **FR-047**: The dashboard MUST include a minimal Settings screen only if the
-  MVP needs visible API endpoint information, polling interval preferences,
-  validation severity defaults, feature flags, or system health details.
+- **FR-047**: The dashboard MUST NOT include a Settings screen in the MVP;
+  operational information needed for the first slice MUST appear in Overview,
+  Sources, Packages, or Sync Runs.
 - **FR-048**: The dashboard MUST keep framework-specific implementation choices
   outside the user experience contract; the specification permits a modern web
   stack but does not require one.
 
 ### Navigation Structure
 
-The MVP navigation SHOULD use four primary destinations:
+The MVP navigation MUST use four primary destinations:
 
 - **Overview**: Lightweight operational status and links into filtered screens.
 - **Sources**: Source management, health, pattern testing, and source sync.
-- **Packages**: Package browsing, approval workflows, diagnostics, and details.
+- **Packages**: Package browsing, package-version approval workflows,
+  diagnostics, and details.
 - **Sync Runs**: Sync history and run-level troubleshooting.
-
-Settings is optional for MVP. It should be included only if administrators need
-to view or adjust small operational preferences. If included, it should remain
-last in navigation and contain no broad platform management features.
 
 ### Page Layouts
 
@@ -477,7 +504,7 @@ Actions:
 - Sync now.
 - Edit.
 - Disable or enable.
-- Delete.
+- Soft-delete.
 
 Create/Edit form:
 
@@ -577,20 +604,6 @@ Run details:
 - Failures.
 - Warnings.
 
-#### Settings
-
-Settings is optional and minimal.
-
-Potential settings:
-
-- Polling interval preferences for the dashboard.
-- Validation severity defaults if the backend exposes them as editable.
-- Admin API endpoint information.
-- Feature flags that affect dashboard-visible behavior.
-- System health information.
-
-Settings MUST NOT become a broad system administration surface in the MVP.
-
 ### UX Flows
 
 #### Add a Package Source
@@ -606,18 +619,41 @@ Settings MUST NOT become a broad system administration surface in the MVP.
 8. Dashboard validates fields locally where obvious, submits to admin API, shows
    field errors if rejected, and returns to the updated source list if saved.
 
-#### Approve Pending Packages
+#### Soft-Delete a Package Source
+
+1. Administrator opens Sources.
+2. Administrator chooses Remove for a source.
+3. Dashboard shows a confirmation that explains the source will leave active
+   source management while historical package, validation, and sync records may
+   remain.
+4. Administrator confirms.
+5. Dashboard submits the soft-delete request and removes the source from the
+   default active source list after success.
+
+#### Approve Pending Package Versions
 
 1. Administrator opens Packages.
 2. Administrator applies Pending filter.
-3. Administrator reviews rows and opens details for any uncertain package.
-4. Administrator selects one or more packages or versions.
+3. Administrator reviews rows and opens details for any uncertain package
+   version.
+4. Administrator selects one or more package versions.
 5. Administrator chooses Approve Selected.
 6. Dashboard shows confirmation with selected count and any warnings such as
    invalid or suspicious records.
 7. Administrator confirms.
 8. Dashboard submits the operation, reports success or partial failure, and
    refreshes affected rows.
+
+#### Reject Package Versions
+
+1. Administrator opens Packages or Package Details.
+2. Administrator selects one or more package versions.
+3. Administrator chooses Reject.
+4. Dashboard shows confirmation with selected count and a required rejection
+   reason field.
+5. Administrator enters a short reason and confirms.
+6. Dashboard submits the operation, reports success or partial failure, and
+   shows the rejection reason in package version details when available.
 
 #### Investigate a Validation Failure
 
@@ -687,8 +723,9 @@ Settings MUST NOT become a broad system administration surface in the MVP.
 - Bulk action confirmations must show selected count, action name, and any known
   risk states such as invalid, rejected, suspicious, or already approved.
 - Bulk approval must not imply validation success.
-- Bulk rejection must require an optional or required reason if the backend
-  exposes rejection reasons.
+- Bulk rejection must require an administrator-entered reason and apply that
+  reason to each selected package version unless the admin API returns
+  item-specific rejection failures.
 - Bulk re-sync must explain that results may take time and may not change package
   state immediately.
 - Partial failures must be shown at item level.
@@ -806,10 +843,11 @@ Settings MUST NOT become a broad system administration surface in the MVP.
 
 - Test each primary navigation destination loads with loading, populated, empty,
   filtered-empty, error, and stale-refresh states.
-- Test source create, edit, enable, disable, delete, sync, and pattern tester
-  workflows.
+- Test source create, edit, enable, disable, soft-delete, sync, and pattern
+  tester workflows.
 - Test package search, filtering, sorting, details, approval, rejection, re-sync,
-  revalidation, visibility explanation, and bulk action workflows.
+  required rejection reason, revalidation, visibility explanation, and bulk
+  action workflows.
 - Test sync run list and detail screens for completed, failed, running, and
   completed-with-errors states.
 - Test validation issue rendering for errors, warnings, missing field paths,
@@ -826,16 +864,19 @@ Settings MUST NOT become a broad system administration surface in the MVP.
 
 - **Package Source**: A configured package feed with name, type, URL, enabled
   state, approval policy, include patterns, exclude patterns, polling interval,
-  health status, last sync timestamps, and package counts.
-- **Source Health**: Operational status for a source, including healthy,
-  warning, or error state and diagnostic counts or messages exposed by the admin
-  API.
+  health status, last sync timestamps, package counts, and soft-delete state.
+- **Source Health**: Operational status for a source. Source status and last
+  successful sync are guaranteed fields; validation counts, authentication
+  failures, connectivity issues, and diagnostic messages are derived from recent
+  sync runs or explicit admin API diagnostics when available.
 - **Package**: An indexed package identity with source relationship, latest
-  version, approval status, validation status, listing state, feature count,
+  version, aggregate validation and listing indicators, feature count,
   suspicious state, and updated timestamp.
 - **Package Version**: A specific package version with manifest hash, published
   date, indexed date, approval state, validation result, visibility state, and
-  immutable-version diagnostics when applicable.
+  immutable-version diagnostics when applicable. Approval and rejection decisions
+  apply at this level in the MVP, and rejected versions require an
+  administrator-provided rejection reason.
 - **Feature Metadata**: Manifest-derived feature information including feature
   identity, display metadata, settings count, compatibility metadata,
   dependencies, and conflicts.
@@ -847,8 +888,10 @@ Settings MUST NOT become a broad system administration surface in the MVP.
   completion timestamps, duration, scanned and updated package counts, failures,
   warnings, and item-level diagnostics.
 - **Admin Operation**: A requested mutation such as approve, reject, sync,
-  revalidate, edit source, disable source, or delete source, including pending,
-  success, failure, and partial-failure outcomes.
+  revalidate, edit source, disable source, or soft-delete source, including
+  pending, success, failure, and partial-failure outcomes.
+- **Rejection Reason**: A short administrator-entered explanation recorded when
+  rejecting one or more package versions.
 
 ## Success Criteria *(mandatory)*
 
@@ -857,9 +900,9 @@ Settings MUST NOT become a broad system administration surface in the MVP.
 - **SC-001**: An administrator can create a package source, validate sample
   include/exclude behavior, save it, and trigger its first sync in under 3
   minutes during usability testing.
-- **SC-002**: An administrator can identify all packages awaiting approval and
-  approve or reject selected packages in under 2 minutes for a list of 50
-  packages.
+- **SC-002**: An administrator can identify all package versions awaiting
+  approval and approve or reject selected versions with a rejection reason in
+  under 2 minutes for a list of 50 packages.
 - **SC-003**: An administrator can determine why a hidden package is not visible
   through public APIs in under 30 seconds from the package details screen.
 - **SC-004**: An administrator can locate validation errors for an invalid
@@ -879,15 +922,18 @@ Settings MUST NOT become a broad system administration surface in the MVP.
 
 - Overview provides concise operational status and links to filtered operational
   screens without analytics-heavy presentation.
-- Sources supports full source lifecycle management, source health inspection,
-  sync-now action, and include/exclude pattern testing.
+- Sources supports full source lifecycle management including soft-delete,
+  source health inspection, sync-now action, and include/exclude pattern
+  testing.
 - Packages supports search, filters, sorting, package details, visibility
-  explanation, single approval/rejection, and bulk approval/rejection/re-sync.
+  explanation, single version approval/rejection, and bulk version
+  approval/rejection/re-sync.
 - Package Details makes manifest diagnostics, validation results, raw manifest
   inspection, and hidden-state explanations available in one coherent workflow.
 - Sync Runs supports list and detail inspection with enough timeline and item
   diagnostics to troubleshoot indexing problems.
-- Settings, if included, remains minimal and operational.
+- The MVP omits Settings and keeps operational information within Overview,
+  Sources, Packages, and Sync Runs.
 - Loading, empty, error, stale, and partial-failure states are implemented for
   the primary screens and mutation workflows.
 - Keyboard accessibility, dark mode, and responsive behavior are verified for
@@ -905,24 +951,10 @@ Settings MUST NOT become a broad system administration surface in the MVP.
 - Polling and manual refresh are sufficient for operational updates.
 - Package source credentials are not managed by the dashboard in the MVP.
 - Approval and validation remain separate backend concepts, and the dashboard
-  reflects that separation.
+  reflects that separation using package-version approval decisions in the MVP.
 - Public API visibility is determined by backend rules; the dashboard explains
   visibility but does not reimplement policy as an authority.
 - REST-style request and response examples are representative of the admin API
   shape, but the exact endpoint names are defined outside this UX spec.
 - A modern web UI stack may be used, but framework selection is an implementation
   decision for planning rather than a user-facing requirement.
-
-## Open Questions
-
-- Should rejection require an administrator-provided reason in the MVP, or is an
-  optional reason sufficient until the backend formalizes approval audit fields?
-- Should Settings be included in the first dashboard slice, or deferred until an
-  actual editable operational setting is available?
-- Should source deletion be allowed when indexed packages exist, or should the
-  dashboard only support disabling sources until backend retention semantics are
-  explicit?
-- Should package approval operate at package identity, package version, or both
-  in the first UI slice if the admin API exposes both levels?
-- Which source health fields are guaranteed by the admin API versus best-effort
-  diagnostics from recent sync runs?
