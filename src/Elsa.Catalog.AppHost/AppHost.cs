@@ -1,5 +1,5 @@
 var builder = DistributedApplication.CreateBuilder(args);
-var adminApiKey = builder.AddParameter("admin-api-key", secret: true);
+var adminApiKey = builder.AddParameter("adminApiKey", secret: true);
 
 builder.AddAzureAppServiceEnvironment("elsa-package-catalog");
 

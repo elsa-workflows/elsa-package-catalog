@@ -17,7 +17,10 @@ public sealed class SyncPersistenceTests
     public async Task Persists_sync_run_items_for_diagnostics()
     {
         var options = new DbContextOptionsBuilder<CatalogDbContext>()
-            .UseSqlite("Data Source=:memory:")
+            .UseSqlite("Data Source=:memory:", sqlite =>
+            {
+                sqlite.MigrationsAssembly(CatalogDatabaseServiceCollectionExtensions.SqliteMigrationsAssembly);
+            })
             .Options;
 
         await using var db = new CatalogDbContext(options);
@@ -38,7 +41,10 @@ public sealed class SyncPersistenceTests
     public async Task Initial_migration_creates_catalog_tables()
     {
         var options = new DbContextOptionsBuilder<CatalogDbContext>()
-            .UseSqlite("Data Source=:memory:")
+            .UseSqlite("Data Source=:memory:", sqlite =>
+            {
+                sqlite.MigrationsAssembly(CatalogDatabaseServiceCollectionExtensions.SqliteMigrationsAssembly);
+            })
             .Options;
 
         await using var db = new CatalogDbContext(options);

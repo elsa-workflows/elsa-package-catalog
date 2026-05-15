@@ -1,7 +1,11 @@
 using Elsa.Catalog.Persistence.EntityFrameworkCore;
+using Elsa.Catalog.Api.Authentication;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Elsa.Catalog.Api.Tests;
 
@@ -13,13 +17,24 @@ internal sealed class CatalogApiTestApplication : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
+        builder.UseEnvironment("Testing");
+        builder.ConfigureAppConfiguration((_, configuration) =>
+        {
+            configuration.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                [ApiKeyAuthenticationDefaults.ConfigurationKey] = "local-dev-key"
+            });
+        });
+
         builder.ConfigureServices(services =>
         {
-            var descriptor = services.SingleOrDefault(x => x.ServiceType == typeof(DbContextOptions<CatalogDbContext>));
-            if (descriptor is not null)
-                services.Remove(descriptor);
+            services.RemoveAll<DbContextOptions<CatalogDbContext>>();
 
-            services.AddDbContext<CatalogDbContext>(options => options.UseSqlite(ConnectionString));
+            services.AddDbContext<CatalogDbContext>(options =>
+                options.UseSqlite(ConnectionString, sqlite =>
+                {
+                    sqlite.MigrationsAssembly(CatalogDatabaseServiceCollectionExtensions.SqliteMigrationsAssembly);
+                }));
         });
     }
 
