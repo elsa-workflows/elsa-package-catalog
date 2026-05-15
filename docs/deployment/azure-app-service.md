@@ -41,16 +41,19 @@ confirm the detected Aspire AppHost.
 ## GitHub Actions Deployment
 
 The `Azure API Deploy` workflow runs on pushes to `main` and can also be run
-manually from GitHub Actions. Normal `main` deployments run:
+manually from GitHub Actions. Normal `main` deployments build the API container,
+push it to ACR, and update the existing App Service site container:
 
 ```bash
-azd deploy --no-prompt
+docker build --file src/Elsa.Catalog.Api/Dockerfile --tag <acr>/<repo>:<sha> .
+docker push <acr>/<repo>:<sha>
+az webapp sitecontainers update ...
 ```
 
 This is the fast path for application-only updates because the Azure resources
-are expected to already exist for the selected `azd` environment. If the AppHost
-infrastructure shape changes, run the same workflow manually and choose
-`deploy_mode: infra`; that path runs:
+are expected to already exist. It also avoids reapplying the App Service Bicep
+module on every code change. If the AppHost infrastructure shape changes, run
+the same workflow manually and choose `deploy_mode: infra`; that path runs:
 
 ```bash
 azd up --no-prompt
@@ -78,6 +81,9 @@ Required GitHub Actions variables:
   `elsa-package-catalog`.
 - `AZURE_LOCATION`: Azure region for the `azd` environment, for example
   `westeurope`.
+- `AZURE_RESOURCE_GROUP`: resource group containing the deployed App Service,
+  for example `rg-elsa-package-catalog`.
+- `AZURE_WEBAPP_NAME`: API App Service name, for example `api-k35qdj734hds2`.
 - `AZURE_APP_SERVICE_DASHBOARD_URI`: Aspire dashboard URL emitted by `azd up`.
 - `AZURE_CONTAINER_REGISTRY_ENDPOINT`: ACR login server for app image pushes,
   for example `elsapackagecatalogacrk35qdj734hds2.azurecr.io`.
@@ -103,10 +109,11 @@ Required GitHub Actions secrets:
   and surfaced to the API as `Authentication__ApiKey`.
 
 The workflow validates the configuration, restores the solution, builds the
-Aspire AppHost, runs the API test project, signs in with `azd auth login` using
-GitHub federated credentials, creates the local CI `azd` environment metadata,
-sets the secured `infra.parameters.adminApiKey` parameter and required azd
-environment outputs for the run, and deploys.
+Aspire AppHost, runs the API test project, signs in to Azure with GitHub
+federated credentials, creates the local CI `azd` environment metadata, sets the
+secured `infra.parameters.adminApiKey` parameter and required azd environment
+outputs for the run, then deploys either the application container or the full
+infrastructure path.
 
 ## Removing Existing Resources
 
