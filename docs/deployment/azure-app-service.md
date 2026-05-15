@@ -115,6 +115,44 @@ secured `infra.parameters.adminApiKey` parameter and required azd environment
 outputs for the run, then deploys either the application container or the full
 infrastructure path.
 
+## GitHub/Azure Bootstrap
+
+Use the bootstrap script to recreate or refresh the GitHub `production`
+environment wiring from the selected `azd` environment:
+
+```bash
+scripts/bootstrap-github-azure.sh --azd-environment elsa-package-catalog
+```
+
+The script:
+
+- creates the GitHub environment if needed;
+- optionally runs `azd pipeline config --provider github --auth-type federated`
+  to configure the Microsoft Entra federated credential;
+- reads deployment outputs from `azd env get-value`;
+- sets the required GitHub environment variables with `gh variable set`;
+- sets `ADMIN_API_KEY` with `gh secret set` without printing the value.
+
+If the federated credential already exists and only the GitHub variables/secrets
+need to be refreshed, skip the Azure pipeline setup step:
+
+```bash
+scripts/bootstrap-github-azure.sh --skip-pipeline-config
+```
+
+For a preview that does not modify Azure or GitHub:
+
+```bash
+scripts/bootstrap-github-azure.sh --skip-pipeline-config --dry-run
+```
+
+Set `ADMIN_API_KEY` in the shell to override the value discovered from the local
+`azd` environment:
+
+```bash
+ADMIN_API_KEY='<strong-secret>' scripts/bootstrap-github-azure.sh
+```
+
 ## Removing Existing Resources
 
 If the old resources are in a dedicated resource group, delete the group:
