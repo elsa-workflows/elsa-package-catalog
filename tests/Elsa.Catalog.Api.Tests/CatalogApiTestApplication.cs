@@ -1,5 +1,8 @@
-using Elsa.Catalog.Persistence.EntityFrameworkCore;
+using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Elsa.Catalog.Api.Authentication;
+using Elsa.Catalog.Persistence.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +15,8 @@ namespace Elsa.Catalog.Api.Tests;
 internal sealed class CatalogApiTestApplication : WebApplicationFactory<Program>, IAsyncDisposable
 {
     private readonly string _databasePath = Path.Combine(Path.GetTempPath(), $"elsa-catalog-{Guid.NewGuid():N}.db");
+
+    public static JsonSerializerOptions JsonOptions { get; } = CreateJsonOptions();
 
     public string ConnectionString => $"Data Source={_databasePath}";
 
@@ -55,4 +60,20 @@ internal sealed class CatalogApiTestApplication : WebApplicationFactory<Program>
         if (File.Exists(_databasePath))
             File.Delete(_databasePath);
     }
+
+    private static JsonSerializerOptions CreateJsonOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
+    }
+}
+
+internal static class CatalogApiJsonExtensions
+{
+    public static Task<T?> GetCatalogJsonAsync<T>(this HttpClient client, string requestUri, CancellationToken cancellationToken = default) =>
+        client.GetFromJsonAsync<T>(requestUri, CatalogApiTestApplication.JsonOptions, cancellationToken);
+
+    public static Task<T?> ReadCatalogJsonAsync<T>(this HttpContent content, CancellationToken cancellationToken = default) =>
+        content.ReadFromJsonAsync<T>(CatalogApiTestApplication.JsonOptions, cancellationToken);
 }

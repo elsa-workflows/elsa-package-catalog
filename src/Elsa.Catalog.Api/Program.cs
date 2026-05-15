@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Api.Admin.Packages;
 using Elsa.Catalog.Api.Admin.Sources;
@@ -29,6 +30,10 @@ builder.AddServiceDefaults();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.Scheme, _ => { })
     .AddCookie(AdminDashboardAuthenticationDefaults.Scheme, options =>

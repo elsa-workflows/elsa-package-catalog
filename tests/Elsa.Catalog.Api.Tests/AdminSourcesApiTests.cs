@@ -1,5 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using Elsa.Catalog.Api.Admin.Sources;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Core.Packages;
@@ -38,12 +40,40 @@ public sealed class AdminSourcesApiTests
 
         create.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var sources = await client.GetFromJsonAsync<List<AdminSourceResponse>>("/api/admin/sources");
+        var sources = await client.GetCatalogJsonAsync<List<AdminSourceResponse>>("/api/admin/sources");
 
         sources.Should().ContainSingle(x =>
             x.Name == "NuGet" &&
             x.IncludePatterns.Contains("Elsa.*") &&
             x.ExcludePatterns.Contains("Elsa.Experimental.*"));
+    }
+
+    [Fact]
+    public async Task Can_create_source_from_browser_json_contract()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+        const string request = """
+            {
+              "name": "NuGet",
+              "url": "https://example.test/v3/index.json",
+              "enabled": true,
+              "approvalPolicy": "AutoApprove",
+              "includePatterns": ["Elsa.*"],
+              "excludePatterns": [],
+              "pollingInterval": "PT30M"
+            }
+            """;
+
+        var response = await client.PostAsync("/api/admin/sources", new StringContent(request, Encoding.UTF8, "application/json"));
+        var body = await response.Content.ReadAsStringAsync();
+        using var json = JsonDocument.Parse(body);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        json.RootElement.GetProperty("approvalPolicy").GetString().Should().Be("AutoApprove");
+        json.RootElement.GetProperty("type").GetString().Should().Be("NuGetFeed");
     }
 
     [Fact]
@@ -66,7 +96,7 @@ public sealed class AdminSourcesApiTests
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
 
-        var sources = await client.GetFromJsonAsync<List<AdminSourceResponse>>("/api/admin/sources");
+        var sources = await client.GetCatalogJsonAsync<List<AdminSourceResponse>>("/api/admin/sources");
 
         var source = sources.Should().ContainSingle().Subject;
         source.Status.Should().Be(PackageSourceStatus.Warning);
@@ -91,7 +121,7 @@ public sealed class AdminSourcesApiTests
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
 
-        var sources = await client.GetFromJsonAsync<List<AdminSourceResponse>>("/api/admin/sources");
+        var sources = await client.GetCatalogJsonAsync<List<AdminSourceResponse>>("/api/admin/sources");
         var getDeleted = await client.GetAsync($"/api/admin/sources/{deletedSourceId}");
 
         sources.Should().BeEmpty();

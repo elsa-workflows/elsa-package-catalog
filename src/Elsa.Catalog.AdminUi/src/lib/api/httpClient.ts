@@ -80,6 +80,10 @@ async function readProblem(response: Response) {
 }
 
 function problemMessage(details: unknown) {
+  const errors = validationErrors(details);
+  if (errors.length > 0) {
+    return errors.join(" ");
+  }
   if (details && typeof details === "object" && "detail" in details && typeof details.detail === "string") {
     return details.detail;
   }
@@ -87,4 +91,26 @@ function problemMessage(details: unknown) {
     return details.title;
   }
   return undefined;
+}
+
+function validationErrors(details: unknown) {
+  if (!details || typeof details !== "object" || !("errors" in details)) {
+    return [];
+  }
+
+  const { errors } = details;
+  if (Array.isArray(errors)) {
+    return errors.filter((error): error is string => typeof error === "string");
+  }
+
+  if (!errors || typeof errors !== "object") {
+    return [];
+  }
+
+  return Object.values(errors).flatMap((value) => {
+    if (Array.isArray(value)) {
+      return value.filter((error): error is string => typeof error === "string");
+    }
+    return typeof value === "string" ? [value] : [];
+  });
 }

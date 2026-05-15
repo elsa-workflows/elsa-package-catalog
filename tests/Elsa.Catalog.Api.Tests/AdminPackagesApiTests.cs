@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using Elsa.Catalog.Api.Admin.Packages;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Testing;
@@ -23,7 +22,7 @@ public sealed class AdminPackagesApiTests
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
 
-        var packages = await client.GetFromJsonAsync<List<AdminPackageResponse>>("/api/admin/packages");
+        var packages = await client.GetCatalogJsonAsync<List<AdminPackageResponse>>("/api/admin/packages");
 
         packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email" && !x.Approved);
     }

@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using Elsa.Catalog.Api.Admin.Sync;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Core.Packages;
@@ -20,11 +19,11 @@ public sealed class AdminSyncApiTests
 
         var response = await client.PostAsync("/api/admin/sync", null);
         response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
-        var run = await response.Content.ReadFromJsonAsync<AdminSyncRunResponse>();
+        var run = await response.Content.ReadCatalogJsonAsync<AdminSyncRunResponse>();
 
         run!.Status.Should().Be(SyncRunStatus.Completed);
 
-        var runs = await client.GetFromJsonAsync<List<AdminSyncRunResponse>>("/api/admin/sync-runs");
+        var runs = await client.GetCatalogJsonAsync<List<AdminSyncRunResponse>>("/api/admin/sync-runs");
         runs.Should().ContainSingle(x => x.Id == run.Id);
     }
 }
