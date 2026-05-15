@@ -11,9 +11,9 @@ namespace Elsa.Catalog.Persistence.EntityFrameworkCore.Models;
 internal sealed class PackageSourceConfiguration : IEntityTypeConfiguration<PackageSource>
 {
     private static readonly ValueComparer<List<string>> StringListComparer = new(
-        (left, right) => left != null && right != null && left.SequenceEqual(right),
-        value => value.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode(StringComparison.Ordinal))),
-        value => value.ToList());
+        (left, right) => ReferenceEquals(left, right) || (left != null && right != null && left.SequenceEqual(right)),
+        value => value == null ? 0 : value.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode(StringComparison.Ordinal))),
+        value => value == null ? new List<string>() : value.ToList());
 
     public void Configure(EntityTypeBuilder<PackageSource> builder)
     {

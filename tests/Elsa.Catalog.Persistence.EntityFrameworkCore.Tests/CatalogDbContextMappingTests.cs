@@ -59,4 +59,24 @@ public sealed class CatalogDbContextMappingTests
         saved.IncludePatterns.Should().Contain("Elsa.Workflows.*");
         saved.ExcludePatterns.Should().Contain("Elsa.Experimental.*");
     }
+
+    [Fact]
+    public void String_list_comparer_handles_null_values()
+    {
+        var options = new DbContextOptionsBuilder<CatalogDbContext>()
+            .UseSqlite("Data Source=:memory:")
+            .Options;
+
+        using var db = new CatalogDbContext(options);
+        var comparer = db.Model
+            .FindEntityType(typeof(PackageSource))!
+            .FindProperty(nameof(PackageSource.IncludePatterns))!
+            .GetValueComparer();
+
+        comparer.Should().NotBeNull();
+        comparer!.Equals(null, null).Should().BeTrue();
+        comparer.GetHashCode(null).Should().Be(0);
+        var snapshot = () => comparer.Snapshot(null);
+        snapshot.Should().NotThrow();
+    }
 }
