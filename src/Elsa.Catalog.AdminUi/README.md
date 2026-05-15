@@ -24,3 +24,9 @@ npm run build
 The MVP must expose only Overview, Sources, Packages, and Sync Runs. It must not
 include Settings, package identity approval controls, hard-delete source
 controls, realtime streaming logs, or manifest editing.
+
+## Deployment
+
+The production API container builds this app and serves it from `/admin`. Vite is
+configured with `/admin/` as its asset base path, and browser API calls remain
+same-origin `/api` requests.

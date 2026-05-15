@@ -67,12 +67,14 @@ if (!app.Environment.IsEnvironment("Testing"))
 }
 
 app.UseExceptionHandler();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapOpenApi();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapGet("/", () => "Elsa Package Catalog");
+app.MapGet("/admin", () => Results.Redirect("/admin/overview"));
 app.MapPublicPackageEndpoints();
 app.MapPublicFeatureEndpoints();
 app.MapCompatibilityEndpoints();
@@ -81,6 +83,7 @@ app.MapAdminSyncEndpoints();
 app.MapAdminPackageEndpoints();
 app.MapAdminApprovalEndpoints();
 app.MapAdminValidationEndpoints();
+app.MapFallbackToFile("/admin/{*path:nonfile}", "admin/index.html");
 
 app.Run();
 
