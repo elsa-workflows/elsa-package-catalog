@@ -78,7 +78,6 @@ Build fails by default when:
 - Override package ID/version conflicts with NuGet metadata.
 - The generated manifest violates the required manifest schema.
 - The generated manifest is larger than 1 MB.
-- Unsupported critical setting types are discovered.
 - Multi-targeted feature surfaces diverge and differences are not allowed.
 
 Warnings are emitted by default when:
@@ -88,6 +87,7 @@ Warnings are emitted by default when:
 - Unsupported optional metadata is ignored.
 - Delegate-shaped code configuration hooks are ignored as low-importance or
   verbose diagnostics only.
+- Unsupported setting properties are omitted as low-importance diagnostics only.
 
 `ElsaPackageManifestFailOnWarnings=true` turns warnings into build failures.
 `ElsaPackageManifestValidationSeverity=Warning` maps manifest validation errors

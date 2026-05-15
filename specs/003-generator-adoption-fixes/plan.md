@@ -10,9 +10,11 @@ Harden `Elsa.PackageManifest.Generator` for broad Elsa Core module adoption by
 fixing three build-package behaviors discovered during preview rollout: warning
 severity must not make the MSBuild task return failure when only warnings are
 logged, delegate-shaped shell-feature properties must be treated as
-non-configurable code hooks before setting schema validation, and multi-targeted
-package projects must include exactly one root `elsa-package.json` without
-consumer-side `TargetsForTfmSpecificContentInPackage` workarounds.
+non-configurable code hooks before setting schema validation, unsupported
+non-delegate CLR-only setting properties must be omitted with low-importance
+diagnostics instead of failing normal builds, and multi-targeted package
+projects must include exactly one root `elsa-package.json` without consumer-side
+`TargetsForTfmSpecificContentInPackage` workarounds.
 
 The implementation stays inside the existing generator projects. It refines
 diagnostic classification, setting discovery/schema filtering, and MSBuild pack
@@ -52,9 +54,11 @@ consumers; preserve one private package reference workflow; preserve root
 manifest path by default.
 
 **Scale/Scope**: Covers existing Elsa Core shell-feature modules with direct
-delegate hooks, delegate-valued collections/dictionaries, warning-severity
-rollout, and multi-target pack inclusion. Complex object setting support remains
-out of scope.
+delegate hooks, delegate-valued collections/dictionaries, unsupported CLR-only
+property shapes such as `System.Type`, warning-severity rollout, and
+multi-target pack inclusion. Complex object schema support remains out of scope;
+unsupported properties are omitted until explicitly supported by the manifest
+contract.
 
 ## Constitution Check
 
@@ -76,11 +80,12 @@ out of scope.
 - **Explicit sources**: N/A. Package source scanning is not changed.
 - **Safe public API**: N/A. No catalog API behavior changes.
 - **Debuggability**: PASS. Diagnostic policy becomes more consistent, and
-  verbose ignored-hook diagnostics remain available without noisy default
-  warnings.
+  omitted non-manifestable properties remain traceable through low-importance
+  diagnostics without noisy default warnings.
 - **Modular monolith**: PASS. No distributed infrastructure or service changes.
 - **Runtime Builder readiness**: PASS. Deploy-time settings become cleaner by
-  excluding code-only hooks that Runtime Builder cannot configure.
+  excluding code-only hooks and unsupported CLR-only shapes that Runtime Builder
+  cannot configure.
 - **Simplicity**: PASS. Uses existing generator projects, models, targets, and
   test helpers; no new dependency or broad abstraction is required.
 

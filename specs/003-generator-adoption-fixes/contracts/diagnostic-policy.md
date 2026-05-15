@@ -20,7 +20,7 @@ the adoption hardening work.
 | Manifest validation | Yes | Error policy only | Required schema findings can map to warning under warning severity. |
 | Recommended metadata | Already warning by default | No | Fails only with fail-on-warnings or stricter policy. |
 | Delegate-shaped code hook ignored | No | No | No default warning; verbose/low-importance diagnostics only. |
-| Non-delegate unsupported setting | Existing configurable policy | Depends on mapped severity | Remains visible as an unsupported deploy-time setting. |
+| Non-delegate unsupported setting omitted | No | No | Low-importance diagnostic only; property is excluded from manifest settings. |
 | Infrastructure failure | No | Yes | Examples: unreadable assembly, task exception, missing required build input. |
 | Invalid input failure | No | Yes | Examples: malformed override JSON, oversized override file, invalid package identity override. |
 | Package inclusion failure | No | Yes | Examples: unable to include canonical manifest when inclusion is enabled. |
@@ -45,3 +45,5 @@ the adoption hardening work.
 - Warning severity does not downgrade infrastructure or invalid input failures.
 - Ignored delegate-shaped hooks do not create default warnings and do not cause
   fail-on-warnings failure.
+- Omitted unsupported non-delegate settings do not create warnings or errors and
+  do not cause fail-on-warnings failure.
