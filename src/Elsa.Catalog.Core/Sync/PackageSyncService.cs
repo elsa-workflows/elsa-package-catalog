@@ -344,10 +344,35 @@ public interface ISyncRunStore
     Task<IReadOnlyList<SyncRun>> ListAsync(CancellationToken cancellationToken = default);
     Task<SyncRun?> GetAsync(Guid id, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<Guid, SyncRunListMetadata>> GetListMetadataAsync(IReadOnlyCollection<Guid> runIds, CancellationToken cancellationToken = default);
+    Task<SyncRunDeletionCandidate?> GetDeletionCandidateAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<SyncRunCleanupPreview> PreviewDeleteBeforeAsync(DateTimeOffset completedBefore, IReadOnlyCollection<SyncRunStatus> terminalStatuses, CancellationToken cancellationToken = default);
+    Task<SyncRunCleanupResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<SyncRunCleanupResult> DeleteBeforeAsync(DateTimeOffset completedBefore, IReadOnlyCollection<SyncRunStatus> terminalStatuses, CancellationToken cancellationToken = default);
     Task AddAsync(SyncRun run, CancellationToken cancellationToken = default);
     Task AddItemAsync(SyncRunItem item, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
+
+public sealed record SyncRunDeletionCandidate(
+    Guid Id,
+    SyncRunStatus Status,
+    int ItemCount);
+
+public sealed record SyncRunCleanupPreview(
+    DateTimeOffset CompletedBefore,
+    int EligibleRunCount,
+    int EligibleItemCount,
+    int ExcludedRunCount,
+    DateTimeOffset? OldestEligibleCompletedAt,
+    DateTimeOffset? NewestEligibleCompletedAt);
+
+public sealed record SyncRunCleanupResult(
+    int DeletedRunCount,
+    int DeletedItemCount,
+    int ExcludedRunCount,
+    int NotFoundRunCount,
+    DateTimeOffset? CompletedBefore,
+    IReadOnlyList<Guid> DeletedRunIds);
 
 public sealed record SyncRunListMetadata(
     int ItemCount,

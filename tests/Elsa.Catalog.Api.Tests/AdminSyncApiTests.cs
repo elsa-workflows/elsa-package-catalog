@@ -100,6 +100,128 @@ public sealed class AdminSyncApiTests
         run.Sources.Should().ContainSingle().Which.Should().Be(new AdminSyncRunSourceResponse(sourceId, "Elsa Official"));
     }
 
+    [Fact]
+    public async Task Delete_sync_run_removes_history_and_preserves_catalog_state()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var runId = await SeedPackageLinkedSyncRunAsync(app);
+        var client = AuthenticatedClient(app);
+
+        var response = await client.DeleteAsync($"/api/admin/sync-runs/{runId}");
+        var result = await response.Content.ReadCatalogJsonAsync<AdminSyncRunCleanupResultResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        result!.DeletedRunCount.Should().Be(1);
+        result.DeletedItemCount.Should().Be(1);
+
+        var missing = await client.GetAsync($"/api/admin/sync-runs/{runId}");
+        missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        await using var scope = app.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+        (await db.PackageSources.CountAsync()).Should().Be(1);
+        (await db.Packages.CountAsync()).Should().Be(1);
+        (await db.PackageVersions.CountAsync()).Should().Be(1);
+        (await db.ManifestValidationResults.CountAsync()).Should().Be(1);
+        (await db.ApprovalRecords.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Delete_sync_run_is_idempotent_for_missing_run()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+        var client = AuthenticatedClient(app);
+
+        var response = await client.DeleteAsync($"/api/admin/sync-runs/{Guid.NewGuid()}");
+        var result = await response.Content.ReadCatalogJsonAsync<AdminSyncRunCleanupResultResponse>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        result!.NotFoundRunCount.Should().Be(1);
+        result.DeletedRunCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Delete_sync_run_refuses_running_run()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var runId = Guid.NewGuid();
+        await app.SeedAsync(db =>
+        {
+            db.SyncRuns.Add(new SyncRun { Id = runId, Trigger = SyncRunTrigger.ManualAll, Status = SyncRunStatus.Running });
+            return Task.CompletedTask;
+        });
+        var client = AuthenticatedClient(app);
+
+        var response = await client.DeleteAsync($"/api/admin/sync-runs/{runId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
+    public async Task Bulk_cleanup_previews_and_deletes_terminal_runs_before_cutoff()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-7);
+        var oldCompleted = CompletedRun(cutoff.AddDays(-1), SyncRunStatus.Completed, 2);
+        var oldFailed = CompletedRun(cutoff.AddDays(-2), SyncRunStatus.Failed, 1);
+        var recent = CompletedRun(cutoff.AddDays(1), SyncRunStatus.Completed, 1);
+        var running = new SyncRun { Trigger = SyncRunTrigger.ManualAll, Status = SyncRunStatus.Running, StartedAt = cutoff.AddDays(-3) };
+        await app.SeedAsync(db =>
+        {
+            db.SyncRuns.AddRange(oldCompleted, oldFailed, recent, running);
+            return Task.CompletedTask;
+        });
+        var client = AuthenticatedClient(app);
+
+        var preview = await client.GetCatalogJsonAsync<AdminSyncRunCleanupPreviewResponse>($"/api/admin/sync-runs/deletion-preview?completedBefore={Cutoff(cutoff)}");
+        var response = await client.DeleteAsync($"/api/admin/sync-runs?completedBefore={Cutoff(cutoff)}");
+        var result = await response.Content.ReadCatalogJsonAsync<AdminSyncRunCleanupResultResponse>();
+
+        preview!.EligibleRunCount.Should().Be(2);
+        preview.EligibleItemCount.Should().Be(3);
+        preview.ExcludedRunCount.Should().Be(1);
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        result!.DeletedRunCount.Should().Be(2);
+        result.DeletedItemCount.Should().Be(3);
+        result.ExcludedRunCount.Should().Be(1);
+
+        var runs = await client.GetCatalogJsonAsync<List<AdminSyncRunResponse>>("/api/admin/sync-runs");
+        runs!.Select(x => x.Id).Should().BeEquivalentTo([recent.Id, running.Id]);
+    }
+
+    [Fact]
+    public async Task Bulk_cleanup_rejects_future_cutoff()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(db =>
+        {
+            db.SyncRuns.Add(CompletedRun(DateTimeOffset.UtcNow.AddDays(-1)));
+            return Task.CompletedTask;
+        });
+        var client = AuthenticatedClient(app);
+        var futureCutoff = Cutoff(DateTimeOffset.UtcNow.AddMinutes(5));
+
+        var preview = await client.GetAsync($"/api/admin/sync-runs/deletion-preview?completedBefore={futureCutoff}");
+        var delete = await client.DeleteAsync($"/api/admin/sync-runs?completedBefore={futureCutoff}");
+
+        preview.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        delete.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await client.GetCatalogJsonAsync<List<AdminSyncRunResponse>>("/api/admin/sync-runs"))!.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Delete_sync_run_requires_admin_authentication()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+        var client = app.CreateClient();
+
+        var response = await client.DeleteAsync($"/api/admin/sync-runs/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
     private static async Task<(Guid RunId, Guid SourceId)> SeedSyncRunWithSourceAsync(CatalogApiTestApplication app)
     {
         var runId = Guid.NewGuid();
@@ -136,6 +258,74 @@ public sealed class AdminSyncApiTests
 
         return (runId, sourceId);
     }
+
+    private static async Task<Guid> SeedPackageLinkedSyncRunAsync(CatalogApiTestApplication app)
+    {
+        var runId = Guid.NewGuid();
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            var package = PublicCatalogSeedData.CreatePackage(source);
+            var version = PublicCatalogSeedData.AddVersion(package);
+            var run = CompletedRun(DateTimeOffset.UtcNow.AddDays(-1));
+            run.Id = runId;
+            run.Items.Add(new SyncRunItem
+            {
+                SyncRun = run,
+                SyncRunId = run.Id,
+                PackageVersion = version,
+                PackageVersionId = version.Id,
+                PackageId = package.PackageId,
+                Version = version.Version,
+                Status = SyncRunItemStatus.Indexed
+            });
+            db.AddRange(
+                source,
+                new ManifestValidationResultRecord
+                {
+                    PackageVersion = version,
+                    PackageVersionId = version.Id,
+                    Status = ValidationStatus.Valid
+                },
+                new ApprovalRecord
+                {
+                    TargetType = ApprovalTargetType.PackageVersion,
+                    TargetId = version.Id,
+                    Status = PackageApprovalStatus.Approved,
+                    Actor = "tester"
+                },
+                run);
+            return Task.CompletedTask;
+        });
+
+        return runId;
+    }
+
+    private static SyncRun CompletedRun(DateTimeOffset completedAt, SyncRunStatus status = SyncRunStatus.Completed, int items = 0)
+    {
+        var run = new SyncRun
+        {
+            Trigger = SyncRunTrigger.ManualAll,
+            Status = status,
+            StartedAt = completedAt.AddMinutes(-2),
+            CompletedAt = completedAt
+        };
+
+        for (var i = 0; i < items; i++)
+            run.Items.Add(new SyncRunItem { SyncRun = run, SyncRunId = run.Id, Status = SyncRunItemStatus.Indexed });
+
+        return run;
+    }
+
+    private static HttpClient AuthenticatedClient(WebApplicationFactory<Program> app)
+    {
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+        return client;
+    }
+
+    private static string Cutoff(DateTimeOffset cutoff) =>
+        Uri.EscapeDataString(cutoff.ToUniversalTime().ToString("O"));
 
     private static async Task SeedAsync(WebApplicationFactory<Program> app, Func<CatalogDbContext, Task> seed)
     {

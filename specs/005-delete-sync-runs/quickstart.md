@@ -33,7 +33,5 @@ Run:
 dotnet test tests/Elsa.Catalog.Core.Tests/Elsa.Catalog.Core.Tests.csproj --filter SyncRunCleanup
 dotnet test tests/Elsa.Catalog.Persistence.EntityFrameworkCore.Tests/Elsa.Catalog.Persistence.EntityFrameworkCore.Tests.csproj --filter SyncPersistence
 dotnet test tests/Elsa.Catalog.Api.Tests/Elsa.Catalog.Api.Tests.csproj --filter AdminSync
-npm test --workspace src/Elsa.Catalog.AdminUi -- sync-runs
+cd src/Elsa.Catalog.AdminUi && npm test -- --run src/features/sync-runs/SyncRunsPage.test.tsx
 ```
-
-The exact frontend test command may be adjusted to match the admin UI package scripts during task generation.

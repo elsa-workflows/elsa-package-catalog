@@ -119,6 +119,18 @@ X-Api-Key: {{apiKey}}
 GET {{baseUrl}}/api/admin/sync-runs/{{syncRunId}}
 X-Api-Key: {{apiKey}}
 
+### Admin: preview sync run cleanup before cutoff
+GET {{baseUrl}}/api/admin/sync-runs/deletion-preview?completedBefore=2026-05-01T00%3A00%3A00Z
+X-Api-Key: {{apiKey}}
+
+### Admin: delete one sync run
+DELETE {{baseUrl}}/api/admin/sync-runs/{{syncRunId}}
+X-Api-Key: {{apiKey}}
+
+### Admin: delete sync runs completed before cutoff
+DELETE {{baseUrl}}/api/admin/sync-runs?completedBefore=2026-05-01T00%3A00%3A00Z
+X-Api-Key: {{apiKey}}
+
 ### Admin: list packages, including hidden or invalid states
 GET {{baseUrl}}/api/admin/packages
 X-Api-Key: {{apiKey}}

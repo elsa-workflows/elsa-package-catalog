@@ -34,6 +34,24 @@ export type SyncRun = {
   items: SyncRunItem[];
 };
 
+export type SyncRunCleanupPreview = {
+  completedBefore: string;
+  eligibleRunCount: number;
+  eligibleItemCount: number;
+  excludedRunCount: number;
+  oldestEligibleCompletedAt?: string | null;
+  newestEligibleCompletedAt?: string | null;
+};
+
+export type SyncRunCleanupResult = {
+  deletedRunCount: number;
+  deletedItemCount: number;
+  excludedRunCount: number;
+  notFoundRunCount: number;
+  completedBefore?: string | null;
+  deletedRunIds: string[];
+};
+
 type SyncRunResponse = Omit<SyncRun, "summaryCounters" | "itemCount" | "sources" | "items"> & {
   summaryCounters?: SummaryCounters | string | null;
   summaryCountersJson?: string | null;
@@ -76,6 +94,10 @@ export function normalizeSyncRun(response: unknown): SyncRun {
 
 export function isActiveSyncRun(run: SyncRun) {
   return run.status === "Running";
+}
+
+export function isTerminalSyncRun(run: SyncRun) {
+  return run.status === "Completed" || run.status === "CompletedWithErrors" || run.status === "Failed";
 }
 
 export function syncRunHasAttention(run: SyncRun) {
@@ -145,6 +167,36 @@ export function sourceDisplayName(source: SyncRunSource) {
   return name ? name : shortId(source.id);
 }
 
+export function normalizeCleanupPreview(response: unknown): SyncRunCleanupPreview {
+  const preview = response as SyncRunCleanupPreview;
+  return {
+    completedBefore: preview.completedBefore,
+    eligibleRunCount: numberOrZero(preview.eligibleRunCount),
+    eligibleItemCount: numberOrZero(preview.eligibleItemCount),
+    excludedRunCount: numberOrZero(preview.excludedRunCount),
+    oldestEligibleCompletedAt: preview.oldestEligibleCompletedAt,
+    newestEligibleCompletedAt: preview.newestEligibleCompletedAt
+  };
+}
+
+export function normalizeCleanupResult(response: unknown): SyncRunCleanupResult {
+  const result = response as SyncRunCleanupResult;
+  return {
+    deletedRunCount: numberOrZero(result.deletedRunCount),
+    deletedItemCount: numberOrZero(result.deletedItemCount),
+    excludedRunCount: numberOrZero(result.excludedRunCount),
+    notFoundRunCount: numberOrZero(result.notFoundRunCount),
+    completedBefore: result.completedBefore,
+    deletedRunIds: Array.isArray(result.deletedRunIds) ? result.deletedRunIds.filter((id): id is string => typeof id === "string") : []
+  };
+}
+
+export function toUtcCutoff(value: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
 function parseSummaryCounters(run: SyncRunResponse): SummaryCounters {
   if (typeof run.summaryCountersJson === "string") return parseCounterJson(run.summaryCountersJson);
   if (typeof run.summaryCounters === "string") return parseCounterJson(run.summaryCounters);
@@ -202,4 +254,8 @@ function normalizeSources(sources: SyncRunSource[] | null | undefined): SyncRunS
 
 function hasItems(response: unknown): response is { items: unknown[] } {
   return Boolean(response && typeof response === "object" && "items" in response && Array.isArray(response.items));
+}
+
+function numberOrZero(value: unknown) {
+  return typeof value === "number" ? value : 0;
 }

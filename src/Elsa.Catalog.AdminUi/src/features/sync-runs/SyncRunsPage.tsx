@@ -1,21 +1,24 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Play, RefreshCw, Search, X } from "lucide-react";
+import { Play, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Badge, Button, EmptyState, Input, SecondaryButton, Select, Table } from "@/components/ui";
+import { Badge, Button, DialogPanel, EmptyState, Input, SecondaryButton, Select, Table } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
-import { listSyncRuns, syncAll } from "@/features/sync-runs/syncRunApi";
+import { deleteSyncRun, deleteSyncRunsBefore, listSyncRuns, previewSyncRunCleanup, syncAll } from "@/features/sync-runs/syncRunApi";
 import { SyncRunSourceValue } from "@/features/sync-runs/SyncRunSourceValue";
 import type { SyncRunStatus, SyncRunTrigger } from "@/features/sync-runs/syncRunModels";
 import {
   isActiveSyncRun,
+  isTerminalSyncRun,
+  type SyncRunCleanupPreview,
   packagesScanned,
   packagesUpdated,
   shortId,
   syncFailures,
   syncRunHasAttention,
   syncRunStatusLabel,
-  syncRunTriggerLabel
+  syncRunTriggerLabel,
+  toUtcCutoff
 } from "@/features/sync-runs/syncRunModels";
 import { formatDateTime, formatDuration } from "@/lib/formatters";
 import { queryKeys } from "@/lib/query/queryClient";
@@ -28,11 +31,28 @@ export function SyncRunsPage() {
   const [filter, setFilter] = useState("");
   const [status, setStatus] = useState<SyncRunStatus | "All">("All");
   const [trigger, setTrigger] = useState<SyncRunTrigger | "All">("All");
+  const [cleanupCutoff, setCleanupCutoff] = useState("");
+  const [cleanupPreview, setCleanupPreview] = useState<SyncRunCleanupPreview | null>(null);
   const queryClient = useQueryClient();
   const syncRuns = useQuery({ queryKey: queryKeys.syncRuns, queryFn: listSyncRuns, refetchInterval: 15_000 });
   const startSync = useMutation({
     mutationFn: syncAll,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.syncRuns })
+  });
+  const deleteRun = useMutation({
+    mutationFn: deleteSyncRun,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.syncRuns })
+  });
+  const previewCleanup = useMutation({
+    mutationFn: previewSyncRunCleanup,
+    onSuccess: setCleanupPreview
+  });
+  const bulkCleanup = useMutation({
+    mutationFn: deleteSyncRunsBefore,
+    onSuccess: () => {
+      setCleanupPreview(null);
+      queryClient.invalidateQueries({ queryKey: queryKeys.syncRuns });
+    }
   });
 
   const filtered = useMemo(() => {
@@ -53,6 +73,22 @@ export function SyncRunsPage() {
     setFilter("");
     setStatus("All");
     setTrigger("All");
+  }
+
+  function previewBulkCleanup() {
+    const cutoff = toUtcCutoff(cleanupCutoff);
+    if (!cutoff) return;
+    previewCleanup.mutate(cutoff);
+  }
+
+  function confirmBulkCleanup() {
+    if (!cleanupPreview) return;
+    bulkCleanup.mutate(cleanupPreview.completedBefore);
+  }
+
+  function confirmDeleteRun(runId: string) {
+    if (!window.confirm("Delete this sync run and its item diagnostics?")) return;
+    deleteRun.mutate(runId);
   }
 
   if (syncRuns.isLoading) return <RequestStateView state="loading" title="Loading sync runs" />;
@@ -79,6 +115,43 @@ export function SyncRunsPage() {
 
       {syncRuns.isRefetchError ? <RequestStateView state="stale" title="Showing last loaded sync runs" /> : null}
       {startSync.isError ? <RequestStateView state="unexpected" title="Sync could not start" /> : null}
+      {deleteRun.isError ? <RequestStateView state="unexpected" title="Sync run could not be deleted" /> : null}
+      {previewCleanup.isError ? <RequestStateView state="unexpected" title="Cleanup preview could not load" /> : null}
+      {bulkCleanup.isError ? <RequestStateView state="unexpected" title="Bulk cleanup could not complete" /> : null}
+
+      <DialogPanel>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="text-sm font-medium">Bulk cleanup</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Preview terminal sync runs completed before a UTC cutoff, then delete eligible history.</p>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              aria-label="Cleanup cutoff"
+              type="datetime-local"
+              value={cleanupCutoff}
+              onChange={(event) => {
+                setCleanupCutoff(event.target.value);
+                setCleanupPreview(null);
+              }}
+            />
+            <SecondaryButton onClick={previewBulkCleanup} disabled={!cleanupCutoff || previewCleanup.isPending}>
+              Preview
+            </SecondaryButton>
+            <Button onClick={confirmBulkCleanup} disabled={!cleanupPreview || bulkCleanup.isPending || cleanupPreview.eligibleRunCount === 0}>
+              <Trash2 className="h-4 w-4" />
+              Delete Eligible
+            </Button>
+          </div>
+        </div>
+        {cleanupPreview ? (
+          <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+            <span>Eligible runs: {cleanupPreview.eligibleRunCount}</span>
+            <span>Item records: {cleanupPreview.eligibleItemCount}</span>
+            <span>Excluded active runs: {cleanupPreview.excludedRunCount}</span>
+          </div>
+        ) : null}
+      </DialogPanel>
 
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <label className="relative block w-full max-w-md">
@@ -125,6 +198,7 @@ export function SyncRunsPage() {
                 <th className="px-3 py-2">Updated</th>
                 <th className="px-3 py-2">Failures</th>
                 <th className="px-3 py-2">Items</th>
+                <th className="px-3 py-2">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -146,6 +220,16 @@ export function SyncRunsPage() {
                   <td className="px-3 py-3">{packagesUpdated(run)}</td>
                   <td className="px-3 py-3">{syncFailures(run)}</td>
                   <td className="px-3 py-3">{run.itemCount}</td>
+                  <td className="px-3 py-3">
+                    {isTerminalSyncRun(run) ? (
+                      <SecondaryButton onClick={() => confirmDeleteRun(run.id)} disabled={deleteRun.isPending} title="Delete sync run">
+                        <Trash2 className="h-4 w-4" />
+                        Delete
+                      </SecondaryButton>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Active</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

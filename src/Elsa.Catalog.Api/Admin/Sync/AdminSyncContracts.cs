@@ -29,3 +29,19 @@ public sealed record AdminSyncRunItemResponse(
     string? Error,
     DateTimeOffset StartedAt,
     DateTimeOffset? CompletedAt);
+
+public sealed record AdminSyncRunCleanupPreviewResponse(
+    DateTimeOffset CompletedBefore,
+    int EligibleRunCount,
+    int EligibleItemCount,
+    int ExcludedRunCount,
+    DateTimeOffset? OldestEligibleCompletedAt,
+    DateTimeOffset? NewestEligibleCompletedAt);
+
+public sealed record AdminSyncRunCleanupResultResponse(
+    int DeletedRunCount,
+    int DeletedItemCount,
+    int ExcludedRunCount,
+    int NotFoundRunCount,
+    DateTimeOffset? CompletedBefore,
+    IReadOnlyList<Guid> DeletedRunIds);
