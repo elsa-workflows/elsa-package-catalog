@@ -17,6 +17,10 @@
 - Q: Which target framework supplies the canonical package manifest when manifest surfaces are equivalent? → A: The first declared target framework.
 - Q: Should unsupported non-delegate property types such as `System.Type` or complex option objects fail normal builds? → A: No; omit the property from manifest settings, log a low-importance non-warning diagnostic, and allow the build to complete.
 
+### Session 2026-05-16
+
+- Q: Should `dotnet pack --no-build` regenerate the manifest after a successful build? → A: No; it must reuse the existing intermediate manifest and fail clearly only when package inclusion is required and the manifest is missing.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Adopt the Generator Without Custom Project Workarounds (Priority: P1)
@@ -94,6 +98,8 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 - Multiple target frameworks produce the same manifest-relevant shell-feature surface.
 - Multiple target frameworks produce different manifest-relevant shell-feature surfaces.
 - A package is packed directly without an earlier separate build.
+- A package is built and then packed with `--no-build`, so package references may not be fully resolved during pack.
+- A package is packed with `--no-build` before the manifest exists.
 - A project customizes the manifest package path.
 - Fail-on-warnings is enabled while all diagnostics are warnings.
 - Warning severity is selected but the generator encounters an unrecoverable infrastructure or invalid input error, such as an unreadable assembly or invalid override file.
@@ -124,6 +130,8 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 - **FR-017**: Multi-targeted package projects MUST choose the first declared target framework as the canonical manifest source for package root inclusion when target frameworks produce equivalent manifest-relevant output.
 - **FR-018**: Multi-targeted package projects MUST report target-framework manifest differences according to the configured severity policy.
 - **FR-019**: Direct pack operations MUST generate and include the root manifest without requiring a prior explicit build.
+- **FR-019a**: Build-then-pack pipelines using `dotnet pack --no-build` MUST include the existing generated manifest without rerunning metadata inspection.
+- **FR-019b**: When package inclusion is enabled and `dotnet pack --no-build` cannot find the required intermediate manifest, packing MUST fail with an actionable message to build first, pack without `--no-build`, or disable manifest inclusion.
 - **FR-020**: Custom manifest package paths MUST continue to be honored while preserving the one-manifest default behavior.
 - **FR-021**: Tests MUST cover task return behavior for warning severity with fail-on-warnings both false and true.
 - **FR-022**: Tests MUST cover delegate-shaped direct properties and delegate-shaped collection or dictionary values.
@@ -146,6 +154,7 @@ A catalog or runtime builder maintainer can rely on default generator behavior t
 - **SC-001**: A representative multi-target Elsa shell-feature module builds and packs successfully after adding only the private generator package reference.
 - **SC-002**: Package inspection for a representative multi-target module finds exactly one root `elsa-package.json` and no duplicate root manifest entries.
 - **SC-002a**: Equivalent multi-target packages use the first declared target framework as the canonical manifest source in every covered package inspection test.
+- **SC-002b**: A representative module succeeds with `dotnet build` followed by `dotnet pack --no-build`, even when metadata reference paths available during build are no longer available during pack.
 - **SC-003**: Representative shell features with action callbacks, service factories, HTTP-client callbacks, and delegate-valued dictionaries or lists generate manifests without unsupported-setting build failures.
 - **SC-003a**: Ignored delegate-shaped hooks do not cause fail-on-warnings builds to fail unless another warning or error is present.
 - **SC-003b**: Representative shell features with `System.Type` or complex object properties generate manifests that omit those properties and do not fail fail-on-warnings builds unless another warning or error is present.

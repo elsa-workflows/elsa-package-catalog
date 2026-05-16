@@ -34,6 +34,10 @@ inclusion produces one canonical root manifest by default. When per-target
 manifest surfaces are equivalent, the first declared target framework supplies
 the canonical package manifest.
 
+During `dotnet pack --no-build`, package inclusion reads the existing
+intermediate manifest from this path and does not regenerate it. If the manifest
+is required but missing, pack fails before producing a package.
+
 ## NuGet Package Output
 
 Default package path:

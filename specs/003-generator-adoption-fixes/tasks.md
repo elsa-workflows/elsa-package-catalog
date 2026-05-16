@@ -172,6 +172,22 @@
 
 ---
 
+## Phase 9: Amendment - Build-Then-Pack No-Build Reuses Existing Manifest
+
+**Purpose**: Fix CI pipelines that build successfully and then run `dotnet pack --no-build`, where pack-time reference resolution may be incomplete and manifest generation should not rerun when the build already produced the manifest.
+
+- [X] T063 [US1] Add package-shaped generator fixture support with local targets/task assets and external CShells reference assembly coverage in `tests/Elsa.PackageManifest.Generator.Testing/SampleProjectBuilder.cs`
+- [X] T064 [US1] Add regression test for `dotnet build --configuration Release` followed by `dotnet pack --configuration Release --no-build` in `tests/Elsa.PackageManifest.Generator.IntegrationTests/PackTargetBehaviorTests.cs`
+- [X] T065 [US1] Add regression test for clean `dotnet pack` generating and including the manifest in `tests/Elsa.PackageManifest.Generator.IntegrationTests/PackTargetBehaviorTests.cs`
+- [X] T066 [US1] Add regression test for clear missing-manifest failure during `dotnet pack --no-build` in `tests/Elsa.PackageManifest.Generator.IntegrationTests/PackTargetBehaviorTests.cs`
+- [X] T067 [US1] Preserve multi-target one-root-manifest coverage in `tests/Elsa.PackageManifest.Generator.IntegrationTests/PackTargetBehaviorTests.cs`
+- [X] T068 [US1] Update package target flow in `src/Elsa.PackageManifest.Generator/build/Elsa.PackageManifest.Generator.targets` so no-build pack reads the existing manifest instead of depending on generation.
+- [X] T069 [US1] Update package inclusion contracts, quickstart, and README docs for build-then-pack no-build behavior.
+- [X] T070 [US1] Run `dotnet test tests/Elsa.PackageManifest.Generator.IntegrationTests/Elsa.PackageManifest.Generator.IntegrationTests.csproj --filter PackTargetBehaviorTests`
+- [X] T071 [US1] Run `dotnet test tests/Elsa.PackageManifest.Generator.IntegrationTests/Elsa.PackageManifest.Generator.IntegrationTests.csproj`
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

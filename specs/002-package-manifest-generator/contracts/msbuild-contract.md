@@ -18,6 +18,9 @@ required for the default workflow.
   documentation, and before NuGet pack finalizes package contents.
 - Direct `dotnet pack` triggers generation when a separate build was not run
   first.
+- `dotnet pack --no-build` reuses an existing intermediate manifest instead of
+  rerunning generation. If package inclusion is enabled and the manifest is
+  missing, pack fails with an actionable build-first message.
 - The intermediate manifest path defaults to
   `$(IntermediateOutputPath)elsa-package.json` for the active target framework.
 - The NuGet package path defaults to root `elsa-package.json`.
