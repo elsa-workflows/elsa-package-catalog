@@ -1,5 +1,6 @@
 export type SourceStatus = "Healthy" | "Warning" | "Error";
 export type SourceApprovalPolicy = "AutoApprove" | "Manual";
+export type SourceVersionDiscoveryPolicy = "AllVersions" | "LatestStable" | "LatestIncludingPrerelease";
 
 export type PackageSource = {
   id: string;
@@ -10,6 +11,7 @@ export type PackageSource = {
   includePatterns: string[];
   excludePatterns: string[];
   approvalPolicy: SourceApprovalPolicy;
+  versionDiscoveryPolicy: SourceVersionDiscoveryPolicy;
   status: SourceStatus;
   isSyncing: boolean;
   lastSyncedAt?: string | null;
@@ -27,6 +29,7 @@ export type SourceFormValues = {
   url: string;
   enabled: boolean;
   approvalPolicy: SourceApprovalPolicy;
+  versionDiscoveryPolicy: SourceVersionDiscoveryPolicy;
   includePatterns: string;
   excludePatterns: string;
   pollingInterval: string;
@@ -38,6 +41,7 @@ export function toSourceFormValues(source?: PackageSource): SourceFormValues {
     url: source?.url ?? "",
     enabled: source?.enabled ?? true,
     approvalPolicy: source?.approvalPolicy ?? "Manual",
+    versionDiscoveryPolicy: source?.versionDiscoveryPolicy ?? "AllVersions",
     includePatterns: source?.includePatterns.join("\n") ?? "Elsa.*",
     excludePatterns: source?.excludePatterns.join("\n") ?? "",
     pollingInterval: source?.pollingInterval ?? "PT30M"
@@ -50,6 +54,7 @@ export function toSourceRequest(values: SourceFormValues) {
     url: values.url.trim(),
     enabled: values.enabled,
     approvalPolicy: values.approvalPolicy,
+    versionDiscoveryPolicy: values.versionDiscoveryPolicy,
     includePatterns: splitPatterns(values.includePatterns),
     excludePatterns: splitPatterns(values.excludePatterns),
     pollingInterval: values.pollingInterval.trim() || null
@@ -68,4 +73,15 @@ export function sourceHealthText(source: PackageSource, isSyncing = false) {
   if (source.status === "Error") return "Sync failing";
   if (source.status === "Warning") return "Needs review";
   return source.enabled ? "Healthy" : "Disabled";
+}
+
+export function versionDiscoveryPolicyText(policy: SourceVersionDiscoveryPolicy) {
+  switch (policy) {
+    case "LatestStable":
+      return "Latest stable";
+    case "LatestIncludingPrerelease":
+      return "Latest incl. previews";
+    default:
+      return "All versions";
+  }
 }

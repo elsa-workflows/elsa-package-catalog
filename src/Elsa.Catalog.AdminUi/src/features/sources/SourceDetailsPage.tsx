@@ -5,7 +5,7 @@ import { Badge, buttonClassName } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
 import { SourceActions } from "@/features/sources/SourceActions";
 import { getSource } from "@/features/sources/sourceApi";
-import { sourceHealthText } from "@/features/sources/sourceModels";
+import { sourceHealthText, versionDiscoveryPolicyText } from "@/features/sources/sourceModels";
 import { useSyncingSourceIds } from "@/features/sources/sourceSyncState";
 import { formatDateTime } from "@/lib/formatters";
 import { sourceStatusTone, statusToneClass } from "@/lib/status/statusBadges";
@@ -40,6 +40,7 @@ export function SourceDetailsPage() {
         <Info label="Package count" value={source.data.packageCount} />
         <Info label="Polling interval" value={source.data.pollingInterval ?? "Manual"} />
         <Info label="Approval policy" value={source.data.approvalPolicy} />
+        <Info label="Version discovery" value={versionDiscoveryPolicyText(source.data.versionDiscoveryPolicy)} />
         <Info label="Enabled" value={source.data.enabled ? "Yes" : "No"} />
       </div>
       {source.data.lastSyncError && !isSyncing ? (

@@ -49,6 +49,7 @@ public sealed class PackageSourceService(IPackageSourceStore store, PackageSourc
         existing.IncludePatterns = source.IncludePatterns;
         existing.ExcludePatterns = source.ExcludePatterns;
         existing.ApprovalPolicy = source.ApprovalPolicy;
+        existing.VersionDiscoveryPolicy = source.VersionDiscoveryPolicy;
         existing.PollingInterval = source.PollingInterval;
         existing.UpdatedAt = DateTimeOffset.UtcNow;
 

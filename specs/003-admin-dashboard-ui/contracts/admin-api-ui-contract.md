@@ -26,6 +26,7 @@ Required UI fields per item:
 - `includePatterns`
 - `excludePatterns`
 - `approvalPolicy`
+- `versionDiscoveryPolicy`
 - `status`
 - `isSyncing`
 - `lastSuccessfulSyncAt`
@@ -58,6 +59,7 @@ Request:
   "includePatterns": ["Elsa.*"],
   "excludePatterns": ["*.Tests"],
   "approvalPolicy": "Manual",
+  "versionDiscoveryPolicy": "LatestStable",
   "pollingInterval": "PT30M"
 }
 ```
@@ -65,6 +67,9 @@ Request:
 Response: updated source object.
 
 Validation errors should map to fields when possible.
+
+`versionDiscoveryPolicy` supports `AllVersions`, `LatestStable`, and
+`LatestIncludingPrerelease`. Omitted values default to `AllVersions`.
 
 ## Source Soft-Delete
 

@@ -30,6 +30,7 @@ export function setSourceEnabled(source: PackageSource, enabled: boolean) {
     url: source.url,
     enabled,
     approvalPolicy: source.approvalPolicy,
+    versionDiscoveryPolicy: source.versionDiscoveryPolicy,
     includePatterns: source.includePatterns.join("\n"),
     excludePatterns: source.excludePatterns.join("\n"),
     pollingInterval: source.pollingInterval ?? ""

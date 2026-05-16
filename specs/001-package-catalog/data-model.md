@@ -18,6 +18,13 @@ filter to package versions that are valid, approved, listed, and not suspicious.
 - `AutoApprove`
 - `Manual`
 
+### PackageSourceVersionDiscoveryPolicy
+
+- `AllVersions`: discover and evaluate every version returned by the source.
+- `LatestStable`: discover only the highest non-prerelease version per package.
+- `LatestIncludingPrerelease`: discover only the highest version per package,
+  including prerelease versions.
+
 ### PackageApprovalStatus
 
 - `Pending`
@@ -84,6 +91,8 @@ Fields:
 - `IncludePatterns`: case-insensitive glob patterns
 - `ExcludePatterns`: case-insensitive glob patterns; takes precedence
 - `ApprovalPolicy`: `AutoApprove` or `Manual`
+- `VersionDiscoveryPolicy`: `AllVersions`, `LatestStable`, or
+  `LatestIncludingPrerelease`
 - `LastSyncedAt`: last completed sync timestamp, nullable
 - `CreatedAt`: UTC timestamp
 - `UpdatedAt`: UTC timestamp
@@ -99,6 +108,7 @@ Validation:
 - `Url` is required and must be absolute.
 - At least one include pattern is required.
 - Exclude patterns are optional.
+- Version discovery defaults to `AllVersions` for existing sources.
 
 ### Package
 

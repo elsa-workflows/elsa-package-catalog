@@ -65,6 +65,7 @@ public static class AdminSourceEndpoints
         IncludePatterns = request.IncludePatterns.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList(),
         ExcludePatterns = request.ExcludePatterns?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList() ?? [],
         ApprovalPolicy = request.ApprovalPolicy,
+        VersionDiscoveryPolicy = request.VersionDiscoveryPolicy,
         PollingInterval = string.IsNullOrWhiteSpace(request.PollingInterval) ? null : request.PollingInterval.Trim()
     };
 
@@ -78,6 +79,7 @@ public static class AdminSourceEndpoints
             source.IncludePatterns,
             source.ExcludePatterns,
             source.ApprovalPolicy,
+            source.VersionDiscoveryPolicy,
             source.Status,
             isSyncing,
             source.LastSyncedAt,
