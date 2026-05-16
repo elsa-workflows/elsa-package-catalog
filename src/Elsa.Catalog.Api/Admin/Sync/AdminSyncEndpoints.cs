@@ -1,5 +1,6 @@
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Core.Sync;
+using System.Security.Claims;
 
 namespace Elsa.Catalog.Api.Admin.Sync;
 
@@ -39,6 +40,24 @@ public static class AdminSyncEndpoints
             return Results.Ok(runs.Select(run => ToResponse(run, metadata.GetValueOrDefault(run.Id))));
         });
 
+        group.MapGet("/sync-runs/deletion-preview", async (DateTimeOffset completedBefore, SyncRunCleanupService cleanup, CancellationToken cancellationToken) =>
+        {
+            var result = await cleanup.PreviewDeleteBeforeAsync(completedBefore, cancellationToken);
+            if (!result.IsValid)
+                return Results.BadRequest(new { error = "completedBefore must not be later than the current server time." });
+
+            return Results.Ok(ToResponse(result.Preview!));
+        });
+
+        group.MapDelete("/sync-runs", async (DateTimeOffset completedBefore, SyncRunCleanupService cleanup, HttpContext httpContext, CancellationToken cancellationToken) =>
+        {
+            var result = await cleanup.DeleteBeforeAsync(completedBefore, Actor(httpContext), cancellationToken);
+            if (!result.IsValid)
+                return Results.BadRequest(new { error = "completedBefore must not be later than the current server time." });
+
+            return Results.Ok(ToResponse(result.Cleanup!));
+        });
+
         group.MapGet("/sync-runs/{id:guid}", async (Guid id, ISyncRunStore syncRuns, CancellationToken cancellationToken) =>
         {
             var run = await syncRuns.GetAsync(id, cancellationToken);
@@ -46,6 +65,15 @@ public static class AdminSyncEndpoints
                 return Results.NotFound();
 
             return Results.Ok(await ToResponseAsync(run, syncRuns, cancellationToken));
+        });
+
+        group.MapDelete("/sync-runs/{id:guid}", async (Guid id, SyncRunCleanupService cleanup, HttpContext httpContext, CancellationToken cancellationToken) =>
+        {
+            var result = await cleanup.DeleteAsync(id, Actor(httpContext), cancellationToken);
+            if (result.IsConflict)
+                return Results.Conflict(new { error = $"Sync run '{id}' is {result.NonTerminalStatus} and cannot be deleted." });
+
+            return Results.Ok(ToResponse(result.Cleanup!));
         });
 
         return endpoints;
@@ -86,8 +114,29 @@ public static class AdminSyncEndpoints
             item.StartedAt,
             item.CompletedAt);
 
+    private static AdminSyncRunCleanupPreviewResponse ToResponse(SyncRunCleanupPreview preview) =>
+        new(
+            preview.CompletedBefore,
+            preview.EligibleRunCount,
+            preview.EligibleItemCount,
+            preview.ExcludedRunCount,
+            preview.OldestEligibleCompletedAt,
+            preview.NewestEligibleCompletedAt);
+
+    private static AdminSyncRunCleanupResultResponse ToResponse(SyncRunCleanupResult result) =>
+        new(
+            result.DeletedRunCount,
+            result.DeletedItemCount,
+            result.ExcludedRunCount,
+            result.NotFoundRunCount,
+            result.CompletedBefore,
+            result.DeletedRunIds);
+
     private static AdminSyncRunSourceResponse ToResponse(SyncRunSourceReference source) =>
         new(source.Id, source.Name);
+
+    private static string? Actor(HttpContext httpContext) =>
+        httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? httpContext.User.Identity?.Name;
 
     private static SyncRunListMetadata? AddSource(SyncRunListMetadata? metadata, SyncRunSourceReference? source)
     {

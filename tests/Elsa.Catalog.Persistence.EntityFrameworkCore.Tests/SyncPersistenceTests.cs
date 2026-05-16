@@ -157,6 +157,125 @@ public sealed class SyncPersistenceTests
         (await db.PackageSources.SingleAsync()).LastSyncedAt.Should().NotBeNull();
     }
 
+    [Fact]
+    public async Task Delete_sync_run_removes_items_and_preserves_catalog_state()
+    {
+        await using var db = await CreateOpenDbContextAsync();
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var package = PublicCatalogSeedData.CreatePackage(source);
+        var version = PublicCatalogSeedData.AddVersion(package);
+        var validation = new ManifestValidationResultRecord
+        {
+            PackageVersion = version,
+            PackageVersionId = version.Id,
+            Status = ValidationStatus.Valid
+        };
+        var approval = new ApprovalRecord
+        {
+            TargetType = ApprovalTargetType.PackageVersion,
+            TargetId = version.Id,
+            Status = PackageApprovalStatus.Approved,
+            Actor = "tester"
+        };
+        var run = CompletedRun(DateTimeOffset.UtcNow.AddDays(-1));
+        run.Items.Add(new SyncRunItem
+        {
+            SyncRun = run,
+            SyncRunId = run.Id,
+            PackageVersion = version,
+            PackageVersionId = version.Id,
+            PackageId = package.PackageId,
+            Version = version.Version,
+            Status = SyncRunItemStatus.Indexed
+        });
+
+        db.AddRange(source, validation, approval, run);
+        await db.SaveChangesAsync();
+
+        var result = await new SyncRunStore(db).DeleteAsync(run.Id);
+
+        result.DeletedRunCount.Should().Be(1);
+        result.DeletedItemCount.Should().Be(1);
+        (await db.SyncRuns.CountAsync()).Should().Be(0);
+        (await db.SyncRunItems.CountAsync()).Should().Be(0);
+        (await db.PackageSources.CountAsync()).Should().Be(1);
+        (await db.Packages.CountAsync()).Should().Be(1);
+        (await db.PackageVersions.CountAsync()).Should().Be(1);
+        (await db.ManifestValidationResults.CountAsync()).Should().Be(1);
+        (await db.ApprovalRecords.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Bulk_delete_removes_only_terminal_runs_before_cutoff()
+    {
+        await using var db = await CreateOpenDbContextAsync();
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-7);
+        var oldCompleted = CompletedRun(cutoff.AddDays(-1), SyncRunStatus.Completed, 2);
+        var oldFailed = CompletedRun(cutoff.AddDays(-2), SyncRunStatus.Failed, 1);
+        var recent = CompletedRun(cutoff.AddDays(1), SyncRunStatus.Completed, 1);
+        var running = new SyncRun { Trigger = SyncRunTrigger.ManualAll, Status = SyncRunStatus.Running, StartedAt = cutoff.AddDays(-3) };
+        var recentRunning = new SyncRun { Trigger = SyncRunTrigger.ManualAll, Status = SyncRunStatus.Running, StartedAt = cutoff.AddDays(1) };
+        db.SyncRuns.AddRange(oldCompleted, oldFailed, recent, running, recentRunning);
+        await db.SaveChangesAsync();
+
+        var preview = await new SyncRunStore(db).PreviewDeleteBeforeAsync(cutoff, [SyncRunStatus.Completed, SyncRunStatus.CompletedWithErrors, SyncRunStatus.Failed]);
+        var result = await new SyncRunStore(db).DeleteBeforeAsync(cutoff, [SyncRunStatus.Completed, SyncRunStatus.CompletedWithErrors, SyncRunStatus.Failed]);
+
+        preview.EligibleRunCount.Should().Be(2);
+        preview.EligibleItemCount.Should().Be(3);
+        preview.ExcludedRunCount.Should().Be(1);
+        result.DeletedRunCount.Should().Be(2);
+        result.DeletedItemCount.Should().Be(3);
+        result.ExcludedRunCount.Should().Be(1);
+        (await db.SyncRuns.Select(x => x.Id).ToListAsync()).Should().BeEquivalentTo([recent.Id, running.Id, recentRunning.Id]);
+    }
+
+    [Fact]
+    public async Task Bulk_delete_handles_large_historical_history()
+    {
+        await using var db = await CreateOpenDbContextAsync();
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-1);
+        var oldest = cutoff.AddDays(-10);
+        for (var i = 0; i < 1000; i++)
+            db.SyncRuns.Add(CompletedRun(oldest.AddMinutes(i)));
+
+        db.SyncRuns.Add(CompletedRun(cutoff.AddMinutes(1)));
+        await db.SaveChangesAsync();
+
+        var result = await new SyncRunStore(db).DeleteBeforeAsync(cutoff, [SyncRunStatus.Completed, SyncRunStatus.CompletedWithErrors, SyncRunStatus.Failed]);
+
+        result.DeletedRunCount.Should().Be(1000);
+        (await db.SyncRuns.CountAsync()).Should().Be(1);
+    }
+
+    private static async Task<CatalogDbContext> CreateOpenDbContextAsync()
+    {
+        var options = new DbContextOptionsBuilder<CatalogDbContext>()
+            .UseSqlite("Data Source=:memory:")
+            .Options;
+
+        var db = new CatalogDbContext(options);
+        await db.Database.OpenConnectionAsync();
+        await db.Database.EnsureCreatedAsync();
+        return db;
+    }
+
+    private static SyncRun CompletedRun(DateTimeOffset completedAt, SyncRunStatus status = SyncRunStatus.Completed, int items = 0)
+    {
+        var run = new SyncRun
+        {
+            Trigger = SyncRunTrigger.ManualAll,
+            Status = status,
+            StartedAt = completedAt.AddMinutes(-2),
+            CompletedAt = completedAt
+        };
+
+        for (var i = 0; i < items; i++)
+            run.Items.Add(new SyncRunItem { SyncRun = run, SyncRunId = run.Id, Status = SyncRunItemStatus.Indexed });
+
+        return run;
+    }
+
     private sealed class FakeDiscovery(IReadOnlyList<DiscoveredPackageVersion> versions) : IPackageVersionDiscoveryClient
     {
         public Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default) => Task.FromResult(versions);

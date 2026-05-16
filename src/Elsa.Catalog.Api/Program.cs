@@ -81,6 +81,7 @@ builder.Services.AddScoped<IPackageArchiveDownloader, NuGetSyncPackageDownloader
 builder.Services.AddScoped<IPackageArchiveManifestReader, PackageArchiveManifestReader>();
 builder.Services.AddScoped<ManifestIngestionService>();
 builder.Services.AddScoped<PackageSyncService>();
+builder.Services.AddScoped<SyncRunCleanupService>();
 builder.Services.AddSingleton<PackageSourceValidator>();
 builder.Services.AddSingleton<PackageSourcePatternMatcher>();
 builder.Services.AddSingleton<ManifestValidator>();

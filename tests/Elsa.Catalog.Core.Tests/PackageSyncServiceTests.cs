@@ -294,6 +294,21 @@ public sealed class PackageSyncServiceTests
             return Task.FromResult<IReadOnlyDictionary<Guid, SyncRunListMetadata>>(metadata);
         }
 
+        public Task<SyncRunDeletionCandidate?> GetDeletionCandidateAsync(Guid id, CancellationToken cancellationToken = default)
+        {
+            var run = Runs.SingleOrDefault(x => x.Id == id);
+            return Task.FromResult(run is null ? null : new SyncRunDeletionCandidate(run.Id, run.Status, Items.Count(x => x.SyncRunId == run.Id)));
+        }
+
+        public Task<SyncRunCleanupPreview> PreviewDeleteBeforeAsync(DateTimeOffset completedBefore, IReadOnlyCollection<SyncRunStatus> terminalStatuses, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SyncRunCleanupPreview(completedBefore, 0, 0, 0, null, null));
+
+        public Task<SyncRunCleanupResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SyncRunCleanupResult(0, 0, 0, 0, null, []));
+
+        public Task<SyncRunCleanupResult> DeleteBeforeAsync(DateTimeOffset completedBefore, IReadOnlyCollection<SyncRunStatus> terminalStatuses, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SyncRunCleanupResult(0, 0, 0, 0, completedBefore, []));
+
         public Task AddAsync(SyncRun run, CancellationToken cancellationToken = default)
         {
             Runs.Add(run);
