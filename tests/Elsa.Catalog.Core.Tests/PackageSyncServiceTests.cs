@@ -224,7 +224,7 @@ public sealed class PackageSyncServiceTests
         public Task<SyncRun?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(Runs.SingleOrDefault(x => x.Id == id));
         public Task<IReadOnlyDictionary<Guid, SyncRunListMetadata>> GetListMetadataAsync(IReadOnlyCollection<Guid> runIds, CancellationToken cancellationToken = default)
         {
-            var metadata = Items
+            var itemMetadata = Items
                 .Where(x => runIds.Contains(x.SyncRunId))
                 .GroupBy(x => x.SyncRunId)
                 .ToDictionary(
@@ -234,9 +234,15 @@ public sealed class PackageSyncServiceTests
                         x.Where(item => item.SourceId.HasValue)
                             .Select(item => item.SourceId!.Value)
                             .Distinct()
-                            .Order()
+                            .OrderBy(sourceId => sourceId.ToString())
                             .Select(sourceId => new SyncRunSourceReference(sourceId, null))
                             .ToList()));
+
+            var metadata = runIds
+                .Distinct()
+                .ToDictionary(
+                    x => x,
+                    x => itemMetadata.GetValueOrDefault(x) ?? new SyncRunListMetadata(0, []));
 
             return Task.FromResult<IReadOnlyDictionary<Guid, SyncRunListMetadata>>(metadata);
         }
