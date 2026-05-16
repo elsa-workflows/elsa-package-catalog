@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/004-admin-dashboard-auth/plan.md
+specs/005-delete-sync-runs/plan.md
 <!-- SPECKIT END -->
 
 ## Spec Kit Workflow
@@ -22,6 +22,8 @@ specs/004-admin-dashboard-auth/plan.md
 - File artifact generation only: compiled assemblies/XML docs/project metadata in; deterministic `elsa-package.json` and NuGet package root inclusion out (003-generator-adoption-fixes)
 - C# on .NET 10 LTS for API host; existing React + TypeScript admin UI remains a static asset build. + ASP.NET Core authentication/authorization, existing custom API key authentication handler, existing admin UI build output. (004-admin-dashboard-auth)
 - Existing configuration secret for the admin API key; no new persistent storage. (004-admin-dashboard-auth)
+- C# on .NET 10 LTS for API/Core/Persistence; TypeScript + React for the existing admin UI. + ASP.NET Core minimal APIs and authorization, Entity Framework Core, SQLite/SQL Server EF migrations, React Router, TanStack Query, TailwindCSS, shadcn/ui-style local components. (005-delete-sync-runs)
+- Existing relational catalog database. No new durable entity is required; existing `SyncRuns` and `SyncRunItems` are deleted with existing cascade semantics. (005-delete-sync-runs)
 
 ## Recent Changes
 - 001-package-catalog: Added implementation plan, research, data model, OpenAPI contract, quickstart, and current plan reference.
@@ -30,3 +32,4 @@ specs/004-admin-dashboard-auth/plan.md
 - 003-admin-dashboard-ui: Added implementation plan, research, data model, admin API/UI route contracts, and quickstart for the lightweight operational admin dashboard.
 - 003-generator-adoption-fixes: Added plan, research, data model, diagnostic policy, setting discovery, package inclusion contracts, and quickstart.
 - 003-generator-adoption-fixes: Amended setting discovery policy so unsupported non-manifestable setting properties are omitted with low-importance diagnostics instead of failing normal builds.
+- 005-delete-sync-runs: Added implementation plan, research, data model, admin sync cleanup contract, and quickstart for deleting obsolete sync run history.
