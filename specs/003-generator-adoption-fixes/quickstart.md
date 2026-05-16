@@ -89,9 +89,10 @@ Expected result:
 
 ## 4. Pack Without Custom Targets
 
-Run:
+For build-then-pack pipelines, run build first and then pack without rebuilding:
 
 ```bash
+dotnet build Sample.Elsa.Module.csproj --configuration Release
 dotnet pack Sample.Elsa.Module.csproj --no-build
 ```
 
@@ -105,6 +106,9 @@ Expected result:
 
 - The produced package contains exactly one package entry named
   `elsa-package.json`.
+- `dotnet pack --no-build` reuses the manifest from the prior build and does not
+  rerun manifest generation.
+- `dotnet pack --no-build` fails clearly if the manifest is missing.
 - The canonical manifest source is the first declared target framework when
   target frameworks have equivalent manifest surfaces.
 - No consumer-side pack workaround is needed.

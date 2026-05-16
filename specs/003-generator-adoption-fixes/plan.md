@@ -14,7 +14,10 @@ non-configurable code hooks before setting schema validation, unsupported
 non-delegate CLR-only setting properties must be omitted with low-importance
 diagnostics instead of failing normal builds, and multi-targeted package
 projects must include exactly one root `elsa-package.json` without consumer-side
-`TargetsForTfmSpecificContentInPackage` workarounds.
+`TargetsForTfmSpecificContentInPackage` workarounds. A follow-up pack hardening
+fix ensures build-then-pack pipelines using `dotnet pack --no-build` reuse the
+manifest generated during build instead of rerunning metadata inspection with
+incomplete pack-time reference paths.
 
 The implementation stays inside the existing generator projects. It refines
 diagnostic classification, setting discovery/schema filtering, and MSBuild pack

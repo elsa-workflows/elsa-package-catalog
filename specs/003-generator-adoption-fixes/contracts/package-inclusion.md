@@ -39,6 +39,18 @@ No custom manifest item, custom pack target, or
 Direct `dotnet pack` must generate and include the canonical manifest when a
 separate explicit build was not run first.
 
+## Build Then Pack No-Build
+
+`dotnet pack --no-build` must not rerun manifest generation when the configured
+intermediate manifest already exists. Pack inclusion reads the existing manifest
+from `$(ElsaPackageManifestOutputPath)`, defaulting to
+`$(IntermediateOutputPath)elsa-package.json`.
+
+If package inclusion is enabled and the required manifest is missing during
+`--no-build`, packing fails with a clear message instructing the maintainer to
+run `dotnet build` for the same configuration, run `dotnet pack` without
+`--no-build`, or disable manifest package inclusion.
+
 ## Custom Package Path
 
 When `ElsaPackageManifestPackagePath` is configured, exactly one manifest is
@@ -51,5 +63,8 @@ included at that package path by default.
   `elsa-package.json`.
 - The canonical manifest source is the first declared target framework.
 - Direct pack includes the canonical manifest without requiring a prior build.
+- Build followed by `dotnet pack --no-build` includes the existing manifest
+  without rerunning generation.
+- `dotnet pack --no-build` fails clearly when the required manifest is missing.
 - Consumer-side `TargetsForTfmSpecificContentInPackage` workarounds are not
   needed.

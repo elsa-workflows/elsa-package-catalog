@@ -219,15 +219,45 @@ public sealed class PackageSyncServiceTests
     private sealed class InMemorySyncRunStore : ISyncRunStore
     {
         public List<SyncRun> Runs { get; } = [];
+        public List<SyncRunItem> Items { get; } = [];
         public Task<IReadOnlyList<SyncRun>> ListAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<SyncRun>>(Runs);
         public Task<SyncRun?> GetAsync(Guid id, CancellationToken cancellationToken = default) => Task.FromResult(Runs.SingleOrDefault(x => x.Id == id));
+        public Task<IReadOnlyDictionary<Guid, SyncRunListMetadata>> GetListMetadataAsync(IReadOnlyCollection<Guid> runIds, CancellationToken cancellationToken = default)
+        {
+            var itemMetadata = Items
+                .Where(x => runIds.Contains(x.SyncRunId))
+                .GroupBy(x => x.SyncRunId)
+                .ToDictionary(
+                    x => x.Key,
+                    x => new SyncRunListMetadata(
+                        x.Count(),
+                        x.Where(item => item.SourceId.HasValue)
+                            .Select(item => item.SourceId!.Value)
+                            .Distinct()
+                            .OrderBy(sourceId => sourceId.ToString())
+                            .Select(sourceId => new SyncRunSourceReference(sourceId, null))
+                            .ToList()));
+
+            var metadata = runIds
+                .Distinct()
+                .ToDictionary(
+                    x => x,
+                    x => itemMetadata.GetValueOrDefault(x) ?? new SyncRunListMetadata(0, []));
+
+            return Task.FromResult<IReadOnlyDictionary<Guid, SyncRunListMetadata>>(metadata);
+        }
+
         public Task AddAsync(SyncRun run, CancellationToken cancellationToken = default)
         {
             Runs.Add(run);
             return Task.CompletedTask;
         }
 
-        public Task AddItemAsync(SyncRunItem item, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task AddItemAsync(SyncRunItem item, CancellationToken cancellationToken = default)
+        {
+            Items.Add(item);
+            return Task.CompletedTask;
+        }
 
         public Task SaveChangesAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
     }
