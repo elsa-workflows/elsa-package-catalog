@@ -19,10 +19,11 @@ export function SourcesPage() {
   const filtered = useMemo(() => {
     const term = filter.trim().toLowerCase();
     if (!term) return sources.data ?? [];
-    return (sources.data ?? []).filter((source) =>
-      `${source.name} ${source.url} ${source.status} ${source.isSyncing ? "syncing" : ""} ${source.lastSyncError ?? ""}`.toLowerCase().includes(term)
-    );
-  }, [filter, sources.data]);
+    return (sources.data ?? []).filter((source) => {
+      const isSyncing = source.isSyncing || syncingSourceIds.has(source.id);
+      return `${source.name} ${source.url} ${source.status} ${isSyncing ? "syncing" : ""} ${source.lastSyncError ?? ""}`.toLowerCase().includes(term);
+    });
+  }, [filter, sources.data, syncingSourceIds]);
 
   if (sources.isLoading) return <RequestStateView state="loading" title="Loading sources" />;
   if (sources.isError && !sources.data) return <RequestStateView state="unexpected" title="Sources could not load" />;

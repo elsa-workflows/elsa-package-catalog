@@ -61,6 +61,9 @@ describe("SourcesPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Sync" }));
 
     expect(await screen.findAllByText("Syncing")).toHaveLength(2);
+    await userEvent.type(screen.getByPlaceholderText("Filter sources"), "syncing");
+
+    expect(screen.getByRole("link", { name: sourceFixture.name })).toBeInTheDocument();
 
     finishSync();
     await waitFor(() => expect(screen.queryByText("Syncing")).not.toBeInTheDocument());

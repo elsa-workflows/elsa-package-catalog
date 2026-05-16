@@ -8,13 +8,14 @@ import { getSource } from "@/features/sources/sourceApi";
 import { sourceHealthText, versionDiscoveryPolicyText } from "@/features/sources/sourceModels";
 import { useSyncingSourceIds } from "@/features/sources/sourceSyncState";
 import { formatDateTime } from "@/lib/formatters";
+import { queryKeys } from "@/lib/query/queryClient";
 import { sourceStatusTone, statusToneClass } from "@/lib/status/statusBadges";
 
 export function SourceDetailsPage() {
   const { sourceId } = useParams();
   const navigate = useNavigate();
   const { syncingSourceIds, setSourceSyncing } = useSyncingSourceIds();
-  const source = useQuery({ queryKey: ["sources", sourceId], queryFn: () => getSource(sourceId!), enabled: Boolean(sourceId), refetchInterval: 30_000 });
+  const source = useQuery({ queryKey: [...queryKeys.sources, sourceId], queryFn: () => getSource(sourceId!), enabled: Boolean(sourceId), refetchInterval: 30_000 });
 
   if (source.isLoading) return <RequestStateView state="loading" title="Loading source" />;
   if (source.isError || !source.data) return <RequestStateView state="not-found" title="Source not found" />;
