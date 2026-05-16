@@ -23,13 +23,15 @@ public sealed class PackageSyncService(
     SyncConcurrencyGuard concurrencyGuard,
     SourceSyncActivityTracker syncActivity)
 {
+    private const string SyncScope = "sync";
+
     public async Task<SyncRun> SyncAllAsync(CancellationToken cancellationToken = default)
     {
         SyncRun? run = null;
-        var executed = await concurrencyGuard.TryRunAsync("sync", async () =>
+        var executed = await concurrencyGuard.TryRunAsync(SyncScope, async () =>
         {
             run = new SyncRun { Trigger = SyncRunTrigger.ManualAll };
-            await ExecuteRunAsync(run, () => sources.ListAsync(cancellationToken), cancellationToken);
+            await ExecuteRunAsync(run, () => sources.ListAsync(cancellationToken), cancellationToken, addRun: true);
         });
 
         return executed
@@ -40,14 +42,14 @@ public sealed class PackageSyncService(
     public async Task<SyncRun> SyncSourceAsync(Guid sourceId, CancellationToken cancellationToken = default)
     {
         SyncRun? run = null;
-        var executed = await concurrencyGuard.TryRunAsync("sync", async () =>
+        var executed = await concurrencyGuard.TryRunAsync(SyncScope, async () =>
         {
             run = new SyncRun { Trigger = SyncRunTrigger.ManualSource };
             await ExecuteRunAsync(run, async () =>
             {
                 var source = await sources.GetAsync(sourceId, cancellationToken);
                 return source is null ? [] : [source];
-            }, cancellationToken);
+            }, cancellationToken, addRun: true);
         });
 
         return executed
@@ -55,11 +57,71 @@ public sealed class PackageSyncService(
             : RejectedRun(SyncRunTrigger.ManualSource, $"A sync run is already active for source '{sourceId}'.");
     }
 
-    private async Task ExecuteRunAsync(SyncRun run, Func<Task<IReadOnlyList<PackageSource>>> getSources, CancellationToken cancellationToken)
+    public async Task<PackageSyncStartResult> StartManualAllAsync(CancellationToken cancellationToken = default)
+    {
+        if (!concurrencyGuard.TryAcquire(SyncScope, out var lease))
+            return PackageSyncStartResult.Rejected(RejectedRun(SyncRunTrigger.ManualAll, "A sync run is already active for all sources."));
+
+        var run = new SyncRun { Trigger = SyncRunTrigger.ManualAll };
+        try
+        {
+            await AddRunAsync(run, cancellationToken);
+            return PackageSyncStartResult.AcceptedRun(run, new PackageSyncWorkItem(run.Id, run.Trigger, null, lease));
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
+    }
+
+    public async Task<PackageSyncStartResult> StartManualSourceAsync(Guid sourceId, CancellationToken cancellationToken = default)
+    {
+        if (!concurrencyGuard.TryAcquire(SyncScope, out var lease))
+            return PackageSyncStartResult.Rejected(RejectedRun(SyncRunTrigger.ManualSource, $"A sync run is already active for source '{sourceId}'."));
+
+        var run = new SyncRun { Trigger = SyncRunTrigger.ManualSource };
+        try
+        {
+            var source = await sources.GetAsync(sourceId, cancellationToken);
+            await AddRunAsync(run, cancellationToken);
+            var sourceReference = source is null ? null : new SyncRunSourceReference(source.Id, source.Name);
+            return PackageSyncStartResult.AcceptedRun(run, new PackageSyncWorkItem(run.Id, run.Trigger, sourceId, lease), sourceReference);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
+    }
+
+    public async Task ExecuteManualWorkItemAsync(PackageSyncWorkItem workItem, CancellationToken cancellationToken = default)
+    {
+        using (workItem)
+        {
+            var run = await syncRuns.GetAsync(workItem.RunId, cancellationToken);
+            if (run is null)
+                return;
+
+            if (workItem.Trigger == SyncRunTrigger.ManualSource && workItem.SourceId.HasValue)
+            {
+                await ExecuteRunAsync(run, async () =>
+                {
+                    var source = await sources.GetAsync(workItem.SourceId.Value, cancellationToken);
+                    return source is null ? [] : [source];
+                }, cancellationToken, addRun: false);
+                return;
+            }
+
+            await ExecuteRunAsync(run, () => sources.ListAsync(cancellationToken), cancellationToken, addRun: false);
+        }
+    }
+
+    private async Task ExecuteRunAsync(SyncRun run, Func<Task<IReadOnlyList<PackageSource>>> getSources, CancellationToken cancellationToken, bool addRun)
     {
         diagnostics.SyncRunStarted(run.Id);
-        await syncRuns.AddAsync(run, cancellationToken);
-        await syncRuns.SaveChangesAsync(cancellationToken);
+        if (addRun)
+            await AddRunAsync(run, cancellationToken);
 
         var counters = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
@@ -87,6 +149,12 @@ public sealed class PackageSyncService(
             await syncRuns.SaveChangesAsync(CancellationToken.None);
             diagnostics.SyncRunCompleted(run.Id, run.Status);
         }
+    }
+
+    private async Task AddRunAsync(SyncRun run, CancellationToken cancellationToken)
+    {
+        await syncRuns.AddAsync(run, cancellationToken);
+        await syncRuns.SaveChangesAsync(cancellationToken);
     }
 
     private async Task SyncSourceAsync(SyncRun run, PackageSource source, Dictionary<string, int> counters, CancellationToken cancellationToken)

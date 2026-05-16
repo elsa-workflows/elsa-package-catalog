@@ -24,6 +24,8 @@ filter to package versions that are valid, approved, listed, and not suspicious.
 - `LatestStable`: discover only the highest non-prerelease version per package.
 - `LatestIncludingPrerelease`: discover only the highest version per package,
   including prerelease versions.
+- `LatestPreview`: discover only the highest prerelease version per package
+  whose prerelease label starts with `preview`, case-insensitively.
 
 ### PackageApprovalStatus
 
@@ -91,8 +93,8 @@ Fields:
 - `IncludePatterns`: case-insensitive glob patterns
 - `ExcludePatterns`: case-insensitive glob patterns; takes precedence
 - `ApprovalPolicy`: `AutoApprove` or `Manual`
-- `VersionDiscoveryPolicy`: `AllVersions`, `LatestStable`, or
-  `LatestIncludingPrerelease`
+- `VersionDiscoveryPolicy`: `AllVersions`, `LatestStable`,
+  `LatestIncludingPrerelease`, or `LatestPreview`
 - `LastSyncedAt`: last completed sync timestamp, nullable
 - `CreatedAt`: UTC timestamp
 - `UpdatedAt`: UTC timestamp

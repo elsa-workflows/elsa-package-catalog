@@ -54,7 +54,7 @@ test.describe("source operations", () => {
     await page.goto("/admin/sources/new");
     await page.getByLabel("Name").fill("Elsa Official");
     await page.getByLabel("Feed URL").fill("https://api.nuget.org/v3/index.json");
-    await page.getByLabel("Version Discovery").selectOption("LatestIncludingPrerelease");
+    await page.getByLabel("Version Discovery").selectOption("LatestPreview");
     await page.getByLabel("Exclude Patterns").fill("*.Tests");
     await expect(page.getByText("Elsa.Tests")).toBeVisible();
     await page.getByRole("button", { name: "Save Source" }).click();
