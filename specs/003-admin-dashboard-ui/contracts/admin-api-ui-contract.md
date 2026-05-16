@@ -10,6 +10,24 @@ All requests use the existing admin authentication boundary. The UI must treat
 `401` and `403` as access failures and must not present stale protected data as
 current after those responses.
 
+## Application Metadata
+
+`GET /api/admin/application`
+
+Returns host-owned metadata for the deployed admin application.
+
+Required UI fields:
+
+- `name`
+- `buildNumber`
+
+Notes:
+
+- `buildNumber` reflects the API assembly informational version when available,
+  falling back to the assembly version.
+- The UI displays the build number in persistent dashboard chrome.
+- The response is protected by the admin authentication boundary.
+
 ## Source List
 
 `GET /api/admin/sources`

@@ -47,6 +47,7 @@
 - [X] T018 [P] Create representative dashboard fixture data in `src/Elsa.Catalog.AdminUi/src/test/fixtures.ts`
 - [X] T019 Add E2E test helpers for API stubbing, navigation, and admin credentials in `tests/Elsa.Catalog.AdminUi.E2E/helpers/adminUiTestHelpers.ts`
 - [X] T020 Verify the root app renders the four MVP navigation entries with a component test in `src/Elsa.Catalog.AdminUi/src/app/AppShell.test.tsx`
+- [X] T020a Expose and render authenticated application build metadata in `src/Elsa.Catalog.Api/Admin/Application/AdminApplicationEndpoints.cs`, `src/Elsa.Catalog.AdminUi/src/app/applicationApi.ts`, and `src/Elsa.Catalog.AdminUi/src/app/AppShell.tsx`
 
 **Checkpoint**: Foundation ready. User story implementation can now begin in priority order or in parallel by story.
 
