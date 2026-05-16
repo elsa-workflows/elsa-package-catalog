@@ -19,6 +19,12 @@ Rules:
 - Grants access to dashboard routes and existing admin API policy.
 - Can be cleared by logout.
 
+Lifecycle:
+
+- Created after valid admin key submission.
+- Renewed by framework sliding expiration while the session remains active.
+- Cleared by logout or expires after inactivity beyond the configured lifetime.
+
 ## Admin Credential Submission
 
 Represents the login form submission.
@@ -32,6 +38,7 @@ Rules:
 
 - Valid only when `apiKey` matches the configured admin API key.
 - Invalid submissions must not create a session.
+- Missing configured server key rejects every submission safely.
 - `returnUrl` must resolve to a safe local `/admin` path and must not point to the login endpoint or an external host.
 - Failed submissions contribute to an in-memory per-client throttle.
 
@@ -43,14 +50,14 @@ Fields:
 
 - `clientKey`: Non-persistent key derived from request client context.
 - `failedAttemptCount`: Recent failed login count for the client.
+- `windowStartedAt`: Timestamp for the current failure-count window.
 - `retryAfter`: Earliest time another login attempt should be processed.
 
 Rules:
 
 - Stored in memory only.
 - A throttle entry activates after 5 failed attempts in a 15-minute window.
-- Active throttle entries require a 5-minute retry delay before another login
-  attempt is processed.
+- Active throttle entries require a 5-minute retry delay before another login attempt is processed.
 - Successful login clears the client's throttle entry.
 - Process restart clears all throttle entries.
 
@@ -68,3 +75,5 @@ Rules:
 
 - Existing admin authorization policy accepts both schemes.
 - Public endpoints do not require this principal.
+- Cookie-authenticated mutation requests require same-origin validation.
+- API-key header clients are not subject to cookie CSRF validation.
