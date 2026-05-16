@@ -11,6 +11,13 @@ public enum PackageSourceApprovalPolicy
     Manual
 }
 
+public enum PackageSourceVersionDiscoveryPolicy
+{
+    AllVersions,
+    LatestStable,
+    LatestIncludingPrerelease
+}
+
 public enum PackageSourceStatus
 {
     Healthy,

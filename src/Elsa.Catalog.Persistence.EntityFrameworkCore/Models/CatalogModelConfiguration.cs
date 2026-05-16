@@ -22,6 +22,7 @@ internal sealed class PackageSourceConfiguration : IEntityTypeConfiguration<Pack
         builder.Property(x => x.Url).HasMaxLength(2048).IsRequired();
         builder.Property(x => x.LastSyncError).HasMaxLength(2048);
         builder.Property(x => x.PollingInterval).HasMaxLength(64);
+        builder.Property(x => x.VersionDiscoveryPolicy).HasDefaultValue(PackageSourceVersionDiscoveryPolicy.AllVersions);
         builder.Property(x => x.IncludePatterns)
             .HasConversion(value => JsonSerializer.Serialize(value, (JsonSerializerOptions?)null), value => JsonSerializer.Deserialize<List<string>>(value, (JsonSerializerOptions?)null) ?? new List<string>())
             .Metadata.SetValueComparer(StringListComparer);

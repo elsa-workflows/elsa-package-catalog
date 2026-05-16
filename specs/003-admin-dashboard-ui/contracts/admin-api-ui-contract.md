@@ -26,7 +26,9 @@ Required UI fields per item:
 - `includePatterns`
 - `excludePatterns`
 - `approvalPolicy`
+- `versionDiscoveryPolicy`
 - `status`
+- `isSyncing`
 - `lastSuccessfulSyncAt`
 - `lastSyncedAt`
 - `packageCount`
@@ -36,6 +38,8 @@ Required UI fields per item:
 Notes:
 
 - `status` and `lastSuccessfulSyncAt` are guaranteed source health fields.
+- `isSyncing` is transient process state and may reflect manual or scheduled
+  syncs currently running in the API host.
 - `packageCount` may be zero when no packages have been indexed.
 - Soft-deleted sources are omitted from the default list.
 
@@ -55,6 +59,7 @@ Request:
   "includePatterns": ["Elsa.*"],
   "excludePatterns": ["*.Tests"],
   "approvalPolicy": "Manual",
+  "versionDiscoveryPolicy": "LatestStable",
   "pollingInterval": "PT30M"
 }
 ```
@@ -62,6 +67,9 @@ Request:
 Response: updated source object.
 
 Validation errors should map to fields when possible.
+
+`versionDiscoveryPolicy` supports `AllVersions`, `LatestStable`, and
+`LatestIncludingPrerelease`. Omitted values default to `AllVersions`.
 
 ## Source Soft-Delete
 

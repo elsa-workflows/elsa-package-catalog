@@ -1,13 +1,16 @@
 using Elsa.Catalog.Core.Packaging;
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Sources;
+using Microsoft.Extensions.Logging;
 using NuGet.Common;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 
 namespace Elsa.Catalog.Packaging.NuGet;
 
-public sealed class NuGetPackageSourceClient(PackageSourcePatternMatcher patternMatcher) : IPackageVersionDiscoveryClient
+public sealed class NuGetPackageSourceClient(
+    PackageSourcePatternMatcher patternMatcher,
+    ILogger<NuGetPackageSourceClient>? logger = null) : IPackageVersionDiscoveryClient
 {
     private const int SearchPageSize = 100;
     private const int MaxSearchResultsPerPrefix = 1_000;
@@ -22,8 +25,9 @@ public sealed class NuGetPackageSourceClient(PackageSourcePatternMatcher pattern
 
         foreach (var packageId in packageIds.Order(StringComparer.OrdinalIgnoreCase))
         {
-            var versions = await resource.GetAllVersionsAsync(packageId, cache, NullLogger.Instance, cancellationToken);
-            results.AddRange(versions.Select(version => new DiscoveredPackageVersion(packageId, version.ToNormalizedString())));
+            var versions = (await resource.GetAllVersionsAsync(packageId, cache, NullLogger.Instance, cancellationToken)).ToList();
+            var selectedVersions = SelectVersionsForPackage(source, packageId, versions, logger);
+            results.AddRange(selectedVersions.Select(version => new DiscoveredPackageVersion(packageId, version.ToNormalizedString())));
         }
 
         return results;
@@ -93,6 +97,37 @@ public sealed class NuGetPackageSourceClient(PackageSourcePatternMatcher pattern
         {
             throw new NotSupportedException("NuGet source discovery for prefix wildcard include patterns requires a feed that advertises a NuGet search service.", ex);
         }
+    }
+
+    internal static IEnumerable<global::NuGet.Versioning.NuGetVersion> SelectVersions(
+        PackageSourceVersionDiscoveryPolicy policy,
+        IEnumerable<global::NuGet.Versioning.NuGetVersion> versions) =>
+        policy switch
+        {
+            PackageSourceVersionDiscoveryPolicy.LatestStable => versions
+                .Where(version => !version.IsPrerelease)
+                .OrderDescending()
+                .Take(1),
+            PackageSourceVersionDiscoveryPolicy.LatestIncludingPrerelease => versions
+                .OrderDescending()
+                .Take(1),
+            _ => versions
+        };
+
+    internal static IReadOnlyList<global::NuGet.Versioning.NuGetVersion> SelectVersionsForPackage(
+        PackageSource source,
+        string packageId,
+        IReadOnlyList<global::NuGet.Versioning.NuGetVersion> versions,
+        ILogger<NuGetPackageSourceClient>? logger = null)
+    {
+        var selectedVersions = SelectVersions(source.VersionDiscoveryPolicy, versions).ToList();
+        if (source.VersionDiscoveryPolicy == PackageSourceVersionDiscoveryPolicy.LatestStable && versions.Count > 0 && selectedVersions.Count == 0)
+            logger?.LogWarning(
+                "Package {PackageId} from source {SourceName} has only prerelease versions and was skipped by the LatestStable version discovery policy.",
+                packageId,
+                source.Name);
+
+        return selectedVersions;
     }
 
     private static bool IsExactPackageId(string pattern) =>

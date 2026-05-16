@@ -64,6 +64,14 @@ export function SourceForm({
           </Select>
         </label>
         <label className="space-y-1 text-sm">
+          <span>Version Discovery</span>
+          <Select value={values.versionDiscoveryPolicy} onChange={(event) => setValues({ ...values, versionDiscoveryPolicy: event.target.value as SourceFormValues["versionDiscoveryPolicy"] })}>
+            <option value="AllVersions">All versions</option>
+            <option value="LatestStable">Latest stable</option>
+            <option value="LatestIncludingPrerelease">Latest incl. previews</option>
+          </Select>
+        </label>
+        <label className="space-y-1 text-sm">
           <span>Polling Interval</span>
           <Input value={values.pollingInterval} onChange={(event) => setValues({ ...values, pollingInterval: event.target.value })} placeholder="PT30M" />
         </label>

@@ -141,12 +141,32 @@ public sealed class PackageSyncServiceTests
         completed.Status.Should().Be(SyncRunStatus.Completed);
     }
 
+    [Fact]
+    public async Task Tracks_source_sync_activity_while_source_is_running()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var discovery = new GatedDiscovery();
+        var syncActivity = new SourceSyncActivityTracker();
+        var service = CreateService(new InMemorySourceStore([source]), new InMemorySyncCatalogStore(), new InMemorySyncRunStore(), discovery, new FakeDownloader("{}"), syncActivity);
+
+        var running = service.SyncAllAsync();
+        await discovery.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        syncActivity.IsSourceSyncing(source.Id).Should().BeTrue();
+
+        discovery.Release.SetResult();
+        await running;
+
+        syncActivity.IsSourceSyncing(source.Id).Should().BeFalse();
+    }
+
     private static PackageSyncService CreateService(
         IPackageSourceStore sources,
         ISyncCatalogStore catalog,
         ISyncRunStore syncRuns,
         IPackageVersionDiscoveryClient discovery,
-        IPackageArchiveDownloader downloader) =>
+        IPackageArchiveDownloader downloader,
+        SourceSyncActivityTracker? syncActivity = null) =>
         new(
             sources,
             catalog,
@@ -158,7 +178,8 @@ public sealed class PackageSyncServiceTests
             new ManifestIngestionService(),
             new PackageVersionPolicy(),
             new NoopSyncDiagnostics(),
-            new SyncConcurrencyGuard());
+            new SyncConcurrencyGuard(),
+            syncActivity ?? new SourceSyncActivityTracker());
 
     private sealed class InMemorySourceStore(IReadOnlyList<PackageSource> sources) : IPackageSourceStore
     {
