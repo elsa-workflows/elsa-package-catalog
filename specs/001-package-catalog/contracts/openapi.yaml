@@ -990,11 +990,11 @@ components:
           enum: [AutoApprove, Manual]
         versionDiscoveryPolicy:
           type: string
-          enum: [AllVersions, LatestStable, LatestIncludingPrerelease]
+          enum: [AllVersions, LatestStable, LatestIncludingPrerelease, LatestPreview]
           default: AllVersions
     PackageSourceVersionDiscoveryPolicy:
       type: string
-      enum: [AllVersions, LatestStable, LatestIncludingPrerelease]
+      enum: [AllVersions, LatestStable, LatestIncludingPrerelease, LatestPreview]
     SyncRequest:
       type: object
       properties:

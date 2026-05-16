@@ -17,21 +17,40 @@ namespace Elsa.Catalog.Api.Tests;
 public sealed class AdminSyncApiTests
 {
     [Fact]
-    public async Task Manual_sync_creates_completed_sync_run()
+    public async Task Manual_sync_creates_running_sync_run_and_completes_in_background()
     {
-        await using var app = new CatalogApiTestApplication();
-        await app.SeedAsync(_ => Task.CompletedTask);
+        var discovery = new GatedDiscoveryClient();
+        await using var app = new CatalogApiTestApplication().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<IPackageVersionDiscoveryClient>();
+                services.AddSingleton<IPackageVersionDiscoveryClient>(discovery);
+            });
+        });
+
+        await SeedAsync(app, db =>
+        {
+            db.PackageSources.Add(PublicCatalogSeedData.CreatePackageSource());
+            return Task.CompletedTask;
+        });
+
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
 
-        var response = await client.PostAsync("/api/admin/sync", null);
+        var response = await client.PostAsync("/api/admin/sync", null).WaitAsync(TimeSpan.FromSeconds(5));
         response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
         var run = await response.Content.ReadCatalogJsonAsync<AdminSyncRunResponse>();
 
-        run!.Status.Should().Be(SyncRunStatus.Completed);
+        run!.Status.Should().Be(SyncRunStatus.Running);
 
         var runs = await client.GetCatalogJsonAsync<List<AdminSyncRunResponse>>("/api/admin/sync-runs");
         runs.Should().ContainSingle(x => x.Id == run.Id);
+
+        await discovery.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        discovery.Release.SetResult();
+        var completed = await WaitForRunStatusAsync(client, run.Id, SyncRunStatus.Completed);
+        completed.CompletedAt.Should().NotBeNull();
     }
 
     [Fact]
@@ -96,8 +115,33 @@ public sealed class AdminSyncApiTests
         var run = await response.Content.ReadCatalogJsonAsync<AdminSyncRunResponse>();
 
         response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
-        run!.ItemCount.Should().Be(1);
+        run!.Status.Should().Be(SyncRunStatus.Running);
+        run.ItemCount.Should().Be(0);
         run.Sources.Should().ContainSingle().Which.Should().Be(new AdminSyncRunSourceResponse(sourceId, "Elsa Official"));
+
+        var completed = await WaitForRunStatusAsync(client, run.Id, SyncRunStatus.CompletedWithErrors);
+        completed.ItemCount.Should().Be(1);
+        completed.Sources.Should().ContainSingle().Which.Should().Be(new AdminSyncRunSourceResponse(sourceId, "Elsa Official"));
+    }
+
+    private static async Task<AdminSyncRunResponse> WaitForRunStatusAsync(HttpClient client, Guid runId, SyncRunStatus status)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (true)
+        {
+            try
+            {
+                var run = await client.GetCatalogJsonAsync<AdminSyncRunResponse>($"/api/admin/sync-runs/{runId}", timeout.Token);
+                if (run?.Status == status)
+                    return run;
+
+                await Task.Delay(50, timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                throw new TimeoutException($"Sync run {runId} did not reach {status}.");
+            }
+        }
     }
 
     private static async Task<(Guid RunId, Guid SourceId)> SeedSyncRunWithSourceAsync(CatalogApiTestApplication app)
@@ -151,5 +195,18 @@ public sealed class AdminSyncApiTests
     {
         public Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default) =>
             throw new InvalidOperationException("Discovery failed.");
+    }
+
+    private sealed class GatedDiscoveryClient : IPackageVersionDiscoveryClient
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default)
+        {
+            Started.TrySetResult();
+            await Release.Task.WaitAsync(cancellationToken);
+            return [];
+        }
     }
 }

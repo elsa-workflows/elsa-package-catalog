@@ -167,6 +167,14 @@
 
 **Checkpoint**: Sync can ingest manifests safely and produce durable diagnostics.
 
+### Follow-up: Feed Sync Hardening
+
+- [X] T092a [US3] Add latest-preview-only version discovery tests in `tests/Elsa.Catalog.Packaging.NuGet.Tests/NuGetPackageSourceClientTests.cs`
+- [X] T092b [US3] Implement latest-preview-only source policy in `src/Elsa.Catalog.Packaging.NuGet/NuGetPackageSourceClient.cs`
+- [X] T092c [US3] Expose latest-preview-only source policy through admin source API/UI contracts in `src/Elsa.Catalog.Api/Admin/Sources/AdminSourceContracts.cs` and `src/Elsa.Catalog.AdminUi/src/features/sources/sourceModels.ts`
+- [X] T092d [US3] Add background manual sync trigger tests in `tests/Elsa.Catalog.Api.Tests/AdminSyncApiTests.cs`
+- [X] T092e [US3] Implement queued background manual sync execution in `src/Elsa.Catalog.Api/Admin/Sync` so admin requests are not tied to package download cancellation.
+
 ## Phase 6: User Story 4 - Approve Catalog Entries (Priority: P2)
 
 **Goal**: Catalog administrators can approve or reject packages and versions while validation, approval, and listing stay separate.

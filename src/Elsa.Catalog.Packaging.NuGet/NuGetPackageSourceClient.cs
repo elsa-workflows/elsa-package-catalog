@@ -111,6 +111,10 @@ public sealed class NuGetPackageSourceClient(
             PackageSourceVersionDiscoveryPolicy.LatestIncludingPrerelease => versions
                 .OrderDescending()
                 .Take(1),
+            PackageSourceVersionDiscoveryPolicy.LatestPreview => versions
+                .Where(IsPreviewPrerelease)
+                .OrderDescending()
+                .Take(1),
             _ => versions
         };
 
@@ -132,6 +136,16 @@ public sealed class NuGetPackageSourceClient(
 
     private static bool IsExactPackageId(string pattern) =>
         !string.IsNullOrWhiteSpace(pattern) && !pattern.Contains('*') && !pattern.Contains('?');
+
+    private static bool IsPreviewPrerelease(global::NuGet.Versioning.NuGetVersion version)
+    {
+        if (!version.IsPrerelease)
+            return false;
+
+        return version.Release.Equals("preview", StringComparison.OrdinalIgnoreCase)
+               || version.Release.StartsWith("preview.", StringComparison.OrdinalIgnoreCase)
+               || version.Release.StartsWith("preview-", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static string? GetSearchPrefix(string pattern)
     {
