@@ -62,12 +62,12 @@ describe("SourceForm", () => {
     expect(screen.getByLabelText("Version Discovery")).toHaveValue("AllVersions");
     await userEvent.clear(screen.getByLabelText("Name"));
     await userEvent.type(screen.getByLabelText("Name"), "Internal Feed");
-    await userEvent.selectOptions(screen.getByLabelText("Version Discovery"), "LatestStable");
+    await userEvent.selectOptions(screen.getByLabelText("Version Discovery"), "LatestPreview");
     await userEvent.click(screen.getByRole("button", { name: "Save Source" }));
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
       name: "Internal Feed",
-      versionDiscoveryPolicy: "LatestStable"
+      versionDiscoveryPolicy: "LatestPreview"
     }));
   });
 });

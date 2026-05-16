@@ -262,6 +262,33 @@ public sealed class NuGetPackageSourceClientTests
     }
 
     [Fact]
+    public void Latest_preview_policy_selects_highest_preview_prerelease_version()
+    {
+        var selected = Select(
+            PackageSourceVersionDiscoveryPolicy.LatestPreview,
+            "4.0.0",
+            "4.1.0-alpha.1",
+            "4.1.0-previewfoo.9",
+            "4.1.0-preview.2",
+            "4.1.0-PREVIEW.3",
+            "4.1.0-rc.1");
+
+        selected.Should().ContainSingle().Which.Should().Be("4.1.0-PREVIEW.3");
+    }
+
+    [Fact]
+    public void Latest_preview_policy_skips_packages_without_preview_prerelease_versions()
+    {
+        var selected = Select(
+            PackageSourceVersionDiscoveryPolicy.LatestPreview,
+            "4.0.0",
+            "4.1.0-alpha.1",
+            "4.1.0-rc.1");
+
+        selected.Should().BeEmpty();
+    }
+
+    [Fact]
     public void All_versions_policy_preserves_discovered_versions()
     {
         var selected = Select(

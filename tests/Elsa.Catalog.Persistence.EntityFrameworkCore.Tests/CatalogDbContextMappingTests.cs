@@ -23,12 +23,12 @@ public sealed class CatalogDbContextMappingTests
             Name = "NuGet",
             Url = "https://api.nuget.org/v3/index.json",
             IncludePatterns = ["Elsa.*"],
-            VersionDiscoveryPolicy = PackageSourceVersionDiscoveryPolicy.LatestIncludingPrerelease
+            VersionDiscoveryPolicy = PackageSourceVersionDiscoveryPolicy.LatestPreview
         });
         await db.SaveChangesAsync();
 
         var saved = await db.PackageSources.SingleAsync();
-        saved.VersionDiscoveryPolicy.Should().Be(PackageSourceVersionDiscoveryPolicy.LatestIncludingPrerelease);
+        saved.VersionDiscoveryPolicy.Should().Be(PackageSourceVersionDiscoveryPolicy.LatestPreview);
     }
 
     [Fact]

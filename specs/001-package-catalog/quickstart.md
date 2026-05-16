@@ -61,9 +61,15 @@ curl -X POST http://localhost:5000/api/admin/sources \
     "enabled": true,
     "includePatterns": ["Elsa.*"],
     "excludePatterns": ["Elsa.Experimental.*"],
-    "approvalPolicy": "Manual"
+    "approvalPolicy": "Manual",
+    "versionDiscoveryPolicy": "LatestStable"
   }'
 ```
+
+For a preview feed, use `LatestPreview` to select only prerelease versions whose
+label is `preview` or starts with `preview`, case-insensitively. Use
+`LatestIncludingPrerelease` only when release candidates and branch-named
+prereleases are also intended candidates.
 
 ## Trigger Sync
 
@@ -76,7 +82,8 @@ curl -X POST http://localhost:5000/api/admin/sync \
 
 Expected result:
 
-- Response is `200 OK` with the full sync run payload, including the run `id`.
+- Response is `200 OK` with the sync run payload, including the run `id`; manual
+  sync work continues in the background after the request returns.
 - Sync run history shows discovered, skipped, indexed, invalid, failed, and
   suspicious counters.
 - Failed package versions do not fail the whole run unless the source cannot be

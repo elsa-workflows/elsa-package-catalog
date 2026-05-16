@@ -142,6 +142,53 @@ public sealed class PackageSyncServiceTests
     }
 
     [Fact]
+    public async Task Manual_start_persists_running_run_and_holds_concurrency_until_work_item_completes()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var discovery = new GatedDiscovery();
+        var syncRuns = new InMemorySyncRunStore();
+        var service = CreateService(new InMemorySourceStore([source]), new InMemorySyncCatalogStore(), syncRuns, discovery, new FakeDownloader("{}"));
+
+        var started = await service.StartManualAllAsync();
+
+        started.Accepted.Should().BeTrue();
+        started.Run.Status.Should().Be(SyncRunStatus.Running);
+        syncRuns.Runs.Should().ContainSingle(x => x.Id == started.Run.Id && x.Status == SyncRunStatus.Running);
+        discovery.Started.Task.IsCompleted.Should().BeFalse();
+
+        var rejected = await service.StartManualAllAsync();
+        rejected.Accepted.Should().BeFalse();
+        rejected.Run.Status.Should().Be(SyncRunStatus.Failed);
+        rejected.Run.Error.Should().Contain("already active");
+
+        var executing = service.ExecuteManualWorkItemAsync(started.WorkItem!);
+        await discovery.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        discovery.Release.SetResult();
+        await executing;
+
+        started.Run.Status.Should().Be(SyncRunStatus.Completed);
+    }
+
+    [Fact]
+    public async Task Manual_work_item_failure_marking_completes_run_and_releases_concurrency()
+    {
+        var syncRuns = new InMemorySyncRunStore();
+        var service = CreateService(new InMemorySourceStore([]), new InMemorySyncCatalogStore(), syncRuns, new FakeDiscovery([]), new FakeDownloader("{}"));
+        var started = await service.StartManualAllAsync();
+
+        await service.MarkManualWorkItemFailedAsync(started.WorkItem!, "database unavailable");
+        started.WorkItem!.Dispose();
+
+        started.Run.Status.Should().Be(SyncRunStatus.Failed);
+        started.Run.Error.Should().Be("database unavailable");
+        started.Run.CompletedAt.Should().NotBeNull();
+
+        var next = await service.StartManualAllAsync();
+        next.Accepted.Should().BeTrue();
+        next.WorkItem!.Dispose();
+    }
+
+    [Fact]
     public async Task Tracks_source_sync_activity_while_source_is_running()
     {
         var source = PublicCatalogSeedData.CreatePackageSource();
