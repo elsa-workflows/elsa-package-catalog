@@ -25,6 +25,9 @@ Expected behavior:
 - Valid key: `302 Found` to safe `returnUrl` or `/admin/overview`, with an HTTP-only dashboard auth cookie.
 - Invalid key: `401 Unauthorized` with login form HTML and no session cookie.
 - Missing configured server key: `401 Unauthorized` and no session cookie.
+- Repeated failed attempts from the same client: after 5 failures in 15 minutes,
+  return a throttled response with a 5-minute retry delay and no persistent
+  lockout state.
 - Unsafe `returnUrl`: ignored in favor of `/admin/overview`.
 
 ## POST /admin/logout
@@ -48,6 +51,9 @@ Expected behavior:
 
 - Valid `X-Api-Key` header: authorized, unchanged from current behavior.
 - Valid dashboard auth cookie: authorized.
+- Cookie-authenticated mutation requests must pass a same-origin browser request
+  check; cross-origin mutation attempts are rejected without affecting API-key
+  header clients.
 - Anonymous request: `401 Unauthorized`.
 
 ## Public Endpoints
