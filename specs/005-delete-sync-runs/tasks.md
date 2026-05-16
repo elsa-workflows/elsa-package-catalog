@@ -73,9 +73,9 @@
 
 ### Tests for User Story 2
 
-- [ ] T018 [P] [US2] Add core tests for bulk preview counts, bulk deletion counts, zero-match cleanup, UTC cutoff comparison, and recent-run preservation in `tests/Elsa.Catalog.Core.Tests/SyncRunCleanupServiceTests.cs`
+- [ ] T018 [P] [US2] Add core tests for bulk preview counts, bulk deletion counts, zero-match cleanup, UTC cutoff comparison, future-cutoff rejection, and recent-run preservation in `tests/Elsa.Catalog.Core.Tests/SyncRunCleanupServiceTests.cs`
 - [ ] T019 [P] [US2] Add EF Core persistence tests for deleting at least 1,000 eligible historical sync runs while preserving catalog state in `tests/Elsa.Catalog.Persistence.EntityFrameworkCore.Tests/SyncPersistenceTests.cs`
-- [ ] T020 [P] [US2] Add admin API tests for `GET /api/admin/sync-runs/deletion-preview` and `DELETE /api/admin/sync-runs?completedBefore=...` success and invalid cutoff responses in `tests/Elsa.Catalog.Api.Tests/AdminSyncApiTests.cs`
+- [ ] T020 [P] [US2] Add admin API tests for `GET /api/admin/sync-runs/deletion-preview` and `DELETE /api/admin/sync-runs?completedBefore=...` success, malformed cutoff, and future-cutoff validation responses in `tests/Elsa.Catalog.Api.Tests/AdminSyncApiTests.cs`
 - [ ] T021 [P] [US2] Add admin UI component tests for cutoff entry, preview dialog counts, bulk cleanup confirmation, zero-match state, and list refresh in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/SyncRunsPage.test.tsx`
 
 ### Implementation for User Story 2

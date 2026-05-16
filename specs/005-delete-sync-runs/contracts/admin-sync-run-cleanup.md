@@ -14,6 +14,7 @@ Expected behavior:
 
 - `200 OK` with `AdminSyncRunCleanupPreviewResponse` when the cutoff is valid.
 - `400 Bad Request` when `completedBefore` is missing or cannot be interpreted as an absolute timestamp.
+- `400 Bad Request` when `completedBefore` is later than the current server time.
 - Does not delete or modify any data.
 
 Response shape:
@@ -81,6 +82,7 @@ Expected behavior:
 
 - `200 OK` with `AdminSyncRunCleanupResultResponse`.
 - `400 Bad Request` when `completedBefore` is missing or invalid.
+- `400 Bad Request` when `completedBefore` is later than the current server time.
 - Non-terminal runs are excluded even if their timestamps otherwise match.
 - Result counts reflect committed deletion and may differ from a prior preview if history changed concurrently.
 

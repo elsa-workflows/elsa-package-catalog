@@ -78,7 +78,7 @@ Rules:
 - Requires admin authorization.
 - Bulk cleanup requires an explicit cutoff.
 - Cutoff comparisons use UTC.
-- Future cutoffs are accepted only as explicit administrator input and still exclude non-terminal runs.
+- Bulk cleanup cutoffs later than the current server time are rejected before any deletion occurs.
 
 ## Sync Run Cleanup Result
 
