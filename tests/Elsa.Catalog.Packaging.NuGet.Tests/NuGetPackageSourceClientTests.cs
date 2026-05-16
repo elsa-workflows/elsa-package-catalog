@@ -3,6 +3,7 @@ using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Sources;
 using FluentAssertions;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 
 namespace Elsa.Catalog.Packaging.NuGet.Tests;
@@ -46,17 +47,36 @@ public sealed class NuGetPackageSourceClientTests
             .WithMessage("*Leading wildcard-only sources are not crawled.*");
     }
 
+    [Fact]
+    public async Task Prefix_wildcard_sources_require_feed_search_support()
+    {
+        await using var feed = await LoopbackNuGetFeed.StartAsync(advertiseSearch: false);
+        var client = new NuGetPackageSourceClient(new PackageSourcePatternMatcher());
+        var source = new PackageSource
+        {
+            Url = feed.ServiceIndexUrl,
+            IncludePatterns = ["Elsa.*"]
+        };
+
+        var act = () => client.FindPackageVersionsAsync(source);
+
+        await act.Should().ThrowAsync<NotSupportedException>()
+            .WithMessage("*advertises a NuGet search service*");
+    }
+
     private sealed class LoopbackNuGetFeed : IAsyncDisposable
     {
-        private readonly HttpListener _listener = new();
+        private readonly TcpListener _listener = new(IPAddress.Loopback, 0);
         private readonly CancellationTokenSource _stopped = new();
+        private readonly bool _advertiseSearch;
         private readonly Task _requests;
 
-        private LoopbackNuGetFeed(string baseUrl)
+        private LoopbackNuGetFeed(bool advertiseSearch)
         {
-            BaseUrl = baseUrl;
-            _listener.Prefixes.Add(BaseUrl);
+            _advertiseSearch = advertiseSearch;
             _listener.Start();
+            var port = ((IPEndPoint)_listener.LocalEndpoint).Port;
+            BaseUrl = $"http://127.0.0.1:{port}/";
             _requests = Task.Run(ProcessRequestsAsync);
         }
 
@@ -64,11 +84,8 @@ public sealed class NuGetPackageSourceClientTests
         public string ServiceIndexUrl => $"{BaseUrl}v3/index.json";
         public List<string> SearchQueries { get; } = [];
 
-        public static Task<LoopbackNuGetFeed> StartAsync()
-        {
-            var port = FreeTcpPort();
-            return Task.FromResult(new LoopbackNuGetFeed($"http://127.0.0.1:{port}/"));
-        }
+        public static Task<LoopbackNuGetFeed> StartAsync(bool advertiseSearch = true) =>
+            Task.FromResult(new LoopbackNuGetFeed(advertiseSearch));
 
         public async ValueTask DisposeAsync()
         {
@@ -78,10 +95,9 @@ public sealed class NuGetPackageSourceClientTests
             {
                 await _requests;
             }
-            catch (Exception ex) when (ex is HttpListenerException or ObjectDisposedException)
+            catch (Exception ex) when (ex is SocketException or ObjectDisposedException or IOException)
             {
             }
-            _listener.Close();
             _stopped.Dispose();
         }
 
@@ -89,38 +105,60 @@ public sealed class NuGetPackageSourceClientTests
         {
             while (!_stopped.IsCancellationRequested)
             {
-                HttpListenerContext context;
+                TcpClient client;
                 try
                 {
-                    context = await _listener.GetContextAsync();
+                    client = await _listener.AcceptTcpClientAsync(_stopped.Token);
                 }
-                catch (Exception ex) when (_stopped.IsCancellationRequested && ex is HttpListenerException or ObjectDisposedException)
+                catch (Exception ex) when (_stopped.IsCancellationRequested && ex is OperationCanceledException or SocketException or ObjectDisposedException)
                 {
                     return;
                 }
 
-                await RespondAsync(context);
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await RespondAsync(client);
+                    }
+                    catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException)
+                    {
+                    }
+                }, _stopped.Token);
             }
         }
 
-        private async Task RespondAsync(HttpListenerContext context)
+        private async Task RespondAsync(TcpClient client)
         {
-            var path = context.Request.Url!.AbsolutePath;
+            using var connection = client;
+            await using var stream = client.GetStream();
+            using var reader = new StreamReader(stream, Encoding.ASCII, leaveOpen: true);
+            var requestLine = await reader.ReadLineAsync();
+            if (string.IsNullOrWhiteSpace(requestLine))
+                return;
+
+            while (!string.IsNullOrEmpty(await reader.ReadLineAsync()))
+            {
+            }
+
+            var target = requestLine.Split(' ', StringSplitOptions.RemoveEmptyEntries).ElementAtOrDefault(1) ?? "/";
+            var requestUri = new Uri(new Uri(BaseUrl), target);
+            var path = requestUri.AbsolutePath;
             var json = path switch
             {
                 "/v3/index.json" => ServiceIndexJson(),
-                "/query" => SearchJson(context.Request.QueryString["q"] ?? ""),
+                "/query" => SearchJson(GetQueryValue(requestUri, "q")),
                 "/flat/elsa.email/index.json" => VersionIndexJson("1.0.0"),
                 "/flat/elsa.workflows/index.json" => VersionIndexJson("2.0.0"),
                 _ => "{}"
             };
 
-            context.Response.StatusCode = path == "/flat/elsa.tests/index.json" ? 404 : 200;
-            context.Response.ContentType = "application/json";
+            var status = path == "/flat/elsa.tests/index.json" ? "404 Not Found" : "200 OK";
             var body = Encoding.UTF8.GetBytes(json);
-            context.Response.ContentLength64 = body.Length;
-            await context.Response.OutputStream.WriteAsync(body);
-            context.Response.Close();
+            var header = Encoding.ASCII.GetBytes(
+                $"HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {body.Length}\r\nConnection: close\r\n\r\n");
+            await stream.WriteAsync(header);
+            await stream.WriteAsync(body);
         }
 
         private string ServiceIndexJson() =>
@@ -132,7 +170,7 @@ public sealed class NuGetPackageSourceClientTests
               },
               "version": "3.0.0",
               "resources": [
-                { "@id": "{{BaseUrl}}query", "@type": "SearchQueryService/3.0.0-beta" },
+                {{SearchServiceResourceJson()}}
                 { "@id": "{{BaseUrl}}flat/", "@type": "PackageBaseAddress/3.0.0" }
               ]
             }
@@ -153,18 +191,25 @@ public sealed class NuGetPackageSourceClientTests
             """;
         }
 
+        private string SearchServiceResourceJson() =>
+            _advertiseSearch ? $$""" { "@id": "{{BaseUrl}}query", "@type": "SearchQueryService/3.0.0-beta" },""" : "";
+
         private static string VersionIndexJson(string version) =>
             $$"""
             { "versions": ["{{version}}"] }
             """;
 
-        private static int FreeTcpPort()
+        private static string GetQueryValue(Uri uri, string name)
         {
-            var listener = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            listener.Stop();
-            return port;
+            var pairs = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var pair in pairs)
+            {
+                var parts = pair.Split('=', 2);
+                if (parts.Length == 2 && parts[0] == name)
+                    return Uri.UnescapeDataString(parts[1].Replace('+', ' '));
+            }
+
+            return "";
         }
     }
 }

@@ -49,13 +49,16 @@ public sealed class NuGetPackageSourceClient(PackageSourcePatternMatcher pattern
             return packageIds;
 
         var search = await repository.GetResourceAsync<PackageSearchResource>(cancellationToken);
+        if (search is null)
+            throw new NotSupportedException("NuGet source discovery for prefix wildcard include patterns requires a feed that advertises a NuGet search service.");
+
         var filter = new SearchFilter(includePrerelease: true);
 
         foreach (var prefix in searchPrefixes)
         {
             for (var skip = 0; skip < MaxSearchResultsPerPrefix; skip += SearchPageSize)
             {
-                var page = (await search.SearchAsync(prefix, filter, skip, SearchPageSize, NullLogger.Instance, cancellationToken)).ToList();
+                var page = await SearchAsync(search, prefix, filter, skip, cancellationToken);
 
                 foreach (var package in page)
                 {
@@ -73,6 +76,23 @@ public sealed class NuGetPackageSourceClient(PackageSourcePatternMatcher pattern
         }
 
         return packageIds;
+    }
+
+    private static async Task<List<IPackageSearchMetadata>> SearchAsync(
+        PackageSearchResource search,
+        string prefix,
+        SearchFilter filter,
+        int skip,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return (await search.SearchAsync(prefix, filter, skip, SearchPageSize, NullLogger.Instance, cancellationToken)).ToList();
+        }
+        catch (FatalProtocolException ex) when (ex.Message.Contains("Search service", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new NotSupportedException("NuGet source discovery for prefix wildcard include patterns requires a feed that advertises a NuGet search service.", ex);
+        }
     }
 
     private static bool IsExactPackageId(string pattern) =>
