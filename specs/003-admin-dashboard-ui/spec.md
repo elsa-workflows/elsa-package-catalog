@@ -219,8 +219,8 @@ errors states, then verify summary rows, filtering, details, and re-sync actions
 **Acceptance Scenarios**:
 
 1. **Given** sync runs exist, **When** an administrator opens Sync Runs, **Then**
-   the table shows started time, duration, trigger, status, packages scanned,
-   packages updated, and failure count.
+   the table shows started time, duration, associated source, trigger, status,
+   packages scanned, packages updated, and failure count.
 2. **Given** a sync run completed with errors, **When** the administrator opens
    run details, **Then** the dashboard shows summary counts, timeline entries,
    discovered packages, downloaded packages, validation results, warnings, and

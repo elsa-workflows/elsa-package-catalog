@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSyncRun, packagesScanned, packagesUpdated, syncFailures, syncRunItemStatusLabel } from "@/features/sync-runs/syncRunModels";
+import { normalizeSyncRun, packagesScanned, packagesUpdated, syncFailures, syncRunItemStatusLabel, syncRunSourceLabel } from "@/features/sync-runs/syncRunModels";
 
 const baseRun = {
   id: "sync-123",
@@ -45,6 +45,17 @@ describe("sync run models", () => {
 
   it("returns raw sync item status labels intentionally", () => {
     expect(syncRunItemStatusLabel("Unchanged")).toBe("Unchanged");
+  });
+
+  it("normalizes source summaries and item counts", () => {
+    const run = normalizeSyncRun({
+      ...baseRun,
+      itemCount: 12,
+      sources: [{ id: "source-1", name: "Elsa Official" }]
+    });
+
+    expect(run.itemCount).toBe(12);
+    expect(syncRunSourceLabel(run)).toBe("Elsa Official");
   });
 
   it("uses legacy packages scanned when canonical counters only contain per-status counts", () => {

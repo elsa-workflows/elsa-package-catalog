@@ -11,7 +11,13 @@ public sealed record AdminSyncRunResponse(
     DateTimeOffset? CompletedAt,
     string? Error,
     string SummaryCountersJson,
+    int ItemCount,
+    IReadOnlyList<AdminSyncRunSourceResponse> Sources,
     IReadOnlyList<AdminSyncRunItemResponse> Items);
+
+public sealed record AdminSyncRunSourceResponse(
+    Guid Id,
+    string? Name);
 
 public sealed record AdminSyncRunItemResponse(
     Guid Id,

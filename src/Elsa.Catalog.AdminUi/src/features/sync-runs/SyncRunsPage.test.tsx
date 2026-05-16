@@ -42,12 +42,22 @@ describe("SyncRunsPage", () => {
     renderWithQueryClient(<SyncRunsPage />, [syncRunFixture]);
 
     expect((await screen.findAllByText("Completed with errors")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "Elsa Official" })).toHaveAttribute("href", "/admin/sources/source-1");
     expect(screen.getByText("52")).toBeInTheDocument();
     expect(screen.getByText("4")).toBeInTheDocument();
     expect(screen.getAllByText("1").length).toBeGreaterThan(0);
   });
 
   it("filters populated sync run rows", async () => {
+    renderWithQueryClient(<SyncRunsPage />, [syncRunFixture]);
+
+    await screen.findAllByText("Completed with errors");
+    await userEvent.type(screen.getByPlaceholderText("Filter sync runs"), "missing-source");
+
+    expect(screen.getByText("No matching sync runs")).toBeInTheDocument();
+  });
+
+  it("filters populated sync run rows by status", async () => {
     renderWithQueryClient(<SyncRunsPage />, [syncRunFixture]);
 
     await screen.findAllByText("Completed with errors");
@@ -68,6 +78,7 @@ describe("SyncRunDetailsPage", () => {
     renderWithQueryClient(<SyncRunDetailsPage />, syncRunFixture, 200, "/admin/sync-runs/:runId");
 
     expect(await screen.findByText("Sync Run sync-123")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Elsa Official" })).toHaveAttribute("href", "/admin/sources/source-1");
     expect(screen.getAllByText("Package download failed.").length).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "Elsa.Persistence.PostgreSql" })).toBeInTheDocument();
   });

@@ -343,7 +343,16 @@ public interface ISyncRunStore
 {
     Task<IReadOnlyList<SyncRun>> ListAsync(CancellationToken cancellationToken = default);
     Task<SyncRun?> GetAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IReadOnlyDictionary<Guid, SyncRunListMetadata>> GetListMetadataAsync(IReadOnlyCollection<Guid> runIds, CancellationToken cancellationToken = default);
     Task AddAsync(SyncRun run, CancellationToken cancellationToken = default);
     Task AddItemAsync(SyncRunItem item, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }
+
+public sealed record SyncRunListMetadata(
+    int ItemCount,
+    IReadOnlyList<SyncRunSourceReference> Sources);
+
+public sealed record SyncRunSourceReference(
+    Guid Id,
+    string? Name);

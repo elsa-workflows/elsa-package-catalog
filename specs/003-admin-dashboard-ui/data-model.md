@@ -237,6 +237,8 @@ Fields:
 - `duration`.
 - `error`.
 - `summaryCounters`.
+- `itemCount`.
+- `sources`: compact source references associated with the run.
 - `packagesScanned`.
 - `packagesUpdated`.
 - `failures`.
@@ -245,6 +247,7 @@ Fields:
 Relationships:
 
 - Has many Sync Run Items.
+- Source references are derived from sync items for list/detail diagnostics.
 - Items may reference source, package ID, and version.
 
 ## Sync Run Item
