@@ -15,6 +15,7 @@ export const queryClient = new QueryClient({
 });
 
 export const queryKeys = {
+  application: ["application"] as const,
   sources: ["sources"] as const,
   packages: ["packages"] as const,
   syncRuns: ["sync-runs"] as const,

@@ -446,7 +446,9 @@ partial bulk failures, then verify visible states and recovery actions.
 - **FR-047**: The dashboard MUST NOT include a Settings screen in the MVP;
   operational information needed for the first slice MUST appear in Overview,
   Sources, Packages, or Sync Runs.
-- **FR-048**: The dashboard MUST keep framework-specific implementation choices
+- **FR-048**: The dashboard MUST display the deployed application build number
+  in persistent dashboard chrome after administrator authentication.
+- **FR-049**: The dashboard MUST keep framework-specific implementation choices
   outside the user experience contract; the specification permits a modern web
   stack but does not require one.
 

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Elsa.Catalog.Api.Admin.Application;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Api.Admin.Packages;
 using Elsa.Catalog.Api.Admin.Sources;
@@ -117,6 +118,7 @@ app.MapPublicPackageEndpoints();
 app.MapPublicFeatureEndpoints();
 app.MapBuilderEndpoints();
 app.MapCompatibilityEndpoints();
+app.MapAdminApplicationEndpoints();
 app.MapAdminSourceEndpoints();
 app.MapAdminSyncEndpoints();
 app.MapAdminPackageEndpoints();
