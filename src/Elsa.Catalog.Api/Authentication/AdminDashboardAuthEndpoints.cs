@@ -16,12 +16,13 @@ public static class AdminDashboardAuthEndpoints
             return Results.Content(RenderLoginPage(context.Request.Query["returnUrl"], null), "text/html");
         }).AllowAnonymous();
 
-        endpoints.MapPost(AdminDashboardAuthenticationDefaults.LoginPath, async (HttpContext context, AdminApiKeyValidator validator, AdminDashboardLoginThrottle throttle) =>
+        endpoints.MapPost(AdminDashboardAuthenticationDefaults.LoginPath, async (HttpContext context, AdminApiKeyValidator validator, AdminDashboardLoginThrottle throttle, TimeProvider timeProvider) =>
         {
             var throttleDecision = throttle.Check(context);
             if (throttleDecision.IsThrottled)
             {
-                context.Response.Headers.RetryAfter = ((int)AdminDashboardAuthenticationDefaults.LoginThrottleDelay.TotalSeconds).ToString();
+                var remainingSeconds = Math.Ceiling((throttleDecision.RetryAfter!.Value - timeProvider.GetUtcNow()).TotalSeconds);
+                context.Response.Headers.RetryAfter = Math.Max(0, (int)remainingSeconds).ToString();
                 var throttledForm = context.Request.HasFormContentType
                     ? await context.Request.ReadFormAsync(context.RequestAborted)
                     : null;

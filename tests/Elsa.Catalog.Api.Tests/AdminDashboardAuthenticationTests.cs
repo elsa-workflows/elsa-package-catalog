@@ -6,6 +6,8 @@ using Elsa.Catalog.Api.Admin.Sources;
 using Elsa.Catalog.Api.Authentication;
 using FluentAssertions;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -272,6 +274,7 @@ public sealed class AdminDashboardAuthenticationTests
             {
                 services.RemoveAll<TimeProvider>();
                 services.AddSingleton<TimeProvider>(time);
+                services.AddSingleton<IStartupFilter>(new RemoteIpStartupFilter(IPAddress.Parse("203.0.113.10")));
             });
         });
         var client = app.CreateClient(new() { AllowAutoRedirect = false });
@@ -289,6 +292,31 @@ public sealed class AdminDashboardAuthenticationTests
     }
 
     [Fact]
+    public async Task Login_throttle_retry_after_uses_remaining_delay()
+    {
+        var time = new FakeTimeProvider();
+        await using var app = new CatalogApiTestApplication().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<TimeProvider>();
+                services.AddSingleton<TimeProvider>(time);
+                services.AddSingleton<IStartupFilter>(new RemoteIpStartupFilter(IPAddress.Parse("203.0.113.10")));
+            });
+        });
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+
+        for (var i = 0; i < AdminDashboardAuthenticationDefaults.LoginThrottleFailureThreshold; i++)
+            await PostLoginAsync(client, "wrong");
+
+        time.Advance(TimeSpan.FromMinutes(4));
+        var throttled = await PostLoginAsync(client, "wrong");
+
+        throttled.StatusCode.Should().Be((HttpStatusCode)StatusCodes.Status429TooManyRequests);
+        throttled.Headers.RetryAfter!.Delta.Should().Be(TimeSpan.FromMinutes(1));
+    }
+
+    [Fact]
     public async Task Login_throttle_allows_attempt_after_retry_delay()
     {
         var time = new FakeTimeProvider();
@@ -298,6 +326,7 @@ public sealed class AdminDashboardAuthenticationTests
             {
                 services.RemoveAll<TimeProvider>();
                 services.AddSingleton<TimeProvider>(time);
+                services.AddSingleton<IStartupFilter>(new RemoteIpStartupFilter(IPAddress.Parse("203.0.113.10")));
             });
         });
         var client = app.CreateClient(new() { AllowAutoRedirect = false });
@@ -345,6 +374,21 @@ public sealed class AdminDashboardAuthenticationTests
         throttle.Check(secondClient).IsThrottled.Should().BeFalse();
     }
 
+    [Fact]
+    public void Login_throttle_does_not_share_state_when_remote_ip_is_missing()
+    {
+        var throttle = new AdminDashboardLoginThrottle(TimeProvider.System);
+        var firstClient = CreateContext(null);
+        var secondClient = CreateContext(null);
+        var firstDecision = throttle.Check(firstClient);
+
+        for (var i = 0; i < AdminDashboardAuthenticationDefaults.LoginThrottleFailureThreshold; i++)
+            throttle.RecordFailure(firstDecision.ClientKey);
+
+        throttle.Check(firstClient).IsThrottled.Should().BeFalse();
+        throttle.Check(secondClient).IsThrottled.Should().BeFalse();
+    }
+
     private static Task<HttpResponseMessage> PostLoginAsync(HttpClient client, string apiKey, string returnUrl = "/admin/overview") =>
         client.PostAsync(AdminDashboardAuthenticationDefaults.LoginPath, new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -352,7 +396,7 @@ public sealed class AdminDashboardAuthenticationTests
             ["returnUrl"] = returnUrl
         }));
 
-    private static HttpContext CreateContext(IPAddress remoteIpAddress)
+    private static HttpContext CreateContext(IPAddress? remoteIpAddress)
     {
         var context = new DefaultHttpContext();
         context.Connection.RemoteIpAddress = remoteIpAddress;
@@ -366,5 +410,20 @@ public sealed class AdminDashboardAuthenticationTests
         public override DateTimeOffset GetUtcNow() => _utcNow;
 
         public void Advance(TimeSpan value) => _utcNow = _utcNow.Add(value);
+    }
+
+    private sealed class RemoteIpStartupFilter(IPAddress remoteIpAddress) : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) =>
+            app =>
+            {
+                app.Use((context, nextMiddleware) =>
+                {
+                    context.Connection.RemoteIpAddress = remoteIpAddress;
+                    return nextMiddleware(context);
+                });
+
+                next(app);
+            };
     }
 }

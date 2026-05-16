@@ -10,6 +10,9 @@ public sealed class AdminDashboardLoginThrottle(TimeProvider timeProvider)
     public LoginThrottleDecision Check(HttpContext context)
     {
         var clientKey = GetClientKey(context);
+        if (clientKey is null)
+            return LoginThrottleDecision.Allowed(null);
+
         var now = timeProvider.GetUtcNow();
         if (!_entries.TryGetValue(clientKey, out var entry))
             return LoginThrottleDecision.Allowed(clientKey);
@@ -23,8 +26,11 @@ public sealed class AdminDashboardLoginThrottle(TimeProvider timeProvider)
         return LoginThrottleDecision.Allowed(clientKey);
     }
 
-    public void RecordFailure(string clientKey)
+    public void RecordFailure(string? clientKey)
     {
+        if (clientKey is null)
+            return;
+
         var now = timeProvider.GetUtcNow();
         _entries.AddOrUpdate(
             clientKey,
@@ -48,12 +54,16 @@ public sealed class AdminDashboardLoginThrottle(TimeProvider timeProvider)
             });
     }
 
-    public void Clear(string clientKey) => _entries.TryRemove(clientKey, out _);
+    public void Clear(string? clientKey)
+    {
+        if (clientKey is not null)
+            _entries.TryRemove(clientKey, out _);
+    }
 
-    private static string GetClientKey(HttpContext context)
+    private static string? GetClientKey(HttpContext context)
     {
         var address = context.Connection.RemoteIpAddress;
-        return address is null ? "unknown" : Normalize(address);
+        return address is null ? null : Normalize(address);
     }
 
     private static string Normalize(IPAddress address) =>
@@ -66,10 +76,10 @@ public sealed class AdminDashboardLoginThrottle(TimeProvider timeProvider)
 }
 
 public sealed record LoginThrottleDecision(
-    string ClientKey,
+    string? ClientKey,
     bool IsThrottled,
     DateTimeOffset? RetryAfter)
 {
-    public static LoginThrottleDecision Allowed(string clientKey) => new(clientKey, false, null);
+    public static LoginThrottleDecision Allowed(string? clientKey) => new(clientKey, false, null);
     public static LoginThrottleDecision Throttled(string clientKey, DateTimeOffset retryAfter) => new(clientKey, true, retryAfter);
 }
