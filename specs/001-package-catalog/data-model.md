@@ -25,7 +25,8 @@ filter to package versions that are valid, approved, listed, and not suspicious.
 - `LatestIncludingPrerelease`: discover only the highest version per package,
   including prerelease versions.
 - `LatestPreview`: discover only the highest prerelease version per package
-  whose prerelease label starts with `preview`, case-insensitively.
+  whose prerelease label equals `preview`, or starts with `preview.` or
+  `preview-`, case-insensitively.
 
 ### PackageApprovalStatus
 

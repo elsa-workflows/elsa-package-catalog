@@ -170,6 +170,25 @@ public sealed class PackageSyncServiceTests
     }
 
     [Fact]
+    public async Task Manual_work_item_failure_marking_completes_run_and_releases_concurrency()
+    {
+        var syncRuns = new InMemorySyncRunStore();
+        var service = CreateService(new InMemorySourceStore([]), new InMemorySyncCatalogStore(), syncRuns, new FakeDiscovery([]), new FakeDownloader("{}"));
+        var started = await service.StartManualAllAsync();
+
+        await service.MarkManualWorkItemFailedAsync(started.WorkItem!, "database unavailable");
+        started.WorkItem!.Dispose();
+
+        started.Run.Status.Should().Be(SyncRunStatus.Failed);
+        started.Run.Error.Should().Be("database unavailable");
+        started.Run.CompletedAt.Should().NotBeNull();
+
+        var next = await service.StartManualAllAsync();
+        next.Accepted.Should().BeTrue();
+        next.WorkItem!.Dispose();
+    }
+
+    [Fact]
     public async Task Tracks_source_sync_activity_while_source_is_running()
     {
         var source = PublicCatalogSeedData.CreatePackageSource();

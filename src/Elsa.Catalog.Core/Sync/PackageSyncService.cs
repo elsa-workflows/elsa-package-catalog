@@ -117,6 +117,18 @@ public sealed class PackageSyncService(
         }
     }
 
+    public async Task MarkManualWorkItemFailedAsync(PackageSyncWorkItem workItem, string error, CancellationToken cancellationToken = default)
+    {
+        var run = await syncRuns.GetAsync(workItem.RunId, cancellationToken);
+        if (run is null || run.Status != SyncRunStatus.Running)
+            return;
+
+        run.Status = SyncRunStatus.Failed;
+        run.Error = LimitFailureDetail(error);
+        run.CompletedAt = DateTimeOffset.UtcNow;
+        await syncRuns.SaveChangesAsync(CancellationToken.None);
+    }
+
     private async Task ExecuteRunAsync(SyncRun run, Func<Task<IReadOnlyList<PackageSource>>> getSources, CancellationToken cancellationToken, bool addRun)
     {
         diagnostics.SyncRunStarted(run.Id);

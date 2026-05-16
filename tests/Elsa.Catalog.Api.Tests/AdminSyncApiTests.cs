@@ -127,16 +127,21 @@ public sealed class AdminSyncApiTests
     private static async Task<AdminSyncRunResponse> WaitForRunStatusAsync(HttpClient client, Guid runId, SyncRunStatus status)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        while (!timeout.IsCancellationRequested)
+        while (true)
         {
-            var run = await client.GetCatalogJsonAsync<AdminSyncRunResponse>($"/api/admin/sync-runs/{runId}", timeout.Token);
-            if (run?.Status == status)
-                return run;
+            try
+            {
+                var run = await client.GetCatalogJsonAsync<AdminSyncRunResponse>($"/api/admin/sync-runs/{runId}", timeout.Token);
+                if (run?.Status == status)
+                    return run;
 
-            await Task.Delay(50, timeout.Token);
+                await Task.Delay(50, timeout.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                throw new TimeoutException($"Sync run {runId} did not reach {status}.");
+            }
         }
-
-        throw new TimeoutException($"Sync run {runId} did not reach {status}.");
     }
 
     private static async Task<(Guid RunId, Guid SourceId)> SeedSyncRunWithSourceAsync(CatalogApiTestApplication app)
