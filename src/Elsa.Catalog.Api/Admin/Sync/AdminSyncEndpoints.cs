@@ -11,11 +11,11 @@ public static class AdminSyncEndpoints
             .RequireAuthorization(AdminAuthorization.Policy)
             .WithTags("Admin Sync");
 
-        group.MapPost("/sync", async (PackageSyncService sync, CancellationToken cancellationToken) =>
-            Results.Ok(ToResponse(await sync.SyncAllAsync(cancellationToken))));
+        group.MapPost("/sync", async (PackageSyncService sync, ISyncRunStore syncRuns, CancellationToken cancellationToken) =>
+            Results.Ok(await ToResponseAsync(await sync.SyncAllAsync(cancellationToken), syncRuns, cancellationToken)));
 
-        group.MapPost("/sync/sources/{sourceId:guid}", async (Guid sourceId, PackageSyncService sync, CancellationToken cancellationToken) =>
-            Results.Ok(ToResponse(await sync.SyncSourceAsync(sourceId, cancellationToken))));
+        group.MapPost("/sync/sources/{sourceId:guid}", async (Guid sourceId, PackageSyncService sync, ISyncRunStore syncRuns, CancellationToken cancellationToken) =>
+            Results.Ok(await ToResponseAsync(await sync.SyncSourceAsync(sourceId, cancellationToken), syncRuns, cancellationToken)));
 
         group.MapPost("/sync/packages/{packageId}", (string packageId) =>
             Results.BadRequest(new { error = "Manual package sync is not available until package source ownership is known." }));
@@ -33,11 +33,16 @@ public static class AdminSyncEndpoints
             if (run is null)
                 return Results.NotFound();
 
-            var metadata = await syncRuns.GetListMetadataAsync([run.Id], cancellationToken);
-            return Results.Ok(ToResponse(run, metadata.GetValueOrDefault(run.Id)));
+            return Results.Ok(await ToResponseAsync(run, syncRuns, cancellationToken));
         });
 
         return endpoints;
+    }
+
+    private static async Task<AdminSyncRunResponse> ToResponseAsync(SyncRun run, ISyncRunStore syncRuns, CancellationToken cancellationToken)
+    {
+        var metadata = await syncRuns.GetListMetadataAsync([run.Id], cancellationToken);
+        return ToResponse(run, metadata.GetValueOrDefault(run.Id));
     }
 
     private static AdminSyncRunResponse ToResponse(SyncRun run, SyncRunListMetadata? metadata = null)

@@ -57,6 +57,15 @@ describe("SyncRunsPage", () => {
     expect(screen.getByText("No matching sync runs")).toBeInTheDocument();
   });
 
+  it("filters populated sync run rows by status", async () => {
+    renderWithQueryClient(<SyncRunsPage />, [syncRunFixture]);
+
+    await screen.findAllByText("Completed with errors");
+    await userEvent.selectOptions(screen.getByLabelText("Filter by status"), "Running");
+
+    expect(screen.getByText("No matching sync runs")).toBeInTheDocument();
+  });
+
   it("shows error state when no sync run data is available", async () => {
     renderWithQueryClient(<SyncRunsPage />, { title: "Unavailable" }, 503);
 
