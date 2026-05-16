@@ -23,8 +23,9 @@ Required UI fields:
 
 Notes:
 
-- `buildNumber` reflects the API assembly informational version when available,
-  falling back to the assembly version.
+- `buildNumber` reflects the configured deployment build number when available,
+  falling back to the API assembly informational version and then assembly
+  version for local development.
 - The UI displays the build number in persistent dashboard chrome.
 - The response is protected by the admin authentication boundary.
 

@@ -3,6 +3,7 @@ using System.Reflection;
 using Elsa.Catalog.Api.Admin.Application;
 using Elsa.Catalog.Api.Authentication;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 
 namespace Elsa.Catalog.Api.Tests;
 
@@ -30,6 +31,26 @@ public sealed class AdminApplicationApiTests
         info.Should().NotBeNull();
         info!.Name.Should().Be("Elsa.Catalog.Api");
         info.BuildNumber.Should().Be(ExpectedBuildNumber());
+    }
+
+    [Fact]
+    public async Task Admin_application_info_prefers_configured_build_number()
+    {
+        await using var app = new CatalogApiTestApplication().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, configuration) =>
+                configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    ["Application:BuildNumber"] = "12345"
+                }));
+        });
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+
+        var info = await client.GetCatalogJsonAsync<AdminApplicationResponse>("/api/admin/application");
+
+        info.Should().NotBeNull();
+        info!.BuildNumber.Should().Be("12345");
     }
 
     private static string ExpectedBuildNumber()

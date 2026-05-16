@@ -158,6 +158,7 @@ jobs:
           azd env set ELSA_PACKAGE_CATALOG_AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID "$ELSA_PACKAGE_CATALOG_AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_ID"
           azd env set ELSA_PACKAGE_CATALOG_AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID "$ELSA_PACKAGE_CATALOG_AZURE_WEBSITE_CONTRIBUTOR_MANAGED_IDENTITY_PRINCIPAL_ID"
           azd env set ELSA_PACKAGE_CATALOG_PLANID "$ELSA_PACKAGE_CATALOG_PLANID"
+          azd env set APPLICATION_BUILD_NUMBER "$GITHUB_RUN_NUMBER"
 
       - name: Deploy API app
         shell: bash
@@ -177,7 +178,7 @@ jobs:
             az webapp config appsettings set \
               --resource-group "$AZURE_RESOURCE_GROUP" \
               --name "$AZURE_WEBAPP_NAME" \
-              --settings AZURE_TOKEN_CREDENTIALS=prod \
+              --settings AZURE_TOKEN_CREDENTIALS=prod Application__BuildNumber="$GITHUB_RUN_NUMBER" \
               --output none
 
             az webapp sitecontainers update \

@@ -3,6 +3,8 @@ using Azure.Provisioning.Sql;
 
 var builder = DistributedApplication.CreateBuilder(args);
 var adminApiKey = builder.AddParameter("adminApiKey", secret: true);
+var applicationBuildNumber = Environment.GetEnvironmentVariable("APPLICATION_BUILD_NUMBER")
+    ?? Environment.GetEnvironmentVariable("GITHUB_RUN_NUMBER");
 
 builder.AddAzureAppServiceEnvironment("elsa-package-catalog")
     .ConfigureInfrastructure(infrastructure =>
@@ -20,6 +22,11 @@ var api = builder.AddProject<Projects.Elsa_Catalog_Api>("api")
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health")
     .WithEnvironment("Authentication__ApiKey", adminApiKey);
+
+if (!string.IsNullOrWhiteSpace(applicationBuildNumber))
+{
+    api.WithEnvironment("Application__BuildNumber", applicationBuildNumber);
+}
 
 if (builder.ExecutionContext.IsPublishMode)
 {
