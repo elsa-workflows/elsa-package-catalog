@@ -68,6 +68,7 @@ An administrator can explicitly end the dashboard browser session from a server 
 
 - The admin API key is not configured: dashboard login attempts fail safely and no anonymous dashboard access is granted.
 - Repeated failed login attempts from the same client are throttled in-memory after 5 failures in 15 minutes, returning a 5-minute retry delay without introducing persistent lockout state.
+- Failed-login throttling identifies a client by the normalized remote IP address after trusted forwarded-header processing; if no trusted forwarded IP is available, the direct connection remote IP is used.
 - A login request includes a non-admin or external return URL: the system redirects only to safe local admin paths.
 - A non-browser client calls dashboard routes without credentials: the system returns an unauthorized response instead of serving dashboard content.
 - Cookie-authenticated admin API mutation requests from cross-origin browser contexts are rejected; API-key header clients are unchanged.

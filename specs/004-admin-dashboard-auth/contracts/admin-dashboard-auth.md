@@ -61,6 +61,14 @@ Mutation methods:
 
 Same-origin validation applies only when the request is authenticated by the dashboard cookie and uses one of the mutation methods above.
 
+Same-origin validation rules:
+
+- Requests with a valid `X-Api-Key` header are not subject to this browser-origin check.
+- If `Origin` is present, it must match the effective request scheme, host, and port.
+- If `Origin` is absent, `Referer` must be present and match the effective request scheme, host, and port.
+- If neither `Origin` nor `Referer` is present, reject the cookie-authenticated mutation request.
+- Effective request scheme and host use ASP.NET Core forwarded-header processing when trusted proxy headers are configured.
+
 ## Public Endpoints
 
 `/health`, `/`, `/api/packages`, `/api/features`, and compatibility/public package routes remain anonymous.

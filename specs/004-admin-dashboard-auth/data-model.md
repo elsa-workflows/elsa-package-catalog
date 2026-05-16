@@ -56,6 +56,7 @@ Fields:
 Rules:
 
 - Stored in memory only.
+- `clientKey` is derived from the normalized remote IP address after trusted forwarded-header processing, falling back to the direct connection remote IP.
 - A throttle entry activates after 5 failed attempts in a 15-minute window.
 - Active throttle entries require a 5-minute retry delay before another login attempt is processed.
 - Successful login clears the client's throttle entry.

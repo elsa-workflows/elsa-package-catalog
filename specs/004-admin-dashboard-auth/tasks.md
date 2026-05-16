@@ -68,16 +68,16 @@
 ### Tests for User Story 2
 
 - [ ] T012 [US2] Add or update valid login, invalid login, missing configured key, safe return URL, unsafe return URL, cookie attributes, and cookie-authorized admin API tests in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
-- [ ] T013 [US2] Add or update same-origin validation tests for cookie-authenticated admin API mutation requests and API-key header bypass behavior in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
-- [ ] T014 [US2] Add failed-login throttle tests for 5 failures in 15 minutes, 5-minute retry delay, successful-login reset, and process-local behavior in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
+- [ ] T013 [US2] Add or update same-origin validation tests for Origin match, Referer fallback, missing Origin/Referer rejection, forwarded-host behavior, and API-key header bypass behavior in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
+- [ ] T014 [US2] Add failed-login throttle tests for 5 failures in 15 minutes, 5-minute retry delay, successful-login reset, process-local behavior, and remote-IP client key behavior in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
 
 ### Implementation for User Story 2
 
 - [ ] T015 [US2] Implement or update the server-rendered login endpoint and safe return URL handling in `src/Elsa.Catalog.Api/Authentication/AdminDashboardAuthEndpoints.cs`
 - [ ] T016 [US2] Configure dashboard cookie options for HTTP-only storage and 8-hour sliding expiration in `src/Elsa.Catalog.Api/Program.cs`
-- [ ] T017 [US2] Implement in-memory per-client failed-login throttling in `src/Elsa.Catalog.Api/Authentication/AdminDashboardLoginThrottle.cs`
+- [ ] T017 [US2] Implement in-memory per-client failed-login throttling keyed by normalized remote IP in `src/Elsa.Catalog.Api/Authentication/AdminDashboardLoginThrottle.cs`
 - [ ] T018 [US2] Integrate failed-login throttling into login submission handling in `src/Elsa.Catalog.Api/Authentication/AdminDashboardAuthEndpoints.cs`
-- [ ] T019 [US2] Implement or update same-origin validation for cookie-authenticated admin API mutations in `src/Elsa.Catalog.Api/Authentication/AdminDashboardRequestForgeryGuard.cs`
+- [ ] T019 [US2] Implement or update same-origin validation for cookie-authenticated admin API mutations using Origin first, Referer fallback, and effective scheme/host comparison in `src/Elsa.Catalog.Api/Authentication/AdminDashboardRequestForgeryGuard.cs`
 - [ ] T020 [US2] Wire same-origin validation into the admin API request pipeline without affecting API-key header clients in `src/Elsa.Catalog.Api/Program.cs`
 
 **Checkpoint**: Dashboard session login works, API-key clients still work, failed login attempts are throttled, and cookie-authenticated mutation requests enforce same-origin validation.
