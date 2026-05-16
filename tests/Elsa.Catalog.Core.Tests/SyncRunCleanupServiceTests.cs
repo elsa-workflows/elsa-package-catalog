@@ -134,7 +134,7 @@ public sealed class SyncRunCleanupServiceTests
                 completedBefore,
                 eligible.Count,
                 eligible.Sum(x => x.Items.Count),
-                Runs.Count(x => !terminalStatuses.Contains(x.Status)),
+                ProtectedRuns(completedBefore, terminalStatuses).Count(),
                 completedAtValues.Count == 0 ? null : completedAtValues.Min(),
                 completedAtValues.Count == 0 ? null : completedAtValues.Max()));
         }
@@ -158,7 +158,7 @@ public sealed class SyncRunCleanupServiceTests
             return Task.FromResult(new SyncRunCleanupResult(
                 eligible.Count,
                 eligible.Sum(x => x.Items.Count),
-                Runs.Count(x => !terminalStatuses.Contains(x.Status)),
+                ProtectedRuns(completedBefore, terminalStatuses).Count(),
                 0,
                 completedBefore,
                 eligible.Select(x => x.Id).ToList()));
@@ -181,5 +181,11 @@ public sealed class SyncRunCleanupServiceTests
 
         private IEnumerable<SyncRun> EligibleRuns(DateTimeOffset completedBefore, IReadOnlyCollection<SyncRunStatus> terminalStatuses) =>
             Runs.Where(x => x.CompletedAt.HasValue && x.CompletedAt < completedBefore && terminalStatuses.Contains(x.Status));
+
+        private IEnumerable<SyncRun> ProtectedRuns(DateTimeOffset completedBefore, IReadOnlyCollection<SyncRunStatus> terminalStatuses) =>
+            Runs.Where(x =>
+                !terminalStatuses.Contains(x.Status)
+                && ((x.CompletedAt.HasValue && x.CompletedAt < completedBefore)
+                    || (!x.CompletedAt.HasValue && x.StartedAt < completedBefore)));
     }
 }

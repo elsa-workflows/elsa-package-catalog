@@ -76,14 +76,9 @@ public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
     public async Task<SyncRunCleanupPreview> PreviewDeleteBeforeAsync(DateTimeOffset completedBefore, IReadOnlyCollection<SyncRunStatus> terminalStatuses, CancellationToken cancellationToken = default)
     {
         var terminalStatusValues = terminalStatuses.ToArray();
-        var runs = await dbContext.SyncRuns
-            .AsNoTracking()
-            .Select(x => new { x.Id, x.Status, x.CompletedAt })
+        var eligibleRuns = await EligibleRuns(completedBefore, terminalStatusValues)
+            .Select(x => new { x.Id, x.CompletedAt })
             .ToListAsync(cancellationToken);
-        var eligibleRuns = runs
-            .Where(x => x.CompletedAt.HasValue && x.CompletedAt < completedBefore && terminalStatusValues.Contains(x.Status))
-            .ToList();
-
         var eligibleRunIds = eligibleRuns.Select(x => x.Id).ToList();
         var eligibleItemCount = eligibleRunIds.Count == 0
             ? 0
@@ -91,7 +86,7 @@ public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
                 .AsNoTracking()
                 .CountAsync(x => eligibleRunIds.Contains(x.SyncRunId), cancellationToken);
 
-        var excludedRunCount = runs.Count(x => !terminalStatusValues.Contains(x.Status));
+        var excludedRunCount = await CountProtectedRunsAsync(completedBefore, terminalStatusValues, cancellationToken);
 
         var completedAtValues = eligibleRuns
             .Select(x => x.CompletedAt)
@@ -126,16 +121,20 @@ public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
     public async Task<SyncRunCleanupResult> DeleteBeforeAsync(DateTimeOffset completedBefore, IReadOnlyCollection<SyncRunStatus> terminalStatuses, CancellationToken cancellationToken = default)
     {
         var terminalStatusValues = terminalStatuses.ToArray();
-        var allRuns = await dbContext.SyncRuns
-            .Include(x => x.Items)
+        var deletedRunIds = await EligibleRuns(completedBefore, terminalStatusValues)
+            .Select(x => x.Id)
             .ToListAsync(cancellationToken);
-        var runs = allRuns
-            .Where(x => x.CompletedAt.HasValue && x.CompletedAt < completedBefore && terminalStatusValues.Contains(x.Status))
-            .ToList();
-
-        var excludedRunCount = allRuns.Count(x => !terminalStatusValues.Contains(x.Status));
-        var deletedRunIds = runs.Select(x => x.Id).ToList();
-        var deletedItemCount = runs.Sum(x => x.Items.Count);
+        var deletedItemCount = deletedRunIds.Count == 0
+            ? 0
+            : await dbContext.SyncRunItems
+                .AsNoTracking()
+                .CountAsync(x => deletedRunIds.Contains(x.SyncRunId), cancellationToken);
+        var excludedRunCount = await CountProtectedRunsAsync(completedBefore, terminalStatusValues, cancellationToken);
+        var runs = deletedRunIds.Count == 0
+            ? []
+            : await dbContext.SyncRuns
+                .Where(x => deletedRunIds.Contains(x.Id))
+                .ToListAsync(cancellationToken);
 
         dbContext.SyncRuns.RemoveRange(runs);
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -151,4 +150,18 @@ public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
 
     public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
         dbContext.SaveChangesAsync(cancellationToken);
+
+    private IQueryable<SyncRun> EligibleRuns(DateTimeOffset completedBefore, SyncRunStatus[] terminalStatusValues) =>
+        dbContext.SyncRuns
+            .AsNoTracking()
+            .Where(x => x.CompletedAt.HasValue && x.CompletedAt < completedBefore && terminalStatusValues.Contains(x.Status));
+
+    private Task<int> CountProtectedRunsAsync(DateTimeOffset completedBefore, SyncRunStatus[] terminalStatusValues, CancellationToken cancellationToken) =>
+        dbContext.SyncRuns
+            .AsNoTracking()
+            .CountAsync(
+                x => !terminalStatusValues.Contains(x.Status)
+                    && ((x.CompletedAt.HasValue && x.CompletedAt < completedBefore)
+                        || (!x.CompletedAt.HasValue && x.StartedAt < completedBefore)),
+                cancellationToken);
 }

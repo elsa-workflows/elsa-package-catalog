@@ -214,7 +214,8 @@ public sealed class SyncPersistenceTests
         var oldFailed = CompletedRun(cutoff.AddDays(-2), SyncRunStatus.Failed, 1);
         var recent = CompletedRun(cutoff.AddDays(1), SyncRunStatus.Completed, 1);
         var running = new SyncRun { Trigger = SyncRunTrigger.ManualAll, Status = SyncRunStatus.Running, StartedAt = cutoff.AddDays(-3) };
-        db.SyncRuns.AddRange(oldCompleted, oldFailed, recent, running);
+        var recentRunning = new SyncRun { Trigger = SyncRunTrigger.ManualAll, Status = SyncRunStatus.Running, StartedAt = cutoff.AddDays(1) };
+        db.SyncRuns.AddRange(oldCompleted, oldFailed, recent, running, recentRunning);
         await db.SaveChangesAsync();
 
         var preview = await new SyncRunStore(db).PreviewDeleteBeforeAsync(cutoff, [SyncRunStatus.Completed, SyncRunStatus.CompletedWithErrors, SyncRunStatus.Failed]);
@@ -226,7 +227,7 @@ public sealed class SyncPersistenceTests
         result.DeletedRunCount.Should().Be(2);
         result.DeletedItemCount.Should().Be(3);
         result.ExcludedRunCount.Should().Be(1);
-        (await db.SyncRuns.Select(x => x.Id).ToListAsync()).Should().BeEquivalentTo([recent.Id, running.Id]);
+        (await db.SyncRuns.Select(x => x.Id).ToListAsync()).Should().BeEquivalentTo([recent.Id, running.Id, recentRunning.Id]);
     }
 
     [Fact]
