@@ -953,6 +953,8 @@ components:
         approvalPolicy:
           type: string
           enum: [AutoApprove, Manual]
+        versionDiscoveryPolicy:
+          $ref: '#/components/schemas/PackageSourceVersionDiscoveryPolicy'
         lastSyncedAt:
           type: string
           format: date-time
@@ -986,6 +988,13 @@ components:
         approvalPolicy:
           type: string
           enum: [AutoApprove, Manual]
+        versionDiscoveryPolicy:
+          type: string
+          enum: [AllVersions, LatestStable, LatestIncludingPrerelease]
+          default: AllVersions
+    PackageSourceVersionDiscoveryPolicy:
+      type: string
+      enum: [AllVersions, LatestStable, LatestIncludingPrerelease]
     SyncRequest:
       type: object
       properties:

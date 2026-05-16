@@ -105,10 +105,10 @@ trigger sync, and soft-delete it after confirmation.
    Sources screen, **Then** the empty state explains that a source must be added
    before packages can be indexed and offers a primary add-source action.
 2. **Given** an administrator creates a source with a name, feed URL, enabled
-   state, approval policy, include patterns, exclude patterns, and polling
-   interval, **When** the source is saved successfully, **Then** the source list
-   shows the new source with status, last sync, package count, enabled state, and
-   available actions.
+   state, approval policy, version discovery policy, include patterns, exclude
+   patterns, and polling interval, **When** the source is saved successfully,
+   **Then** the source list shows the new source with status, last sync, package
+   count, enabled state, and available actions.
 3. **Given** include and exclude patterns are being edited, **When** the
    administrator enters sample package IDs into the pattern tester, **Then** the
    preview clearly shows included and excluded matches, with excludes taking
@@ -334,8 +334,9 @@ partial bulk failures, then verify visible states and recovery actions.
 - **FR-005**: The Sources list MUST show name, type, URL, status, approval
   policy, last sync, package count, enabled state, and row actions.
 - **FR-006**: Source create and edit forms MUST include name, feed URL, enabled
-  state, approval policy, include patterns, exclude patterns, and polling
-  interval when those fields are supported by the admin API.
+  state, approval policy, version discovery policy, include patterns, exclude
+  patterns, and polling interval when those fields are supported by the admin
+  API.
 - **FR-007**: Source create and edit forms MUST include an include/exclude
   pattern tester that accepts sample package IDs and previews included and
   excluded outcomes.
@@ -512,6 +513,7 @@ Create/Edit form:
 - Feed URL.
 - Enabled.
 - Approval policy.
+- Version discovery policy.
 - Include patterns.
 - Exclude patterns.
 - Polling interval.
@@ -611,8 +613,8 @@ Run details:
 1. Administrator opens Sources.
 2. Administrator selects Add Source.
 3. Dashboard opens a focused form.
-4. Administrator enters name, feed URL, enabled state, approval policy, include
-   patterns, exclude patterns, and polling interval.
+4. Administrator enters name, feed URL, enabled state, approval policy, version
+   discovery policy, include patterns, exclude patterns, and polling interval.
 5. Administrator tests patterns against sample package IDs.
 6. Dashboard previews included and excluded IDs.
 7. Administrator saves.
@@ -863,8 +865,9 @@ Run details:
 ### Key Entities *(include if feature involves data)*
 
 - **Package Source**: A configured package feed with name, type, URL, enabled
-  state, approval policy, include patterns, exclude patterns, polling interval,
-  health status, last sync timestamps, package counts, and soft-delete state.
+  state, approval policy, version discovery policy, include patterns, exclude
+  patterns, polling interval, health status, last sync timestamps, package
+  counts, and soft-delete state.
 - **Source Health**: Operational status for a source. Source status and last
   successful sync are guaranteed fields; validation counts, authentication
   failures, connectivity issues, and diagnostic messages are derived from recent

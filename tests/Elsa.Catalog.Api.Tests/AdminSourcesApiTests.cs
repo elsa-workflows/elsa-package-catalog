@@ -35,7 +35,8 @@ public sealed class AdminSourcesApiTests
             true,
             ["Elsa.*"],
             ["Elsa.Experimental.*"],
-            PackageSourceApprovalPolicy.Manual));
+            PackageSourceApprovalPolicy.Manual,
+            PackageSourceVersionDiscoveryPolicy.LatestStable));
 
         create.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -44,7 +45,8 @@ public sealed class AdminSourcesApiTests
         sources.Should().ContainSingle(x =>
             x.Name == "NuGet" &&
             x.IncludePatterns.Contains("Elsa.*") &&
-            x.ExcludePatterns.Contains("Elsa.Experimental.*"));
+            x.ExcludePatterns.Contains("Elsa.Experimental.*") &&
+            x.VersionDiscoveryPolicy == PackageSourceVersionDiscoveryPolicy.LatestStable);
     }
 
     [Fact]
@@ -60,6 +62,7 @@ public sealed class AdminSourcesApiTests
               "url": "https://example.test/v3/index.json",
               "enabled": true,
               "approvalPolicy": "AutoApprove",
+              "versionDiscoveryPolicy": "LatestIncludingPrerelease",
               "includePatterns": ["Elsa.*"],
               "excludePatterns": [],
               "pollingInterval": "PT30M"
@@ -72,6 +75,7 @@ public sealed class AdminSourcesApiTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         json.RootElement.GetProperty("approvalPolicy").GetString().Should().Be("AutoApprove");
+        json.RootElement.GetProperty("versionDiscoveryPolicy").GetString().Should().Be("LatestIncludingPrerelease");
         json.RootElement.GetProperty("type").GetString().Should().Be("NuGetFeed");
     }
 
@@ -88,6 +92,7 @@ public sealed class AdminSourcesApiTests
             source.LastSuccessfulSyncAt = lastSuccessfulSync;
             source.LastSyncError = "Elsa.Email 1.0.0: download failed";
             source.PollingInterval = "PT30M";
+            source.VersionDiscoveryPolicy = PackageSourceVersionDiscoveryPolicy.LatestStable;
             var package = PublicCatalogSeedData.CreatePackage(source);
             PublicCatalogSeedData.AddVersion(package);
             db.PackageSources.Add(source);
@@ -104,6 +109,7 @@ public sealed class AdminSourcesApiTests
         source.LastSyncError.Should().Be("Elsa.Email 1.0.0: download failed");
         source.PackageCount.Should().Be(1);
         source.PollingInterval.Should().Be("PT30M");
+        source.VersionDiscoveryPolicy.Should().Be(PackageSourceVersionDiscoveryPolicy.LatestStable);
     }
 
     [Fact]

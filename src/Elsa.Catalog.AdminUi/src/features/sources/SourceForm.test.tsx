@@ -59,10 +59,15 @@ describe("SourceForm", () => {
 
     expect(screen.getByRole("heading", { name: "Edit Source" })).toBeInTheDocument();
     expect(screen.getByLabelText("Name")).toHaveValue("Elsa Official");
+    expect(screen.getByLabelText("Version Discovery")).toHaveValue("AllVersions");
     await userEvent.clear(screen.getByLabelText("Name"));
     await userEvent.type(screen.getByLabelText("Name"), "Internal Feed");
+    await userEvent.selectOptions(screen.getByLabelText("Version Discovery"), "LatestStable");
     await userEvent.click(screen.getByRole("button", { name: "Save Source" }));
 
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ name: "Internal Feed" }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      name: "Internal Feed",
+      versionDiscoveryPolicy: "LatestStable"
+    }));
   });
 });

@@ -9,6 +9,7 @@ public sealed record AdminSourceRequest(
     IReadOnlyList<string> IncludePatterns,
     IReadOnlyList<string>? ExcludePatterns,
     PackageSourceApprovalPolicy ApprovalPolicy,
+    PackageSourceVersionDiscoveryPolicy VersionDiscoveryPolicy = PackageSourceVersionDiscoveryPolicy.AllVersions,
     string? PollingInterval = null);
 
 public sealed record AdminSourceResponse(
@@ -20,6 +21,7 @@ public sealed record AdminSourceResponse(
     IReadOnlyList<string> IncludePatterns,
     IReadOnlyList<string> ExcludePatterns,
     PackageSourceApprovalPolicy ApprovalPolicy,
+    PackageSourceVersionDiscoveryPolicy VersionDiscoveryPolicy,
     PackageSourceStatus Status,
     DateTimeOffset? LastSyncedAt,
     DateTimeOffset? LastSuccessfulSyncAt,

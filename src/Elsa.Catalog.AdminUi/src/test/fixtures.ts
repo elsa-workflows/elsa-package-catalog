@@ -7,6 +7,7 @@ export const sourceFixture = {
   includePatterns: ["Elsa.*"],
   excludePatterns: ["*.Tests"],
   approvalPolicy: "Manual",
+  versionDiscoveryPolicy: "AllVersions",
   status: "Healthy",
   lastSuccessfulSyncAt: "2026-05-15T08:00:00Z",
   lastSyncedAt: "2026-05-15T08:00:00Z",
