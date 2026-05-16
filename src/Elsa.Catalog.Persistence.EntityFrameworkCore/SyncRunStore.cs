@@ -1,6 +1,7 @@
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Sync;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Elsa.Catalog.Persistence.EntityFrameworkCore;
 
@@ -77,14 +78,13 @@ public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
     {
         var terminalStatusValues = terminalStatuses.ToArray();
         var eligibleRuns = await EligibleRuns(completedBefore, terminalStatusValues)
-            .Select(x => new { x.Id, x.CompletedAt })
+            .Select(x => new { x.CompletedAt })
             .ToListAsync(cancellationToken);
-        var eligibleRunIds = eligibleRuns.Select(x => x.Id).ToList();
-        var eligibleItemCount = eligibleRunIds.Count == 0
+        var eligibleItemCount = eligibleRuns.Count == 0
             ? 0
             : await dbContext.SyncRunItems
                 .AsNoTracking()
-                .CountAsync(x => eligibleRunIds.Contains(x.SyncRunId), cancellationToken);
+                .CountAsync(x => EligibleRunIds(completedBefore, terminalStatusValues).Contains(x.SyncRunId), cancellationToken);
 
         var excludedRunCount = await CountProtectedRunsAsync(completedBefore, terminalStatusValues, cancellationToken);
 
@@ -123,26 +123,24 @@ public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
     public async Task<SyncRunCleanupResult> DeleteBeforeAsync(DateTimeOffset completedBefore, IReadOnlyCollection<SyncRunStatus> terminalStatuses, CancellationToken cancellationToken = default)
     {
         var terminalStatusValues = terminalStatuses.ToArray();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+
         var deletedRunIds = await EligibleRuns(completedBefore, terminalStatusValues)
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
         var excludedRunCount = await CountProtectedRunsAsync(completedBefore, terminalStatusValues, cancellationToken);
-        var runs = deletedRunIds.Count == 0
-            ? []
-            : await dbContext.SyncRuns
-                .Where(x => deletedRunIds.Contains(x.Id))
-                .ToListAsync(cancellationToken);
-        var removedRunIds = runs.Select(x => x.Id).ToList();
-        var deletedItemCount = removedRunIds.Count == 0
+        var deletedItemCount = deletedRunIds.Count == 0
             ? 0
             : await dbContext.SyncRunItems
                 .AsNoTracking()
-                .CountAsync(x => removedRunIds.Contains(x.SyncRunId), cancellationToken);
+                .CountAsync(x => EligibleRunIds(completedBefore, terminalStatusValues).Contains(x.SyncRunId), cancellationToken);
 
-        dbContext.SyncRuns.RemoveRange(runs);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        if (deletedRunIds.Count > 0)
+            await EligibleRuns(completedBefore, terminalStatusValues).ExecuteDeleteAsync(cancellationToken);
 
-        return new SyncRunCleanupResult(removedRunIds.Count, deletedItemCount, excludedRunCount, 0, completedBefore, removedRunIds);
+        await transaction.CommitAsync(cancellationToken);
+
+        return new SyncRunCleanupResult(deletedRunIds.Count, deletedItemCount, excludedRunCount, 0, completedBefore, deletedRunIds);
     }
 
     public async Task AddAsync(SyncRun run, CancellationToken cancellationToken = default) =>
@@ -158,6 +156,10 @@ public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
         dbContext.SyncRuns
             .AsNoTracking()
             .Where(x => x.CompletedAt.HasValue && x.CompletedAt < completedBefore && terminalStatusValues.Contains(x.Status));
+
+    private IQueryable<Guid> EligibleRunIds(DateTimeOffset completedBefore, SyncRunStatus[] terminalStatusValues) =>
+        EligibleRuns(completedBefore, terminalStatusValues)
+            .Select(x => x.Id);
 
     private Task<int> CountProtectedRunsAsync(DateTimeOffset completedBefore, SyncRunStatus[] terminalStatusValues, CancellationToken cancellationToken) =>
         dbContext.SyncRuns

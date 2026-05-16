@@ -41,7 +41,10 @@ export function SyncRunsPage() {
   });
   const deleteRun = useMutation({
     mutationFn: deleteSyncRun,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.syncRuns })
+    onSuccess: () => {
+      setCleanupPreview(null);
+      queryClient.invalidateQueries({ queryKey: queryKeys.syncRuns });
+    }
   });
   const previewCleanup = useMutation({
     mutationFn: previewSyncRunCleanup,
