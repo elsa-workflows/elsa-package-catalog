@@ -46,7 +46,7 @@ builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
         options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing")
             ? CookieSecurePolicy.SameAsRequest
             : CookieSecurePolicy.Always;
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.ExpireTimeSpan = AdminDashboardAuthenticationDefaults.SessionLifetime;
         options.LoginPath = AdminDashboardAuthenticationDefaults.LoginPath;
         options.LogoutPath = AdminDashboardAuthenticationDefaults.LogoutPath;
         options.SlidingExpiration = true;
@@ -63,7 +63,9 @@ builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
         };
     });
 builder.Services.AddCatalogAuthorization();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<AdminApiKeyValidator>();
+builder.Services.AddSingleton<AdminDashboardLoginThrottle>();
 builder.Services.AddCatalogDbContext(builder.Configuration);
 builder.Services.AddScoped<ICatalogStore, EfCoreCatalogStore>();
 builder.Services.AddScoped<IPublicCatalogQueries, PublicCatalogQueries>();
@@ -107,6 +109,7 @@ if (!app.Environment.IsEnvironment("Testing"))
 app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAdminDashboardAuthentication();
+app.UseAdminDashboardRequestForgeryGuard();
 app.UseStaticFiles();
 app.UseAuthorization();
 

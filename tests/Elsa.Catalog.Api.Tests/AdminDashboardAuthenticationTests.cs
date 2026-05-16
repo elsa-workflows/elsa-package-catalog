@@ -1,9 +1,16 @@
 using System.Net;
+using Microsoft.Net.Http.Headers;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Elsa.Catalog.Api.Admin.Sources;
 using Elsa.Catalog.Api.Authentication;
 using FluentAssertions;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 
 namespace Elsa.Catalog.Api.Tests;
 
@@ -51,14 +58,55 @@ public sealed class AdminDashboardAuthenticationTests
         await using var app = new CatalogApiTestApplication();
         var client = app.CreateClient(new() { AllowAutoRedirect = false });
 
-        var response = await client.PostAsync(AdminDashboardAuthenticationDefaults.LoginPath, new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["apiKey"] = "wrong",
-            ["returnUrl"] = "/admin/overview"
-        }));
+        var response = await PostLoginAsync(client, "wrong");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Login_rejects_when_admin_key_is_not_configured()
+    {
+        await using var app = new CatalogApiTestApplication().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, configuration) =>
+                configuration.AddInMemoryCollection(new Dictionary<string, string?>
+                {
+                    [ApiKeyAuthenticationDefaults.ConfigurationKey] = ""
+                }));
+        });
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+
+        var response = await PostLoginAsync(client, "local-dev-key");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeFalse();
+    }
+
+    [Fact]
+    public void Dashboard_cookie_uses_expected_security_options()
+    {
+        using var app = new CatalogApiTestApplication();
+
+        var options = app.Services.GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
+            .Get(AdminDashboardAuthenticationDefaults.Scheme);
+
+        options.Cookie.Name.Should().Be(AdminDashboardAuthenticationDefaults.CookieName);
+        options.Cookie.HttpOnly.Should().BeTrue();
+        options.ExpireTimeSpan.Should().Be(AdminDashboardAuthenticationDefaults.SessionLifetime);
+        options.SlidingExpiration.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Login_ignores_unsafe_return_url()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+
+        var response = await PostLoginAsync(client, "local-dev-key", "https://evil.example/admin");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Redirect);
+        response.Headers.Location.Should().Be(AdminDashboardAuthenticationDefaults.DefaultReturnPath);
     }
 
     [Fact]
@@ -68,11 +116,7 @@ public sealed class AdminDashboardAuthenticationTests
         await app.SeedAsync(_ => Task.CompletedTask);
         var client = app.CreateClient(new() { AllowAutoRedirect = false });
 
-        var login = await client.PostAsync(AdminDashboardAuthenticationDefaults.LoginPath, new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["apiKey"] = "local-dev-key",
-            ["returnUrl"] = "/admin/overview"
-        }));
+        var login = await PostLoginAsync(client, "local-dev-key");
 
         login.StatusCode.Should().Be(HttpStatusCode.Redirect);
         login.Headers.Location.Should().Be("/admin/overview");
@@ -89,10 +133,7 @@ public sealed class AdminDashboardAuthenticationTests
     {
         await using var app = new CatalogApiTestApplication();
         var client = app.CreateClient(new() { AllowAutoRedirect = false });
-        await client.PostAsync(AdminDashboardAuthenticationDefaults.LoginPath, new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["apiKey"] = "local-dev-key"
-        }));
+        await PostLoginAsync(client, "local-dev-key");
 
         using var logoutRequest = new HttpRequestMessage(HttpMethod.Post, AdminDashboardAuthenticationDefaults.LogoutPath);
         logoutRequest.Headers.Referrer = new Uri("http://localhost/admin/overview");
@@ -113,10 +154,7 @@ public sealed class AdminDashboardAuthenticationTests
         await using var app = new CatalogApiTestApplication();
         await app.SeedAsync(_ => Task.CompletedTask);
         var client = app.CreateClient(new() { AllowAutoRedirect = false });
-        await client.PostAsync(AdminDashboardAuthenticationDefaults.LoginPath, new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            ["apiKey"] = "local-dev-key"
-        }));
+        await PostLoginAsync(client, "local-dev-key");
         using var logoutRequest = new HttpRequestMessage(HttpMethod.Post, AdminDashboardAuthenticationDefaults.LogoutPath);
         logoutRequest.Headers.Add("Origin", "https://evil.example");
 
@@ -134,5 +172,199 @@ public sealed class AdminDashboardAuthenticationTests
         var response = await app.CreateClient().GetAsync("/health");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Cookie_authenticated_admin_api_mutation_rejects_cross_origin_request()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+        await PostLoginAsync(client, "local-dev-key");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/admin/sync/packages/Elsa.Workflows");
+        request.Headers.Add(HeaderNames.Origin, "https://evil.example");
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Cookie_authenticated_admin_api_mutation_accepts_same_origin_request()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+        await PostLoginAsync(client, "local-dev-key");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/admin/sync/packages/Elsa.Workflows");
+        request.Headers.Add(HeaderNames.Origin, "http://localhost");
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Cookie_authenticated_admin_api_mutation_accepts_same_origin_referer_fallback()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+        await PostLoginAsync(client, "local-dev-key");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/admin/sync/packages/Elsa.Workflows");
+        request.Headers.Referrer = new Uri("http://localhost/admin/overview");
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Cookie_authenticated_admin_api_mutation_rejects_missing_origin_and_referer()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+        await PostLoginAsync(client, "local-dev-key");
+
+        var response = await client.PostAsync("/api/admin/sync/packages/Elsa.Workflows", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Same_origin_validation_uses_effective_request_host()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+        await PostLoginAsync(client, "local-dev-key");
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/admin/sync/packages/Elsa.Workflows");
+        request.Headers.Host = "catalog.example";
+        request.Headers.Add(HeaderNames.Origin, "http://catalog.example");
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Api_key_authenticated_admin_api_mutation_bypasses_browser_origin_check()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/api/admin/sync/packages/Elsa.Workflows");
+        request.Headers.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+        request.Headers.Add(HeaderNames.Origin, "https://evil.example");
+
+        var response = await client.SendAsync(request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Login_throttles_after_repeated_failed_attempts()
+    {
+        var time = new FakeTimeProvider();
+        await using var app = new CatalogApiTestApplication().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<TimeProvider>();
+                services.AddSingleton<TimeProvider>(time);
+            });
+        });
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+
+        for (var i = 0; i < AdminDashboardAuthenticationDefaults.LoginThrottleFailureThreshold; i++)
+        {
+            var failure = await PostLoginAsync(client, "wrong");
+            failure.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        }
+
+        var throttled = await PostLoginAsync(client, "wrong");
+
+        throttled.StatusCode.Should().Be((HttpStatusCode)StatusCodes.Status429TooManyRequests);
+        throttled.Headers.RetryAfter!.Delta.Should().Be(AdminDashboardAuthenticationDefaults.LoginThrottleDelay);
+    }
+
+    [Fact]
+    public async Task Login_throttle_allows_attempt_after_retry_delay()
+    {
+        var time = new FakeTimeProvider();
+        await using var app = new CatalogApiTestApplication().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<TimeProvider>();
+                services.AddSingleton<TimeProvider>(time);
+            });
+        });
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+
+        for (var i = 0; i < AdminDashboardAuthenticationDefaults.LoginThrottleFailureThreshold; i++)
+            await PostLoginAsync(client, "wrong");
+
+        time.Advance(AdminDashboardAuthenticationDefaults.LoginThrottleDelay);
+        var response = await PostLoginAsync(client, "wrong");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Successful_login_resets_failed_login_throttle()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var client = app.CreateClient(new() { AllowAutoRedirect = false });
+
+        for (var i = 0; i < AdminDashboardAuthenticationDefaults.LoginThrottleFailureThreshold - 1; i++)
+            await PostLoginAsync(client, "wrong");
+
+        var success = await PostLoginAsync(client, "local-dev-key");
+        for (var i = 0; i < AdminDashboardAuthenticationDefaults.LoginThrottleFailureThreshold - 1; i++)
+        {
+            var failure = await PostLoginAsync(client, "wrong");
+            failure.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        }
+
+        success.StatusCode.Should().Be(HttpStatusCode.Redirect);
+    }
+
+    [Fact]
+    public void Login_throttle_uses_remote_ip_as_client_key()
+    {
+        var throttle = new AdminDashboardLoginThrottle(TimeProvider.System);
+        var firstClient = CreateContext(IPAddress.Parse("203.0.113.10"));
+        var secondClient = CreateContext(IPAddress.Parse("203.0.113.11"));
+        var firstDecision = throttle.Check(firstClient);
+
+        for (var i = 0; i < AdminDashboardAuthenticationDefaults.LoginThrottleFailureThreshold; i++)
+            throttle.RecordFailure(firstDecision.ClientKey);
+
+        throttle.Check(firstClient).IsThrottled.Should().BeTrue();
+        throttle.Check(secondClient).IsThrottled.Should().BeFalse();
+    }
+
+    private static Task<HttpResponseMessage> PostLoginAsync(HttpClient client, string apiKey, string returnUrl = "/admin/overview") =>
+        client.PostAsync(AdminDashboardAuthenticationDefaults.LoginPath, new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["apiKey"] = apiKey,
+            ["returnUrl"] = returnUrl
+        }));
+
+    private static HttpContext CreateContext(IPAddress remoteIpAddress)
+    {
+        var context = new DefaultHttpContext();
+        context.Connection.RemoteIpAddress = remoteIpAddress;
+        return context;
+    }
+
+    private sealed class FakeTimeProvider : TimeProvider
+    {
+        private DateTimeOffset _utcNow = new(2026, 5, 16, 12, 0, 0, TimeSpan.Zero);
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
+
+        public void Advance(TimeSpan value) => _utcNow = _utcNow.Add(value);
     }
 }
