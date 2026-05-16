@@ -5,4 +5,8 @@ describe("sourceStatusTone", () => {
   it("treats unsupported schemas as destructive validation states", () => {
     expect(sourceStatusTone("UnsupportedSchema")).toBe("destructive");
   });
+
+  it("treats syncing as an in-progress warning state", () => {
+    expect(sourceStatusTone("Syncing")).toBe("warning");
+  });
 });

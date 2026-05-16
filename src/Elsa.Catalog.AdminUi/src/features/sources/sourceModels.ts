@@ -13,6 +13,7 @@ export type PackageSource = {
   approvalPolicy: SourceApprovalPolicy;
   versionDiscoveryPolicy: SourceVersionDiscoveryPolicy;
   status: SourceStatus;
+  isSyncing: boolean;
   lastSyncedAt?: string | null;
   lastSuccessfulSyncAt?: string | null;
   lastSyncError?: string | null;
@@ -67,7 +68,8 @@ export function splitPatterns(value: string) {
     .filter(Boolean);
 }
 
-export function sourceHealthText(source: PackageSource) {
+export function sourceHealthText(source: PackageSource, isSyncing = false) {
+  if (isSyncing || source.isSyncing) return "Syncing";
   if (source.status === "Error") return "Sync failing";
   if (source.status === "Warning") return "Needs review";
   return source.enabled ? "Healthy" : "Disabled";

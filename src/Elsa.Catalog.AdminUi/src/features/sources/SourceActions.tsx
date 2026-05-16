@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Play, Power, Trash2 } from "lucide-react";
+import { Pencil, Play, Power, RefreshCw, Trash2 } from "lucide-react";
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button, DialogPanel, SecondaryButton, buttonClassName } from "@/components/ui";
@@ -7,12 +7,24 @@ import { deleteSource, setSourceEnabled, syncSource } from "@/features/sources/s
 import type { PackageSource } from "@/features/sources/sourceModels";
 import { queryKeys } from "@/lib/query/queryClient";
 
-export function SourceActions({ source, onDeleted, showEdit = true }: { source: PackageSource; onDeleted?: () => void; showEdit?: boolean }) {
+type SourceActionsProps = {
+  source: PackageSource;
+  onDeleted?: () => void;
+  onSyncStateChange?: (sourceId: string, isSyncing: boolean) => void;
+  showEdit?: boolean;
+};
+
+export function SourceActions({ source, onDeleted, onSyncStateChange, showEdit = true }: SourceActionsProps) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: queryKeys.sources });
-  const sync = useMutation({ mutationFn: () => syncSource(source.id), onSuccess: invalidate });
+  const sync = useMutation({
+    mutationFn: () => syncSource(source.id),
+    onMutate: () => onSyncStateChange?.(source.id, true),
+    onSettled: () => onSyncStateChange?.(source.id, false),
+    onSuccess: invalidate
+  });
   const toggle = useMutation({ mutationFn: () => setSourceEnabled(source, !source.enabled), onSuccess: invalidate });
   const remove = useMutation({
     mutationFn: () => deleteSource(source.id),
@@ -21,6 +33,7 @@ export function SourceActions({ source, onDeleted, showEdit = true }: { source: 
       onDeleted?.();
     }
   });
+  const syncInProgress = source.isSyncing || sync.isPending;
 
   useEffect(() => {
     if (confirmingDelete) cancelButtonRef.current?.focus();
@@ -56,9 +69,9 @@ export function SourceActions({ source, onDeleted, showEdit = true }: { source: 
           Edit
         </Link>
       ) : null}
-      <SecondaryButton onClick={() => sync.mutate()} disabled={sync.isPending} title="Sync now">
-        <Play className="h-4 w-4" />
-        Sync
+      <SecondaryButton onClick={() => sync.mutate()} disabled={syncInProgress} title={syncInProgress ? "Sync in progress" : "Sync now"}>
+        {syncInProgress ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+        {syncInProgress ? "Syncing" : "Sync"}
       </SecondaryButton>
       <SecondaryButton onClick={() => toggle.mutate()} disabled={toggle.isPending} title={source.enabled ? "Disable source" : "Enable source"}>
         <Power className="h-4 w-4" />

@@ -9,6 +9,7 @@ export const sourceFixture = {
   approvalPolicy: "Manual",
   versionDiscoveryPolicy: "AllVersions",
   status: "Healthy",
+  isSyncing: false,
   lastSuccessfulSyncAt: "2026-05-15T08:00:00Z",
   lastSyncedAt: "2026-05-15T08:00:00Z",
   lastSyncError: null,

@@ -22,6 +22,8 @@ Fields:
   admin API; otherwise equivalent to successful sync history.
 - `status`: guaranteed source health field such as `Healthy`, `Warning`, or
   `Error`.
+- `isSyncing`: transient admin API state indicating the source is actively
+  being processed by a manual or scheduled sync in the current API host.
 - `packageCount`: count shown on source list when available.
 - `createdAt`, `updatedAt`: audit timestamps.
 - `softDeletedAt`: present when a source has been removed from active source
@@ -57,6 +59,8 @@ Fields:
 - `status`: guaranteed summary status.
 - `lastSuccessfulSyncAt`: guaranteed successful sync timestamp when known.
 - `recentSyncRuns`: recent run summaries used for diagnostics.
+- `isSyncing`: current in-process sync activity, used for an in-progress UI
+  label without changing durable source health.
 - `validationFailureCount`: derived from recent sync run items when available.
 - `authenticationFailures`: derived from recent sync run items or diagnostics.
 - `connectivityIssues`: derived from recent sync run items or diagnostics.

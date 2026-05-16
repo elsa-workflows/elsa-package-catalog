@@ -114,7 +114,8 @@ public sealed class SyncPersistenceTests
             new ManifestIngestionService(),
             new PackageVersionPolicy(),
             new NoopSyncDiagnostics(),
-            new SyncConcurrencyGuard());
+            new SyncConcurrencyGuard(),
+            new SourceSyncActivityTracker());
 
         var run = await service.SyncAllAsync();
 
@@ -148,7 +149,8 @@ public sealed class SyncPersistenceTests
             new ManifestIngestionService(),
             new PackageVersionPolicy(),
             new NoopSyncDiagnostics(),
-            new SyncConcurrencyGuard());
+            new SyncConcurrencyGuard(),
+            new SourceSyncActivityTracker());
 
         await service.SyncAllAsync();
 

@@ -7,18 +7,23 @@ import { RequestStateView } from "@/components/states/RequestStateViews";
 import { SourceActions } from "@/features/sources/SourceActions";
 import { listSources } from "@/features/sources/sourceApi";
 import { sourceHealthText } from "@/features/sources/sourceModels";
+import { useSyncingSourceIds } from "@/features/sources/sourceSyncState";
 import { formatDateTime } from "@/lib/formatters";
 import { queryKeys } from "@/lib/query/queryClient";
 import { sourceStatusTone, statusToneClass } from "@/lib/status/statusBadges";
 
 export function SourcesPage() {
   const [filter, setFilter] = useState("");
+  const { syncingSourceIds, setSourceSyncing } = useSyncingSourceIds();
   const sources = useQuery({ queryKey: queryKeys.sources, queryFn: listSources, refetchInterval: 30_000 });
   const filtered = useMemo(() => {
     const term = filter.trim().toLowerCase();
     if (!term) return sources.data ?? [];
-    return (sources.data ?? []).filter((source) => `${source.name} ${source.url} ${source.status} ${source.lastSyncError ?? ""}`.toLowerCase().includes(term));
-  }, [filter, sources.data]);
+    return (sources.data ?? []).filter((source) => {
+      const isSyncing = source.isSyncing || syncingSourceIds.has(source.id);
+      return `${source.name} ${source.url} ${source.status} ${isSyncing ? "syncing" : ""} ${source.lastSyncError ?? ""}`.toLowerCase().includes(term);
+    });
+  }, [filter, sources.data, syncingSourceIds]);
 
   if (sources.isLoading) return <RequestStateView state="loading" title="Loading sources" />;
   if (sources.isError && !sources.data) return <RequestStateView state="unexpected" title="Sources could not load" />;
@@ -65,23 +70,27 @@ export function SourcesPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filtered.map((source) => (
-                <tr key={source.id}>
-                  <td className="px-3 py-3 font-medium"><Link to={`/admin/sources/${source.id}`}>{source.name}</Link></td>
-                  <td className="max-w-xs truncate px-3 py-3 text-muted-foreground">{source.url}</td>
-                  <td className="px-3 py-3">
-                    <div className="max-w-xs space-y-1">
-                      <Badge className={statusToneClass(sourceStatusTone(source.status))}>{sourceHealthText(source)}</Badge>
-                      {source.lastSyncError ? <p className="break-words text-xs leading-5 text-destructive">{source.lastSyncError}</p> : null}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">{source.approvalPolicy}</td>
-                  <td className="px-3 py-3">{formatDateTime(source.lastSuccessfulSyncAt ?? source.lastSyncedAt)}</td>
-                  <td className="px-3 py-3">{source.packageCount}</td>
-                  <td className="px-3 py-3">{source.enabled ? "Yes" : "No"}</td>
-                  <td className="px-3 py-3"><SourceActions source={source} /></td>
-                </tr>
-              ))}
+              {filtered.map((source) => {
+                const isSyncing = source.isSyncing || syncingSourceIds.has(source.id);
+
+                return (
+                  <tr key={source.id}>
+                    <td className="px-3 py-3 font-medium"><Link to={`/admin/sources/${source.id}`}>{source.name}</Link></td>
+                    <td className="max-w-xs truncate px-3 py-3 text-muted-foreground">{source.url}</td>
+                    <td className="px-3 py-3">
+                      <div className="max-w-xs space-y-1">
+                        <Badge className={statusToneClass(sourceStatusTone(isSyncing ? "syncing" : source.status))}>{sourceHealthText(source, isSyncing)}</Badge>
+                        {source.lastSyncError && !isSyncing ? <p className="break-words text-xs leading-5 text-destructive">{source.lastSyncError}</p> : null}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">{source.approvalPolicy}</td>
+                    <td className="px-3 py-3">{formatDateTime(source.lastSuccessfulSyncAt ?? source.lastSyncedAt)}</td>
+                    <td className="px-3 py-3">{source.packageCount}</td>
+                    <td className="px-3 py-3">{source.enabled ? "Yes" : "No"}</td>
+                    <td className="px-3 py-3"><SourceActions source={source} onSyncStateChange={setSourceSyncing} /></td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </Table>

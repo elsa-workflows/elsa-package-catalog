@@ -23,6 +23,7 @@ public sealed record AdminSourceResponse(
     PackageSourceApprovalPolicy ApprovalPolicy,
     PackageSourceVersionDiscoveryPolicy VersionDiscoveryPolicy,
     PackageSourceStatus Status,
+    bool IsSyncing,
     DateTimeOffset? LastSyncedAt,
     DateTimeOffset? LastSuccessfulSyncAt,
     string? LastSyncError,
