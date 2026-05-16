@@ -2,88 +2,102 @@
 
 **Input**: Design documents from `/specs/004-admin-dashboard-auth/`
 
-**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
+**Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/, quickstart.md
 
-**Tests**: Integration tests are required because this feature changes authentication and routing behavior.
+**Tests**: Integration tests are required because this feature changes authentication, routing, cookie behavior, CSRF protection, and login throttling.
 
-**Organization**: Tasks are grouped by user story to preserve an independently testable MVP.
+**Organization**: Tasks are grouped by user story to preserve independently testable increments.
 
 ## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: Can run in parallel (different files, no dependencies)
-- **[Story]**: Which user story the task supports
-- Include exact file paths in descriptions
+- **[P]**: Can run in parallel because it touches different files and has no dependency on incomplete tasks in the same phase
+- **[Story]**: Maps to a user story from [spec.md](./spec.md)
+- Every task includes an exact file path
 
 ## Phase 1: Setup (Shared Infrastructure)
 
-**Purpose**: Confirm the existing API host remains the auth boundary.
+**Purpose**: Confirm the existing API host remains the dashboard and admin API authentication boundary.
 
-- [X] T001 Review existing auth policy and static file ordering in `src/Elsa.Catalog.Api/Program.cs` and `src/Elsa.Catalog.Api/Authentication/`
+- [ ] T001 Review current middleware ordering and authentication registration in `src/Elsa.Catalog.Api/Program.cs`
+- [ ] T002 [P] Review existing admin authentication helpers in `src/Elsa.Catalog.Api/Authentication/`
+- [ ] T003 [P] Review existing dashboard authentication integration tests in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Add reusable dashboard auth primitives before user story work.
+**Purpose**: Add shared auth primitives required by all dashboard authentication stories.
 
-- [X] T002 Add dashboard cookie auth defaults and admin-key validation helpers in `src/Elsa.Catalog.Api/Authentication/`
-- [X] T003 Update admin authorization policy in `src/Elsa.Catalog.Api/Authentication/AdminAuthorization.cs` to accept API key or dashboard cookie
+**CRITICAL**: No user story work should begin until this phase is complete.
 
-**Checkpoint**: Foundation ready - user story implementation can start.
+- [ ] T004 Add or update dashboard cookie auth defaults, including 8-hour sliding expiration constants, in `src/Elsa.Catalog.Api/Authentication/AdminDashboardAuthenticationDefaults.cs`
+- [ ] T005 Add or update reusable admin API key validation in `src/Elsa.Catalog.Api/Authentication/AdminApiKeyValidator.cs`
+- [ ] T006 Add or update authenticated admin principal creation for API key and dashboard cookie identities in `src/Elsa.Catalog.Api/Authentication/AdminPrincipalFactory.cs`
+- [ ] T007 Update admin authorization policy to accept API key or dashboard cookie schemes in `src/Elsa.Catalog.Api/Authentication/AdminAuthorization.cs`
+- [ ] T008 Register dashboard cookie authentication, shared auth services, and middleware ordering in `src/Elsa.Catalog.Api/Program.cs`
+
+**Checkpoint**: Auth primitives are ready and can be used by dashboard route gating, login, API authorization, and logout.
 
 ---
 
 ## Phase 3: User Story 1 - Require Admin Login For Dashboard (Priority: P1) MVP
 
-**Goal**: Anonymous users cannot load dashboard shell or assets.
+**Goal**: Anonymous users cannot load the dashboard shell or dashboard static assets, while public endpoints remain anonymous.
 
-**Independent Test**: Anonymous `/admin/overview` redirects to login and anonymous asset requests are not served.
+**Independent Test**: Anonymous `/admin/overview` redirects to login, anonymous dashboard asset requests are not served, and `/health` plus public catalog endpoints remain public.
 
 ### Tests for User Story 1
 
-- [X] T004 [US1] Add anonymous dashboard access tests in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
+- [ ] T009 [US1] Add or update anonymous dashboard route, dashboard asset, non-browser unauthorized, health endpoint, and public catalog endpoint tests in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
 
 ### Implementation for User Story 1
 
-- [X] T005 [US1] Register dashboard cookie auth and place dashboard gating before static file serving in `src/Elsa.Catalog.Api/Program.cs`
-- [X] T006 [US1] Implement dashboard path authorization middleware in `src/Elsa.Catalog.Api/Authentication/`
+- [ ] T010 [US1] Implement or update dashboard path authorization middleware in `src/Elsa.Catalog.Api/Authentication/AdminDashboardAuthenticationMiddleware.cs`
+- [ ] T011 [US1] Ensure dashboard gating runs before static file serving and admin fallback routing in `src/Elsa.Catalog.Api/Program.cs`
 
-**Checkpoint**: Anonymous dashboard access is blocked while public endpoints remain public.
+**Checkpoint**: Anonymous dashboard access is blocked while public endpoints remain available.
 
 ---
 
 ## Phase 4: User Story 2 - Sign In With Existing Admin Key (Priority: P1)
 
-**Goal**: Admins can sign in once with the existing admin key and use the dashboard without browser-readable API key storage.
+**Goal**: Admins can sign in with the configured admin key, receive an HTTP-only 8-hour sliding session, use admin APIs via cookie auth, avoid browser-readable API keys, reject cross-origin cookie-authenticated mutations, and throttle repeated failed login attempts.
 
-**Independent Test**: Valid login creates a session that authorizes admin API requests; invalid login does not.
+**Independent Test**: Valid login creates the configured session and authorizes admin API requests; invalid login does not create a session; repeated invalid attempts are throttled after 5 failures in 15 minutes with a 5-minute retry delay; cross-origin cookie-authenticated admin API mutations fail; API-key header clients continue to work.
 
 ### Tests for User Story 2
 
-- [X] T007 [US2] Add login success/failure and cookie-authorized admin API tests in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
+- [ ] T012 [US2] Add or update valid login, invalid login, missing configured key, safe return URL, unsafe return URL, cookie attributes, and cookie-authorized admin API tests in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
+- [ ] T013 [US2] Add or update same-origin validation tests for cookie-authenticated admin API mutation requests and API-key header bypass behavior in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
+- [ ] T014 [US2] Add failed-login throttle tests for 5 failures in 15 minutes, 5-minute retry delay, successful-login reset, and process-local behavior in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
 
 ### Implementation for User Story 2
 
-- [X] T008 [US2] Implement minimal login endpoints in `src/Elsa.Catalog.Api/Authentication/`
-- [X] T009 [US2] Wire login endpoints in `src/Elsa.Catalog.Api/Program.cs`
+- [ ] T015 [US2] Implement or update the server-rendered login endpoint and safe return URL handling in `src/Elsa.Catalog.Api/Authentication/AdminDashboardAuthEndpoints.cs`
+- [ ] T016 [US2] Configure dashboard cookie options for HTTP-only storage and 8-hour sliding expiration in `src/Elsa.Catalog.Api/Program.cs`
+- [ ] T017 [US2] Implement in-memory per-client failed-login throttling in `src/Elsa.Catalog.Api/Authentication/AdminDashboardLoginThrottle.cs`
+- [ ] T018 [US2] Integrate failed-login throttling into login submission handling in `src/Elsa.Catalog.Api/Authentication/AdminDashboardAuthEndpoints.cs`
+- [ ] T019 [US2] Implement or update same-origin validation for cookie-authenticated admin API mutations in `src/Elsa.Catalog.Api/Authentication/AdminDashboardRequestForgeryGuard.cs`
+- [ ] T020 [US2] Wire same-origin validation into the admin API request pipeline without affecting API-key header clients in `src/Elsa.Catalog.Api/Program.cs`
 
-**Checkpoint**: Dashboard session login works and existing API-key clients still work.
+**Checkpoint**: Dashboard session login works, API-key clients still work, failed login attempts are throttled, and cookie-authenticated mutation requests enforce same-origin validation.
 
 ---
 
 ## Phase 5: User Story 3 - Sign Out Of Dashboard Session (Priority: P2)
 
-**Goal**: Admins can explicitly clear the dashboard session.
+**Goal**: Admins can explicitly clear the dashboard browser session.
 
-**Independent Test**: Logout clears the session and dashboard routes require login again.
+**Independent Test**: Sign in, sign out, then confirm dashboard routes require login again and the user is returned to the login page.
 
 ### Tests for User Story 3
 
-- [X] T010 [US3] Add logout test in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
+- [ ] T021 [US3] Add or update logout clearing and post-logout dashboard access tests in `tests/Elsa.Catalog.Api.Tests/AdminDashboardAuthenticationTests.cs`
 
 ### Implementation for User Story 3
 
-- [X] T011 [US3] Implement logout endpoint in `src/Elsa.Catalog.Api/Authentication/`
+- [ ] T022 [US3] Implement or update logout endpoint behavior in `src/Elsa.Catalog.Api/Authentication/AdminDashboardAuthEndpoints.cs`
+- [ ] T023 [US3] Ensure logout route mapping is registered with the dashboard auth endpoints in `src/Elsa.Catalog.Api/Program.cs`
 
 **Checkpoint**: Login and logout lifecycle works end to end.
 
@@ -91,11 +105,13 @@
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-**Purpose**: Validate and document the completed security behavior.
+**Purpose**: Validate the completed security behavior and keep documentation aligned.
 
-- [X] T012 Run `dotnet test tests/Elsa.Catalog.Api.Tests/Elsa.Catalog.Api.Tests.csproj`
-- [X] T013 Run quickstart smoke checks from `specs/004-admin-dashboard-auth/quickstart.md`
-- [X] T014 Update task completion markers in `specs/004-admin-dashboard-auth/tasks.md`
+- [ ] T024 [P] Update auth quickstart notes after implementation in `specs/004-admin-dashboard-auth/quickstart.md`
+- [ ] T025 Run `dotnet test tests/Elsa.Catalog.Api.Tests/Elsa.Catalog.Api.Tests.csproj`
+- [ ] T026 Run smoke checks from `specs/004-admin-dashboard-auth/quickstart.md`
+- [ ] T027 Review new auth helpers against simplicity and no-new-durable-storage constraints in `src/Elsa.Catalog.Api/Authentication/`
+- [ ] T028 Confirm generated frontend assets and browser-readable storage do not contain the admin API key in `src/Elsa.Catalog.AdminUi/`
 
 ---
 
@@ -104,21 +120,50 @@
 ### Phase Dependencies
 
 - **Setup (Phase 1)**: No dependencies.
-- **Foundational (Phase 2)**: Depends on Setup; blocks all stories.
-- **User Story 1 and 2**: Depend on Foundational. Both are MVP priority; implement US1 first to close anonymous access, then US2 to restore authorized browser use.
-- **User Story 3**: Depends on US2.
-- **Polish**: Depends on all selected stories.
+- **Foundational (Phase 2)**: Depends on Setup; blocks all user stories.
+- **US1 Dashboard Gating (Phase 3)**: Depends on Foundational and is the MVP security closure.
+- **US2 Login, Session, API Cookie Auth, CSRF, Throttle (Phase 4)**: Depends on Foundational and should follow US1 so authenticated browser use is restored after anonymous access is blocked.
+- **US3 Logout (Phase 5)**: Depends on US2 because it clears the dashboard session created by login.
+- **Polish (Phase 6)**: Depends on selected user stories.
+
+### User Story Dependencies
+
+- **US1 (P1)**: Independent after Foundation.
+- **US2 (P1)**: Independent after Foundation, but should be integrated after US1 to keep dashboard gating closed.
+- **US3 (P2)**: Depends on US2.
 
 ### Parallel Opportunities
 
-- T004 and T007 touch the same test file and should be done sequentially.
-- Implementation tasks in `Program.cs` should be sequential to preserve middleware order.
-- No parallel worker split is recommended for this small security change.
+- T002 and T003 can run in parallel during setup.
+- Tests T012, T013, and T014 can be drafted together but touch the same test file, so coordinate edits.
+- T017 and T019 can be implemented in parallel because they create separate auth helpers.
+- T024 can run in parallel with final code review once behavior is stable.
+
+## Parallel Example: User Story 2
+
+```text
+Task: "Implement in-memory per-client failed-login throttling in src/Elsa.Catalog.Api/Authentication/AdminDashboardLoginThrottle.cs"
+Task: "Implement or update same-origin validation for cookie-authenticated admin API mutations in src/Elsa.Catalog.Api/Authentication/AdminDashboardRequestForgeryGuard.cs"
+```
 
 ## Implementation Strategy
 
-1. Add tests for anonymous blocking and login behavior.
-2. Add auth primitives and middleware.
-3. Wire cookie auth into the existing admin policy.
-4. Add logout.
-5. Run the API test suite and smoke the deployed routes after push.
+### MVP First
+
+1. Complete Phase 1 and Phase 2.
+2. Complete US1 to stop anonymous dashboard shell and asset access.
+3. Validate US1 independently.
+
+### Incremental Delivery
+
+1. Add US1 dashboard gating and verify public endpoints remain public.
+2. Add US2 login/session/API-cookie behavior, same-origin mutation validation, and login throttling.
+3. Add US3 logout behavior.
+4. Run full API authentication tests and quickstart smoke checks.
+
+### Notes
+
+- Tests should be added or updated before implementation changes when behavior is not already covered.
+- Same-origin validation applies to cookie-authenticated admin API mutation methods only.
+- API-key header clients must remain compatible.
+- Failed-login throttle state is intentionally process-local and non-durable.
