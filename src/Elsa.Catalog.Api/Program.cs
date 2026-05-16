@@ -43,7 +43,7 @@ builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
         options.Cookie.HttpOnly = true;
         options.Cookie.Path = "/";
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing")
+        options.Cookie.SecurePolicy = builder.Environment.IsEnvironment("Testing")
             ? CookieSecurePolicy.SameAsRequest
             : CookieSecurePolicy.Always;
         options.ExpireTimeSpan = AdminDashboardAuthenticationDefaults.SessionLifetime;

@@ -53,7 +53,7 @@ public static class AdminDashboardAuthEndpoints
                 new AuthenticationProperties
                 {
                     IsPersistent = false,
-                    IssuedUtc = DateTimeOffset.UtcNow
+                    IssuedUtc = timeProvider.GetUtcNow()
                 });
 
             throttle.Clear(throttleDecision.ClientKey);

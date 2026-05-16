@@ -20,7 +20,15 @@ public sealed class SyncRunCancellationRegistry
         if (!_runningRuns.TryGetValue(runId, out var run))
             return false;
 
-        run.Cancel();
+        try
+        {
+            run.Cancel();
+        }
+        catch (ObjectDisposedException)
+        {
+            return false;
+        }
+
         return true;
     }
 
