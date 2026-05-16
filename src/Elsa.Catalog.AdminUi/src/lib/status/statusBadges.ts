@@ -12,6 +12,7 @@ export function sourceStatusTone(status?: string): StatusTone {
     case "syncing":
     case "completedwitherrors":
     case "notvalidated":
+    case "canceled":
       return "warning";
     case "error":
     case "failed":

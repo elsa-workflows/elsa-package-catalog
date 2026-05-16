@@ -89,6 +89,7 @@ builder.Services.AddSingleton<VersionRangeEvaluator>();
 builder.Services.AddSingleton<InfrastructureProviderCatalog>();
 builder.Services.AddSingleton<SyncConcurrencyGuard>();
 builder.Services.AddSingleton<SourceSyncActivityTracker>();
+builder.Services.AddSingleton<SyncRunCancellationRegistry>();
 builder.Services.AddSingleton<PublicCatalogVisibilityPolicy>();
 builder.Services.AddSingleton<PackageVersionPolicy>();
 builder.Services.AddSingleton<ISyncDiagnostics, NoopSyncDiagnostics>();

@@ -213,8 +213,9 @@ healthy, and inspect run details, failures, warnings, and per-package outcomes.
 need enough detail to debug failures without a full observability product.
 
 **Independent Test**: Seed scheduled, manual all-source, manual source, and
-manual package sync runs with completed, failed, running, and completed-with-
-errors states, then verify summary rows, filtering, details, and re-sync actions.
+manual package sync runs with completed, failed, running, canceled, and
+completed-with-errors states, then verify summary rows, filtering, details,
+cancel actions, and re-sync actions.
 
 **Acceptance Scenarios**:
 
@@ -227,10 +228,14 @@ errors states, then verify summary rows, filtering, details, and re-sync actions
    failures.
 3. **Given** a sync run is active, **When** the dashboard refreshes, **Then** the
    active status updates through polling and never implies live log streaming.
-4. **Given** a run failed because a source was unreachable, **When** details are
+4. **Given** a sync run is active, **When** the administrator chooses Cancel,
+   **Then** the API requests cancellation for that run, the dashboard disables
+   duplicate cancel submissions, and polling reflects the terminal Canceled
+   status after the sync stops.
+5. **Given** a run failed because a source was unreachable, **When** details are
    viewed, **Then** the failure is grouped under the affected source and includes
    the most actionable error message available.
-5. **Given** a specific package failed during a run, **When** the administrator
+6. **Given** a specific package failed during a run, **When** the administrator
    selects it, **Then** the dashboard links to package details when a package
    record exists and otherwise shows the sync item diagnostics.
 

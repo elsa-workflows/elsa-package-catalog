@@ -1,10 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Play, RefreshCw, Search, X } from "lucide-react";
+import { Play, RefreshCw, Search, Square, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge, Button, EmptyState, Input, SecondaryButton, Select, Table } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
-import { listSyncRuns, syncAll } from "@/features/sync-runs/syncRunApi";
+import { cancelSyncRun, listSyncRuns, syncAll } from "@/features/sync-runs/syncRunApi";
 import { SyncRunSourceValue } from "@/features/sync-runs/SyncRunSourceValue";
 import type { SyncRunStatus, SyncRunTrigger } from "@/features/sync-runs/syncRunModels";
 import {
@@ -21,7 +21,7 @@ import { formatDateTime, formatDuration } from "@/lib/formatters";
 import { queryKeys } from "@/lib/query/queryClient";
 import { sourceStatusTone, statusToneClass } from "@/lib/status/statusBadges";
 
-const statuses: Array<SyncRunStatus | "All"> = ["All", "Running", "Completed", "CompletedWithErrors", "Failed"];
+const statuses: Array<SyncRunStatus | "All"> = ["All", "Running", "Completed", "CompletedWithErrors", "Failed", "Canceled"];
 const triggers: Array<SyncRunTrigger | "All"> = ["All", "Scheduled", "ManualAll", "ManualSource", "ManualPackage"];
 
 export function SyncRunsPage() {
@@ -32,6 +32,10 @@ export function SyncRunsPage() {
   const syncRuns = useQuery({ queryKey: queryKeys.syncRuns, queryFn: listSyncRuns, refetchInterval: 15_000 });
   const startSync = useMutation({
     mutationFn: syncAll,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.syncRuns })
+  });
+  const cancelSync = useMutation({
+    mutationFn: cancelSyncRun,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.syncRuns })
   });
 
@@ -48,6 +52,7 @@ export function SyncRunsPage() {
 
   const hasFilters = Boolean(filter.trim()) || status !== "All" || trigger !== "All";
   const hasActiveRun = (syncRuns.data ?? []).some(isActiveSyncRun);
+  const activeRun = (syncRuns.data ?? []).find(isActiveSyncRun);
 
   function clearFilters() {
     setFilter("");
@@ -74,11 +79,23 @@ export function SyncRunsPage() {
             <Play className="h-4 w-4" />
             Sync All
           </Button>
+          {activeRun ? (
+            <SecondaryButton
+              onClick={() => cancelSync.mutate(activeRun.id)}
+              disabled={cancelSync.isPending}
+              className="text-destructive"
+              title="Cancel active sync"
+            >
+              <Square className="h-4 w-4" />
+              Cancel Sync
+            </SecondaryButton>
+          ) : null}
         </div>
       </div>
 
       {syncRuns.isRefetchError ? <RequestStateView state="stale" title="Showing last loaded sync runs" /> : null}
       {startSync.isError ? <RequestStateView state="unexpected" title="Sync could not start" /> : null}
+      {cancelSync.isError ? <RequestStateView state="unexpected" title="Sync could not be canceled" /> : null}
 
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <label className="relative block w-full max-w-md">
@@ -125,6 +142,7 @@ export function SyncRunsPage() {
                 <th className="px-3 py-2">Updated</th>
                 <th className="px-3 py-2">Failures</th>
                 <th className="px-3 py-2">Items</th>
+                <th className="px-3 py-2">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -146,6 +164,19 @@ export function SyncRunsPage() {
                   <td className="px-3 py-3">{packagesUpdated(run)}</td>
                   <td className="px-3 py-3">{syncFailures(run)}</td>
                   <td className="px-3 py-3">{run.itemCount}</td>
+                  <td className="px-3 py-3">
+                    {isActiveSyncRun(run) ? (
+                      <SecondaryButton
+                        onClick={() => cancelSync.mutate(run.id)}
+                        disabled={cancelSync.isPending}
+                        className="text-destructive"
+                        title="Cancel sync run"
+                      >
+                        <Square className="h-4 w-4" />
+                        Cancel
+                      </SecondaryButton>
+                    ) : null}
+                  </td>
                 </tr>
               ))}
             </tbody>

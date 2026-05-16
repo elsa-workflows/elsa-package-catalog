@@ -13,3 +13,7 @@ export async function getSyncRun(runId: string) {
 export async function syncAll() {
   return normalizeSyncRun(await apiRequest<SyncRun>("/api/admin/sync", { method: "POST" }));
 }
+
+export async function cancelSyncRun(runId: string) {
+  return normalizeSyncRun(await apiRequest<SyncRun>(`/api/admin/sync-runs/${runId}/cancel`, { method: "POST" }));
+}

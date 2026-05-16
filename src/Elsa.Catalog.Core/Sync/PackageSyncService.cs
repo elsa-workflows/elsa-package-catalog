@@ -21,7 +21,8 @@ public sealed class PackageSyncService(
     PackageVersionPolicy versionPolicy,
     ISyncDiagnostics diagnostics,
     SyncConcurrencyGuard concurrencyGuard,
-    SourceSyncActivityTracker syncActivity)
+    SourceSyncActivityTracker syncActivity,
+    SyncRunCancellationRegistry cancellationRegistry)
 {
     public async Task<SyncRun> SyncAllAsync(CancellationToken cancellationToken = default)
     {
@@ -57,9 +58,10 @@ public sealed class PackageSyncService(
 
     private async Task ExecuteRunAsync(SyncRun run, Func<Task<IReadOnlyList<PackageSource>>> getSources, CancellationToken cancellationToken)
     {
+        using var runCancellation = cancellationRegistry.Track(run.Id, cancellationToken);
         diagnostics.SyncRunStarted(run.Id);
-        await syncRuns.AddAsync(run, cancellationToken);
-        await syncRuns.SaveChangesAsync(cancellationToken);
+        await syncRuns.AddAsync(run, runCancellation.Token);
+        await syncRuns.SaveChangesAsync(runCancellation.Token);
 
         var counters = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
@@ -67,13 +69,19 @@ public sealed class PackageSyncService(
         {
             foreach (var source in (await getSources()).Where(x => x.Enabled))
             {
-                await SyncSourceAsync(run, source, counters, cancellationToken);
-                await sources.SaveChangesAsync(cancellationToken);
+                runCancellation.Token.ThrowIfCancellationRequested();
+                await SyncSourceAsync(run, source, counters, runCancellation.Token);
+                await sources.SaveChangesAsync(runCancellation.Token);
             }
 
             run.Status = run.Items.Any(x => x.Status == SyncRunItemStatus.Failed)
                 ? SyncRunStatus.CompletedWithErrors
                 : SyncRunStatus.Completed;
+        }
+        catch (OperationCanceledException) when (runCancellation.IsOperatorCancellationRequested)
+        {
+            run.Status = SyncRunStatus.Canceled;
+            run.Error = "Sync canceled by operator.";
         }
         catch (Exception ex)
         {
@@ -96,6 +104,10 @@ public sealed class PackageSyncService(
         try
         {
             discovered = await discovery.FindPackageVersionsAsync(source, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -218,6 +230,10 @@ public sealed class PackageSyncService(
             runItem.PackageVersion = packageVersion;
             runItem.PackageVersionId = packageVersion.Id;
             Increment(counters, runItem.Status == SyncRunItemStatus.Indexed ? "indexed" : "invalid");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {

@@ -100,6 +100,41 @@ public sealed class AdminSyncApiTests
         run.Sources.Should().ContainSingle().Which.Should().Be(new AdminSyncRunSourceResponse(sourceId, "Elsa Official"));
     }
 
+    [Fact]
+    public async Task Running_sync_can_be_canceled()
+    {
+        var discovery = new GatedDiscoveryClient();
+        await using var app = new CatalogApiTestApplication().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<IPackageVersionDiscoveryClient>();
+                services.AddSingleton<IPackageVersionDiscoveryClient>(discovery);
+            });
+        });
+
+        await SeedAsync(app, db =>
+        {
+            db.PackageSources.Add(PublicCatalogSeedData.CreatePackageSource());
+            return Task.CompletedTask;
+        });
+
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+
+        var running = client.PostAsync("/api/admin/sync", null);
+        await discovery.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var activeRun = (await client.GetCatalogJsonAsync<List<AdminSyncRunResponse>>("/api/admin/sync-runs"))!.Should().ContainSingle().Subject;
+
+        var cancelResponse = await client.PostAsync($"/api/admin/sync-runs/{activeRun.Id}/cancel", null);
+        var completedResponse = await running;
+        var completedRun = await completedResponse.Content.ReadCatalogJsonAsync<AdminSyncRunResponse>();
+
+        cancelResponse.StatusCode.Should().Be(HttpStatusCode.OK, await cancelResponse.Content.ReadAsStringAsync());
+        completedRun!.Status.Should().Be(SyncRunStatus.Canceled);
+        completedRun.Error.Should().Be("Sync canceled by operator.");
+    }
+
     private static async Task<(Guid RunId, Guid SourceId)> SeedSyncRunWithSourceAsync(CatalogApiTestApplication app)
     {
         var runId = Guid.NewGuid();
@@ -151,5 +186,17 @@ public sealed class AdminSyncApiTests
     {
         public Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default) =>
             throw new InvalidOperationException("Discovery failed.");
+    }
+
+    private sealed class GatedDiscoveryClient : IPackageVersionDiscoveryClient
+    {
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<IReadOnlyList<DiscoveredPackageVersion>> FindPackageVersionsAsync(PackageSource source, CancellationToken cancellationToken = default)
+        {
+            Started.SetResult();
+            await Task.Delay(TimeSpan.FromMinutes(5), cancellationToken);
+            return [];
+        }
     }
 }

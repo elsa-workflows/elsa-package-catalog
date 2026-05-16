@@ -54,7 +54,8 @@ public enum SyncRunStatus
     Running,
     Completed,
     Failed,
-    CompletedWithErrors
+    CompletedWithErrors,
+    Canceled
 }
 
 public enum SyncRunItemStatus
