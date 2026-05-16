@@ -104,14 +104,16 @@ public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
 
     public async Task<SyncRunCleanupResult> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        var itemCount = await dbContext.SyncRunItems
+            .AsNoTracking()
+            .CountAsync(x => x.SyncRunId == id, cancellationToken);
+
         var run = await dbContext.SyncRuns
-            .Include(x => x.Items)
             .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
 
         if (run is null)
             return new SyncRunCleanupResult(0, 0, 0, 1, null, []);
 
-        var itemCount = run.Items.Count;
         dbContext.SyncRuns.Remove(run);
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -124,22 +126,23 @@ public sealed class SyncRunStore(CatalogDbContext dbContext) : ISyncRunStore
         var deletedRunIds = await EligibleRuns(completedBefore, terminalStatusValues)
             .Select(x => x.Id)
             .ToListAsync(cancellationToken);
-        var deletedItemCount = deletedRunIds.Count == 0
-            ? 0
-            : await dbContext.SyncRunItems
-                .AsNoTracking()
-                .CountAsync(x => deletedRunIds.Contains(x.SyncRunId), cancellationToken);
         var excludedRunCount = await CountProtectedRunsAsync(completedBefore, terminalStatusValues, cancellationToken);
         var runs = deletedRunIds.Count == 0
             ? []
             : await dbContext.SyncRuns
                 .Where(x => deletedRunIds.Contains(x.Id))
                 .ToListAsync(cancellationToken);
+        var removedRunIds = runs.Select(x => x.Id).ToList();
+        var deletedItemCount = removedRunIds.Count == 0
+            ? 0
+            : await dbContext.SyncRunItems
+                .AsNoTracking()
+                .CountAsync(x => removedRunIds.Contains(x.SyncRunId), cancellationToken);
 
         dbContext.SyncRuns.RemoveRange(runs);
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        return new SyncRunCleanupResult(runs.Count, deletedItemCount, excludedRunCount, 0, completedBefore, deletedRunIds);
+        return new SyncRunCleanupResult(removedRunIds.Count, deletedItemCount, excludedRunCount, 0, completedBefore, removedRunIds);
     }
 
     public async Task AddAsync(SyncRun run, CancellationToken cancellationToken = default) =>
