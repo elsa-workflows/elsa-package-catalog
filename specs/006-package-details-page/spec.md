@@ -29,6 +29,16 @@ graph visualizer, or analytics product. Its job is to help technical
 administrators answer, quickly and confidently, "What is this package, what does
 this version contain, and what prevents it from being visible?"
 
+## Clarifications
+
+### Session 2026-05-17
+
+- Q: Which package version should be selected by default when a package has multiple indexed versions? -> A: Latest indexed version.
+- Q: How should route package ID casing be handled? -> A: Resolve case-insensitively and display canonical indexed casing.
+- Q: What level of deep linking should the details page support? -> A: Direct links to package version and major section.
+- Q: How should trust-changing actions behave when the package version changed after the page loaded? -> A: Block the action and require refresh before retry.
+- Q: How should administrators inspect large validation, feature, setting, dependency, and manifest sections? -> A: Provide in-page search and filtering.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Inspect Package Summary (Priority: P1)
@@ -52,8 +62,8 @@ requiring any secondary navigation.
    source name, latest known version, published date when available, indexed
    date, and last updated date.
 2. **Given** the package has multiple indexed versions, **When** the page opens,
-   **Then** one version is selected by default and all version-specific summary
-   fields clearly correspond to that selected version.
+   **Then** the latest indexed version is selected by default and all
+   version-specific summary fields clearly correspond to that selected version.
 3. **Given** the selected version is publicly visible, **When** the summary is
    displayed, **Then** the page states that the version is visible and shows the
    positive reasons supporting that state.
@@ -64,6 +74,9 @@ requiring any secondary navigation.
 5. **Given** the package route references a package that does not exist or is no
    longer accessible, **When** the page loads, **Then** the administrator sees a
    clear not-found state with a path back to the packages list.
+6. **Given** the package ID in the route uses different casing than the indexed
+   package ID, **When** the page loads, **Then** the package is resolved
+   case-insensitively and displayed using its canonical indexed casing.
 
 ---
 
@@ -95,6 +108,9 @@ version-scoped section updates consistently.
 4. **Given** a direct URL identifies a specific version, **When** the page
    opens, **Then** that version is selected when it exists and a recoverable
    version-not-found message is shown when it does not.
+5. **Given** a direct URL identifies a specific package version and major
+   section, **When** the page opens, **Then** that version is selected and the
+   requested section is brought into view when both exist.
 
 ---
 
@@ -170,6 +186,10 @@ of those details; verify both rich and empty states are useful.
    dependencies, conflicts, or compatibility metadata, **When** the relevant
    section is viewed, **Then** the page states that no data was indexed for that
    section.
+6. **Given** a package version has a large number of features, settings,
+   dependencies, or conflicts, **When** the administrator inspects those
+   sections, **Then** in-page search and filtering help narrow the displayed
+   items without leaving the details page.
 
 ---
 
@@ -210,22 +230,23 @@ actions are omitted or clearly unavailable.
    result is returned, **Then** the page keeps the administrator on the selected
    version and explains what succeeded, what failed, and whether refresh is
    needed.
+7. **Given** the selected version changed after the page loaded, **When** the
+   administrator submits a trust-changing action, **Then** the action is blocked,
+   the page explains that the version state changed, and the administrator must
+   refresh before retrying.
 
 ### Edge Cases
 
-- The package ID in the route uses different casing than the indexed package ID.
 - The package exists but has no indexed versions.
 - The selected version exists but its manifest content is missing or malformed.
 - A version has validation findings but no field paths or rule identifiers.
 - Visibility state cannot be fully determined because one supporting data source
   is unavailable.
-- The package was updated after the details page loaded and an action would use
-  stale state.
 - The administrator loses access while viewing the page or submitting an action.
 - A version has a very large number of features, settings, dependencies, or
   validation findings.
 - The browser is refreshed or the direct URL is shared while a non-default
-  version is selected.
+  version or major section is selected.
 
 ## Requirements *(mandatory)*
 
@@ -237,61 +258,74 @@ actions are omitted or clearly unavailable.
   selected version, source, latest known version, published date when available,
   indexed date, last updated date, approval status, validation status, listing
   state, suspicious state, and public visibility state.
-- **FR-003**: The page MUST make the selected version explicit at all times.
-- **FR-004**: Administrators MUST be able to switch among all indexed versions
+- **FR-003**: Route package ID matching MUST be case-insensitive, and the page
+  MUST display the package ID using canonical indexed casing.
+- **FR-004**: The page MUST make the selected version explicit at all times.
+- **FR-005**: Administrators MUST be able to switch among all indexed versions
   of the package.
-- **FR-005**: Version switching MUST update all version-scoped sections and
+- **FR-006**: When no version is supplied, the page MUST select the latest
+  indexed version by default, regardless of public visibility.
+- **FR-007**: Version switching MUST update all version-scoped sections and
   actions consistently.
-- **FR-006**: The page MUST explain public visibility for the selected version
+- **FR-008**: The page MUST explain public visibility for the selected version
   using all known applicable reasons.
-- **FR-007**: The page MUST distinguish visibility blockers caused by approval,
+- **FR-009**: The page MUST distinguish visibility blockers caused by approval,
   rejection, validation, listing state, suspicious manifest changes, missing
   manifest data, source state, and ingestion failures.
-- **FR-008**: The page MUST display validation findings for the selected version
+- **FR-010**: The page MUST display validation findings for the selected version
   with severity, code or rule identifier when available, message, affected field
   path when available, and blocking impact.
-- **FR-009**: The page MUST provide useful valid, empty, unavailable, loading,
+- **FR-011**: The page MUST provide useful valid, empty, unavailable, loading,
   not-found, access-denied, conflict, and unexpected-error states.
-- **FR-010**: The page MUST display feature metadata for the selected version,
+- **FR-012**: The page MUST display feature metadata for the selected version,
   including feature identity, display name, description, category, and setting
   count when available.
-- **FR-011**: The page MUST let administrators inspect settings for a feature,
+- **FR-013**: The page MUST let administrators inspect settings for a feature,
   including setting identity, label, value type, required state, default value
   presence, and validation hints when available.
-- **FR-012**: The page MUST display dependencies, conflicts, and compatibility
+- **FR-014**: The page MUST display dependencies, conflicts, and compatibility
   metadata for the selected version when indexed.
-- **FR-013**: The page MUST display manifest metadata and read-only raw manifest
+- **FR-015**: The page MUST display manifest metadata and read-only raw manifest
   content when available.
-- **FR-014**: The raw manifest view MUST support efficient inspection of large
+- **FR-016**: The raw manifest view MUST support efficient inspection of large
   manifest content through formatting and search or navigation support.
-- **FR-015**: Trust-changing actions MUST be scoped to the selected package
+- **FR-017**: Large validation, feature, setting, dependency, conflict, and
+  manifest sections MUST provide in-page search and filtering.
+- **FR-018**: Trust-changing actions MUST be scoped to the selected package
   version.
-- **FR-016**: Approval confirmation MUST identify the package ID and selected
+- **FR-019**: Approval confirmation MUST identify the package ID and selected
   version before the approval is submitted.
-- **FR-017**: Rejection confirmation MUST identify the package ID and selected
+- **FR-020**: Rejection confirmation MUST identify the package ID and selected
   version and require a non-empty rejection reason before submission.
-- **FR-018**: Optional operational actions, including revalidation, resync, and
+- **FR-021**: Optional operational actions, including revalidation, resync, and
   metadata recomputation, MUST only be available when supported for the selected
   version.
-- **FR-019**: After a successful action, the page MUST refresh or otherwise
+- **FR-022**: After a successful action, the page MUST refresh or otherwise
   update the affected version state so the administrator sees the current
   result.
-- **FR-020**: If an action fails, the page MUST preserve the selected package and
+- **FR-023**: If an action fails, the page MUST preserve the selected package and
   version context and show an actionable failure message.
-- **FR-021**: The page MUST preserve direct-link usability for package details
+- **FR-024**: If the selected version changed after the page loaded, the page
+  MUST block trust-changing actions, explain that the version state changed, and
+  require refresh before retry.
+- **FR-025**: The page MUST preserve direct-link usability for package details
   and version-specific details.
-- **FR-022**: The page MUST provide navigation back to the package list without
+- **FR-026**: The page MUST support direct links to major sections for a
+  selected package version, including summary, validation, features,
+  dependencies, compatibility, manifest, and actions.
+- **FR-027**: The page MUST provide navigation back to the package list without
   losing the administrator's broader dashboard context.
-- **FR-023**: The page MUST remain usable for packages with at least 100 indexed
+- **FR-028**: The page MUST remain usable for packages with at least 100 indexed
   versions, 200 features, 500 settings, and 1,000 validation findings.
-- **FR-024**: The page MUST avoid presenting stale protected package data as
+- **FR-029**: The page MUST avoid presenting stale protected package data as
   current after access is denied or the administrator is no longer authorized.
 
 ### Key Entities
 
-- **Package**: A catalog package identity. Key attributes include package ID,
-  source, latest known version, indexed versions, created date, updated date, and
-  aggregate operational status.
+- **Package**: A catalog package identity. Package IDs resolve
+  case-insensitively and display using canonical indexed casing. Key attributes
+  include package ID, source, latest known version, indexed versions, created
+  date, updated date, and aggregate operational status.
 - **Package Version**: A versioned package record. Key attributes include
   version, approval status, validation status, listing state, suspicious state,
   manifest metadata, publication date, indexed date, and visibility state.
