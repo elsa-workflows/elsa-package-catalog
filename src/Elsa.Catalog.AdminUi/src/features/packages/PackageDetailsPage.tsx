@@ -67,11 +67,13 @@ export function PackageDetailsPage() {
   const manifestVisible = !manifestSearch.trim() || formattedManifest.value.toLowerCase().includes(manifestSearch.trim().toLowerCase());
   const listingLabel = selectedVersion ? (selectedVersion.isListed && details?.listed ? "Listed" : "Unlisted") : details?.listed ? "Listed" : "No versions";
   const selectedReviewTokenKey = selectedVersion ? reviewTokenKey(details?.packageId ?? packageId, selectedVersion.version) : null;
-  const selectedAction = selectedVersion
+  const reviewedStateToken = selectedReviewTokenKey ? reviewedTokens[selectedReviewTokenKey] : undefined;
+  const actionTokenStale = Boolean(selectedVersion && reviewedStateToken && reviewedStateToken !== selectedVersion.versionStateToken);
+  const selectedAction = selectedVersion && !actionTokenStale
     ? {
         packageId: details?.packageId ?? packageId,
         version: selectedVersion.version,
-        expectedStateToken: selectedReviewTokenKey ? reviewedTokens[selectedReviewTokenKey] ?? selectedVersion.versionStateToken : selectedVersion.versionStateToken
+        expectedStateToken: reviewedStateToken ?? selectedVersion.versionStateToken
       }
     : null;
   const approveVersion = useMutation({
@@ -397,12 +399,13 @@ export function PackageDetailsPage() {
             {selectedVersion ? (
               <div className="mt-3 space-y-3">
                 <Input value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} placeholder="Rejection reason" aria-label="Rejection reason" />
+                {actionTokenStale ? <p className="text-sm text-warning">This version changed since review. Refresh before approving or rejecting it.</p> : null}
                 <div className="flex flex-col gap-2">
                   <Button onClick={() => confirmAction(details.packageId, selectedVersion.version, "approve") && approveVersion.mutate()} disabled={!selectedAction || approveVersion.isPending || rejectVersion.isPending}>
                     <Check className="h-4 w-4" />
                     Approve Version
                   </Button>
-                  <SecondaryButton onClick={() => confirmAction(details.packageId, selectedVersion.version, "reject") && rejectVersion.mutate()} disabled={!rejectionReason.trim() || approveVersion.isPending || rejectVersion.isPending}>
+                  <SecondaryButton onClick={() => confirmAction(details.packageId, selectedVersion.version, "reject") && rejectVersion.mutate()} disabled={!selectedAction || !rejectionReason.trim() || approveVersion.isPending || rejectVersion.isPending}>
                     <X className="h-4 w-4" />
                     Reject Version
                   </SecondaryButton>

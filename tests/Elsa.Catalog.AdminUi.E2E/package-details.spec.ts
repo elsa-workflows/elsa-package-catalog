@@ -34,7 +34,7 @@ const packageDetails = {
       compatibility: { targetFrameworks: ["net10.0"], elsaVersionRange: "[4.0.0,5.0.0)", requiredCapabilities: [], notes: [], unsupportedCombinations: [] },
       visibilityReasons: [{ code: "VersionPendingApproval", category: "TrustDecision", severity: "Blocking", message: "This package version is pending approval.", blocksPublicVisibility: true }],
       features: [],
-      manifest: { available: true, schemaVersion: "1.0", manifestHash: "sha256:postgres-102", suspiciousManifestHash: null, manifestJson: "{}" }
+      manifest: { available: true, schemaVersion: "1.0", manifestHash: "sha256:postgres-102", suspiciousManifestHash: null, manifestJson: "" }
     },
     {
       version: "1.0.1",
@@ -53,7 +53,7 @@ const packageDetails = {
       compatibility: { targetFrameworks: ["net10.0"], elsaVersionRange: "[4.0.0,5.0.0)", requiredCapabilities: [], notes: [], unsupportedCombinations: [] },
       visibilityReasons: [{ code: "PackagePendingApproval", category: "TrustDecision", severity: "Blocking", message: "This package is pending approval.", blocksPublicVisibility: true }],
       features: [],
-      manifest: { available: true, schemaVersion: "1.0", manifestHash: "sha256:postgres-101", suspiciousManifestHash: null, manifestJson: "{}" }
+      manifest: { available: true, schemaVersion: "1.0", manifestHash: "sha256:postgres-101", suspiciousManifestHash: null, manifestJson: "" }
     }
   ]
 };
@@ -67,7 +67,9 @@ test.describe("package details", () => {
       await route.fulfill({ json: { packageId: packageDetails.packageId, version: "1.0.2", findings: [] } });
     });
     await page.route("**/api/admin/packages/Elsa.Persistence.PostgreSql/versions/*/manifest", async (route) => {
-      await route.fulfill({ json: packageDetails.versions[0].manifest });
+      const version = decodeURIComponent(route.request().url().split("/versions/")[1]?.split("/")[0] ?? "");
+      const packageVersion = packageDetails.versions.find((item) => item.version === version) ?? packageDetails.versions[0];
+      await route.fulfill({ json: { ...packageVersion.manifest, manifestJson: JSON.stringify({ manifest: packageVersion.version }) } });
     });
 
     await page.goto("/admin/packages/Elsa.Persistence.PostgreSql");

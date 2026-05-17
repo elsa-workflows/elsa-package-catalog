@@ -341,7 +341,7 @@ export function validationFindingMatchesSearch(finding: ValidationFinding, term:
 export function visibilityReasonMatchesSearch(reason: VisibilityReason, term: string) {
   const normalizedTerm = normalizeSearchTerm(term);
   if (!normalizedTerm) return true;
-  return [reason.severity, reason.code, reason.category, reason.message, reason.blocksPublicVisibility ? "blocking" : "nonblocking"].some((value) =>
+  return [reason.severity, reason.code, reason.category, reason.message, reason.blocksPublicVisibility ? "blocking" : "does-not-block"].some((value) =>
     normalizeSearchTerm(value).includes(normalizedTerm)
   );
 }

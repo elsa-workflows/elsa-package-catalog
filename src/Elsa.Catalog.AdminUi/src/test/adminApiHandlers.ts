@@ -16,7 +16,9 @@ export function handleMockAdminRequest(path: string, method = "GET"): MockRespon
     return { status: 200, body: validationFindingsFixture };
   }
   if (path.includes("/api/admin/packages/") && path.includes("/versions/") && path.endsWith("/manifest")) {
-    return { status: 200, body: packageDetailsFixture.versions[0].manifest };
+    const version = decodeURIComponent(path.split("/versions/")[1]?.split("/")[0] ?? "");
+    const packageVersion = packageDetailsFixture.versions.find((item) => item.version === version);
+    return packageVersion ? { status: 200, body: packageVersion.manifest } : { status: 404, body: { title: "Not found" } };
   }
   if (path.includes("/api/admin/packages/") && path.includes("/versions/") && (path.endsWith("/approve") || path.endsWith("/reject")) && method === "POST") {
     return { status: 204 };
