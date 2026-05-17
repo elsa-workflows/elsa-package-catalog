@@ -148,7 +148,7 @@ public sealed class CatalogDatabaseProviderTests
         using var scope = provider.CreateScope();
 
         var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-        var strategy = db.GetService<IExecutionStrategy>().Should().BeOfType<SqlServerRetryingExecutionStrategy>().Subject;
+        var strategy = db.Database.CreateExecutionStrategy().Should().BeOfType<SqlServerRetryingExecutionStrategy>().Subject;
 
         strategy.MaxRetryCount.Should().Be(4);
         strategy.MaxRetryDelay.Should().Be(TimeSpan.FromSeconds(12));
