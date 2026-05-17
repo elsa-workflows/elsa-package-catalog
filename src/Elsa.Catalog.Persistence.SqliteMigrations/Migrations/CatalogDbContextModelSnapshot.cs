@@ -17,6 +17,179 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.8");
 
+            modelBuilder.Entity("Elsa.Catalog.Core.Accounts.Account", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(320)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Accounts");
+                });
+
+            modelBuilder.Entity("Elsa.Catalog.Core.Accounts.ExternalIdentity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(320)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Issuer")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("Issuer", "Subject")
+                        .IsUnique();
+
+                    b.ToTable("ExternalIdentities");
+                });
+
+            modelBuilder.Entity("Elsa.Catalog.Core.Accounts.Workspace", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("SoftDeletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Workspaces");
+                });
+
+            modelBuilder.Entity("Elsa.Catalog.Core.Accounts.WorkspaceEntitlementSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("CanCreateCustomSources")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("MaxPackagesIndexed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MaxSources")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MaxSyncsPerDay")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MaxVersionsPerPackage")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("PrivateFeedsEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("SyncedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorkspaceId");
+
+                    b.ToTable("WorkspaceEntitlementSnapshots");
+                });
+
+            modelBuilder.Entity("Elsa.Catalog.Core.Accounts.WorkspaceMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Role")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("WorkspaceId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("WorkspaceId", "AccountId")
+                        .IsUnique();
+
+                    b.ToTable("WorkspaceMemberships");
+                });
+
             modelBuilder.Entity("Elsa.Catalog.Core.Manifests.FeatureRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -233,6 +406,9 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("OwnerWorkspaceId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PollingInterval")
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
@@ -259,7 +435,14 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(0);
 
+                    b.Property<int>("Visibility")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
                     b.HasKey("Id");
+
+                    b.HasIndex("OwnerWorkspaceId");
 
                     b.ToTable("PackageSources");
                 });
@@ -470,6 +653,47 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
                     b.ToTable("SyncRunItems");
                 });
 
+            modelBuilder.Entity("Elsa.Catalog.Core.Accounts.ExternalIdentity", b =>
+                {
+                    b.HasOne("Elsa.Catalog.Core.Accounts.Account", "Account")
+                        .WithMany("ExternalIdentities")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("Elsa.Catalog.Core.Accounts.WorkspaceEntitlementSnapshot", b =>
+                {
+                    b.HasOne("Elsa.Catalog.Core.Accounts.Workspace", "Workspace")
+                        .WithMany("EntitlementSnapshots")
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Workspace");
+                });
+
+            modelBuilder.Entity("Elsa.Catalog.Core.Accounts.WorkspaceMembership", b =>
+                {
+                    b.HasOne("Elsa.Catalog.Core.Accounts.Account", "Account")
+                        .WithMany("Memberships")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Elsa.Catalog.Core.Accounts.Workspace", "Workspace")
+                        .WithMany("Memberships")
+                        .HasForeignKey("WorkspaceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Workspace");
+                });
+
             modelBuilder.Entity("Elsa.Catalog.Core.Manifests.FeatureRecord", b =>
                 {
                     b.HasOne("Elsa.Catalog.Core.Packages.PackageVersion", "PackageVersion")
@@ -501,6 +725,16 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
                         .IsRequired();
 
                     b.Navigation("Source");
+                });
+
+            modelBuilder.Entity("Elsa.Catalog.Core.Packages.PackageSource", b =>
+                {
+                    b.HasOne("Elsa.Catalog.Core.Accounts.Workspace", "OwnerWorkspace")
+                        .WithMany()
+                        .HasForeignKey("OwnerWorkspaceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("OwnerWorkspace");
                 });
 
             modelBuilder.Entity("Elsa.Catalog.Core.Packages.PackageVersion", b =>
@@ -541,6 +775,20 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
                     b.Navigation("PackageVersion");
 
                     b.Navigation("SyncRun");
+                });
+
+            modelBuilder.Entity("Elsa.Catalog.Core.Accounts.Account", b =>
+                {
+                    b.Navigation("ExternalIdentities");
+
+                    b.Navigation("Memberships");
+                });
+
+            modelBuilder.Entity("Elsa.Catalog.Core.Accounts.Workspace", b =>
+                {
+                    b.Navigation("EntitlementSnapshots");
+
+                    b.Navigation("Memberships");
                 });
 
             modelBuilder.Entity("Elsa.Catalog.Core.Manifests.FeatureRecord", b =>

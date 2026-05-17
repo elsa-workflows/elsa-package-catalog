@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Elsa.Catalog.Core.Accounts;
 using Elsa.Catalog.Core.Manifests;
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Sync;
@@ -23,6 +24,7 @@ internal sealed class PackageSourceConfiguration : IEntityTypeConfiguration<Pack
         builder.Property(x => x.LastSyncError).HasMaxLength(2048);
         builder.Property(x => x.PollingInterval).HasMaxLength(64);
         builder.Property(x => x.Browseable).HasDefaultValue(true);
+        builder.Property(x => x.Visibility).HasDefaultValue(PackageSourceVisibility.Public);
         builder.Property(x => x.VersionDiscoveryPolicy).HasDefaultValue(PackageSourceVersionDiscoveryPolicy.AllVersions);
         builder.Property(x => x.IncludePatterns)
             .HasConversion(value => JsonSerializer.Serialize(value, (JsonSerializerOptions?)null), value => JsonSerializer.Deserialize<List<string>>(value, (JsonSerializerOptions?)null) ?? new List<string>())
@@ -31,6 +33,7 @@ internal sealed class PackageSourceConfiguration : IEntityTypeConfiguration<Pack
             .HasConversion(value => JsonSerializer.Serialize(value, (JsonSerializerOptions?)null), value => JsonSerializer.Deserialize<List<string>>(value, (JsonSerializerOptions?)null) ?? new List<string>())
             .Metadata.SetValueComparer(StringListComparer);
         builder.HasMany(x => x.Packages).WithOne(x => x.Source).HasForeignKey(x => x.SourceId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(x => x.OwnerWorkspace).WithMany().HasForeignKey(x => x.OwnerWorkspaceId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -120,5 +123,59 @@ internal sealed class SyncRunItemConfiguration : IEntityTypeConfiguration<SyncRu
     {
         builder.HasKey(x => x.Id);
         builder.HasOne(x => x.PackageVersion).WithMany().HasForeignKey(x => x.PackageVersionId).OnDelete(DeleteBehavior.SetNull);
+    }
+}
+
+internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
+{
+    public void Configure(EntityTypeBuilder<Account> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.DisplayName).HasMaxLength(256);
+        builder.Property(x => x.Email).HasMaxLength(320);
+        builder.HasMany(x => x.ExternalIdentities).WithOne(x => x.Account).HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(x => x.Memberships).WithOne(x => x.Account).HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class ExternalIdentityConfiguration : IEntityTypeConfiguration<ExternalIdentity>
+{
+    public void Configure(EntityTypeBuilder<ExternalIdentity> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Issuer).HasMaxLength(512).IsRequired();
+        builder.Property(x => x.Subject).HasMaxLength(512).IsRequired();
+        builder.Property(x => x.DisplayName).HasMaxLength(256);
+        builder.Property(x => x.Email).HasMaxLength(320);
+        builder.HasIndex(x => new { x.Issuer, x.Subject }).IsUnique();
+    }
+}
+
+internal sealed class WorkspaceConfiguration : IEntityTypeConfiguration<Workspace>
+{
+    public void Configure(EntityTypeBuilder<Workspace> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Name).HasMaxLength(256).IsRequired();
+        builder.HasMany(x => x.Memberships).WithOne(x => x.Workspace).HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(x => x.EntitlementSnapshots).WithOne(x => x.Workspace).HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class WorkspaceMembershipConfiguration : IEntityTypeConfiguration<WorkspaceMembership>
+{
+    public void Configure(EntityTypeBuilder<WorkspaceMembership> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => new { x.WorkspaceId, x.AccountId }).IsUnique();
+    }
+}
+
+internal sealed class WorkspaceEntitlementSnapshotConfiguration : IEntityTypeConfiguration<WorkspaceEntitlementSnapshot>
+{
+    public void Configure(EntityTypeBuilder<WorkspaceEntitlementSnapshot> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.HasIndex(x => x.WorkspaceId);
     }
 }

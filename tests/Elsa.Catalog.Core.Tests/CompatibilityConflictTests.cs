@@ -163,7 +163,7 @@ public sealed class CompatibilityConflictTests
 
     private sealed class FakeQueries(IReadOnlyList<PackageVersion> versions) : ICompatibilityQueries
     {
-        public Task<PackageVersion?> GetPackageVersionAsync(Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default) =>
+        public Task<PackageVersion?> GetPackageVersionAsync(Guid? workspaceId, Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default) =>
             Task.FromResult(versions.SingleOrDefault(x => x.Package?.SourceId == sourceId && x.Package.PackageId == packageId && x.Version == version));
     }
 }

@@ -27,7 +27,8 @@ internal sealed class CatalogApiTestApplication : WebApplicationFactory<Program>
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [ApiKeyAuthenticationDefaults.ConfigurationKey] = "local-dev-key"
+                [ApiKeyAuthenticationDefaults.ConfigurationKey] = "local-dev-key",
+                [TrustedHeaderWorkspaceIdentityReader.EnabledConfigurationKey] = "true"
             });
         });
 

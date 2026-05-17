@@ -26,7 +26,7 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
 
         foreach (var package in validPackages)
         {
-            var version = await queries.GetPackageVersionAsync(package.SourceId, package.PackageId, package.Version, cancellationToken);
+            var version = await queries.GetPackageVersionAsync(request.WorkspaceId, package.SourceId, package.PackageId, package.Version, cancellationToken);
             if (version is null)
             {
                 findings.Add(CompatibilityFinding.Error("package.missing", $"{package.PackageId} {package.Version} is not indexed."));
@@ -153,14 +153,15 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
 
 public interface ICompatibilityQueries
 {
-    Task<PackageVersion?> GetPackageVersionAsync(Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default);
+    Task<PackageVersion?> GetPackageVersionAsync(Guid? workspaceId, Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default);
 }
 
 public sealed record CompatibilityCheckRequest(
     string? ElsaVersion,
     string? DockerImageVersion,
     IReadOnlyList<SelectedPackageVersion> Packages,
-    IReadOnlyList<string> Features);
+    IReadOnlyList<string> Features,
+    Guid? WorkspaceId = null);
 
 public sealed record SelectedPackageVersion(Guid SourceId, string PackageId, string Version);
 

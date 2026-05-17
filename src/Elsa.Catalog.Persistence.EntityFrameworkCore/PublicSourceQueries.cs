@@ -1,5 +1,6 @@
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Sources;
+using Elsa.Catalog.Core.Accounts;
 using Microsoft.EntityFrameworkCore;
 
 namespace Elsa.Catalog.Persistence.EntityFrameworkCore;
@@ -10,7 +11,7 @@ public sealed class PublicSourceQueries(CatalogDbContext dbContext) : IPublicSou
     {
         var sources = await dbContext.PackageSources
             .AsNoTracking()
-            .Where(x => x.Enabled && x.Browseable && x.SoftDeletedAt == null)
+            .Where(x => x.Enabled && x.Browseable && x.SoftDeletedAt == null && x.Visibility == PackageSourceVisibility.Public && x.OwnerWorkspaceId == null)
             .OrderBy(x => x.Name)
             .Select(x => new
             {

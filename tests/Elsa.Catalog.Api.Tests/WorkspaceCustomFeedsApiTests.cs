@@ -1,0 +1,165 @@
+using System.Net;
+using Elsa.Catalog.Api.Authentication;
+using Elsa.Catalog.Api.Public.Builder;
+using Elsa.Catalog.Api.Public.Compatibility;
+using Elsa.Catalog.Api.Public.Packages;
+using Elsa.Catalog.Api.Public.Sources;
+using Elsa.Catalog.Core.Accounts;
+using Elsa.Catalog.Api.Workspace;
+using Elsa.Catalog.Core.Packages;
+using Elsa.Catalog.Persistence.EntityFrameworkCore;
+using Elsa.Catalog.Testing;
+using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Elsa.Catalog.Api.Tests;
+
+public sealed class WorkspaceCustomFeedsApiTests
+{
+    [Fact]
+    public async Task Me_workspaces_provisions_account_and_personal_workspace_idempotently()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+        var client = WorkspaceClient(app);
+
+        var first = await client.GetCatalogJsonAsync<MeWorkspacesResponse>("/api/me/workspaces");
+        var second = await client.GetCatalogJsonAsync<MeWorkspacesResponse>("/api/me/workspaces");
+
+        first!.Account.Id.Should().NotBeEmpty();
+        first.Account.Email.Should().Be("ada@example.test");
+        first.Workspaces.Should().ContainSingle(x => x.Role == WorkspaceRole.Owner);
+        second!.Account.Id.Should().Be(first.Account.Id);
+        second.Workspaces.Single().Id.Should().Be(first.Workspaces.Single().Id);
+    }
+
+    [Fact]
+    public async Task Me_workspaces_rejects_missing_trusted_identity()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+
+        var response = await app.CreateClient().GetAsync("/api/me/workspaces");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Workspace_source_creation_requires_entitlement_and_enforces_source_limit()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+        var client = WorkspaceClient(app);
+        var workspaceId = (await client.GetCatalogJsonAsync<MeWorkspacesResponse>("/api/me/workspaces"))!.Workspaces.Single().Id;
+
+        var denied = await client.PostCatalogJsonAsync($"/api/workspaces/{workspaceId}/sources", CreateSourceRequest("Company Feed", "https://nuget.example.test/v3/index.json"));
+        denied.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        var admin = AdminClient(app);
+        var entitlement = await admin.PutCatalogJsonAsync($"/api/admin/workspaces/{workspaceId}/entitlements", new WorkspaceEntitlementRequest(true, 1, 500, 20, 25, false));
+        entitlement.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var created = await client.PostCatalogJsonAsync($"/api/workspaces/{workspaceId}/sources", CreateSourceRequest("Company Feed", "https://nuget.example.test/v3/index.json?token=secret"));
+        created.StatusCode.Should().Be(HttpStatusCode.OK);
+        var source = await created.Content.ReadCatalogJsonAsync<WorkspaceSourceResponse>();
+        source!.Ownership.Should().Be(PackageSourceVisibility.Workspace);
+        source.Url.Should().Be("https://nuget.example.test/v3/index.json");
+
+        var overLimit = await client.PostCatalogJsonAsync($"/api/workspaces/{workspaceId}/sources", CreateSourceRequest("Second Feed", "https://nuget2.example.test/v3/index.json"));
+        overLimit.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Workspace_sources_and_packages_are_visible_only_to_workspace_members()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(db =>
+        {
+            var publicSource = PublicCatalogSeedData.CreatePackageSource();
+            PublicCatalogSeedData.AddVersion(PublicCatalogSeedData.CreatePackage(publicSource, "Elsa.Public"));
+            db.PackageSources.Add(publicSource);
+            return Task.CompletedTask;
+        });
+        var client = WorkspaceClient(app);
+        var workspaceId = (await client.GetCatalogJsonAsync<MeWorkspacesResponse>("/api/me/workspaces"))!.Workspaces.Single().Id;
+        await AdminClient(app).PutCatalogJsonAsync($"/api/admin/workspaces/{workspaceId}/entitlements", new WorkspaceEntitlementRequest(true, 2, 500, 20, 25, false));
+        var created = await client.PostCatalogJsonAsync($"/api/workspaces/{workspaceId}/sources", CreateSourceRequest("Private Feed", "https://private.example.test/v3/index.json"));
+        var source = await created.Content.ReadCatalogJsonAsync<WorkspaceSourceResponse>();
+        await AddPackageAsync(app, source!.Id, "Elsa.Private");
+
+        var publicSources = await app.CreateClient().GetCatalogJsonAsync<IReadOnlyList<PublicSourceResponse>>("/api/sources");
+        publicSources.Should().ContainSingle(x => x.Name == "Test NuGet");
+        publicSources.Should().NotContain(x => x.Id == source.Id);
+
+        var workspaceSources = await client.GetCatalogJsonAsync<IReadOnlyList<WorkspaceSourceResponse>>($"/api/workspaces/{workspaceId}/sources");
+        workspaceSources.Should().Contain(x => x.Id == source.Id && x.Ownership == PackageSourceVisibility.Workspace);
+
+        var publicPackages = await app.CreateClient().GetCatalogJsonAsync<IReadOnlyList<PublicPackageResponse>>($"/api/packages?sourceIds={source.Id}");
+        publicPackages.Should().BeEmpty();
+
+        var workspacePackages = await client.GetCatalogJsonAsync<IReadOnlyList<PublicPackageResponse>>($"/api/workspaces/{workspaceId}/packages?sourceIds={source.Id}");
+        workspacePackages.Should().ContainSingle(x => x.PackageId == "Elsa.Private");
+
+        var workspaceBuilderCatalog = await client.GetCatalogJsonAsync<BuilderCatalogResponse>($"/api/workspaces/{workspaceId}/builder/catalog?sourceIds={source.Id}");
+        workspaceBuilderCatalog!.Packages.Should().ContainSingle(x => x.PackageId == "Elsa.Private");
+
+        var publicCompatibility = await app.CreateClient().PostCatalogJsonAsync("/api/compatibility/check", new CompatibilityCheckApiRequest(
+            null,
+            null,
+            [new SelectedPackageVersionApiRequest(source.Id, "Elsa.Private", "1.0.0")],
+            []));
+        var publicCompatibilityBody = await publicCompatibility.Content.ReadCatalogJsonAsync<CompatibilityCheckApiResponse>();
+        publicCompatibilityBody!.Findings.Should().ContainSingle(x => x.Code == "package.missing");
+
+        var workspaceCompatibility = await client.PostCatalogJsonAsync($"/api/workspaces/{workspaceId}/compatibility/check", new CompatibilityCheckApiRequest(
+            null,
+            null,
+            [new SelectedPackageVersionApiRequest(source.Id, "Elsa.Private", "1.0.0")],
+            []));
+        var workspaceCompatibilityBody = await workspaceCompatibility.Content.ReadCatalogJsonAsync<CompatibilityCheckApiResponse>();
+        workspaceCompatibilityBody!.Compatible.Should().BeTrue();
+
+        var anonymousDetail = await app.CreateClient().GetAsync($"/api/sources/{source.Id}/packages/Elsa.Private");
+        anonymousDetail.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    private static WorkspaceSourceRequest CreateSourceRequest(string name, string url) =>
+        new(name, url, true, ["Elsa.*"], [], PackageSourceVersionDiscoveryPolicy.AllVersions);
+
+    private static HttpClient WorkspaceClient(CatalogApiTestApplication app)
+    {
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(TrustedHeaderWorkspaceIdentityReader.IssuerHeader, "https://elsaworkflows.io");
+        client.DefaultRequestHeaders.Add(TrustedHeaderWorkspaceIdentityReader.SubjectHeader, "user-123");
+        client.DefaultRequestHeaders.Add(TrustedHeaderWorkspaceIdentityReader.EmailHeader, "ada@example.test");
+        client.DefaultRequestHeaders.Add(TrustedHeaderWorkspaceIdentityReader.NameHeader, "Ada Lovelace");
+        return client;
+    }
+
+    private static HttpClient AdminClient(CatalogApiTestApplication app)
+    {
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+        return client;
+    }
+
+    private static async Task AddPackageAsync(CatalogApiTestApplication app, Guid sourceId, string packageId)
+    {
+        await using var scope = app.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+        var source = await db.PackageSources.FindAsync(sourceId);
+        source.Should().NotBeNull();
+        var package = new Package
+        {
+            PackageId = packageId,
+            DisplayName = PackageDisplayNamePolicy.DefaultForPackageId(packageId),
+            SourceId = sourceId,
+            Approved = true,
+            Listed = true,
+            LatestVersion = "1.0.0"
+        };
+        PublicCatalogSeedData.AddVersion(package);
+        db.Packages.Add(package);
+        await db.SaveChangesAsync();
+    }
+}
