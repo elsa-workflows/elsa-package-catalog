@@ -107,6 +107,8 @@ public static class AdminPackageEndpoints
     {
         var manifest = ReadManifest(version.ManifestJson);
         var compatibility = manifest?.Compatibility;
+        var compatibilityPackageRules = compatibility?.PackageRules ?? [];
+        var runtimeCapabilities = compatibility?.RuntimeCapabilities ?? [];
         var requiredCapabilities = version.Features.SelectMany(x => DeserializeStringList(x.RequiredCapabilitiesJson)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
         return new(
@@ -126,9 +128,9 @@ public static class AdminPackageEndpoints
             new AdminCompatibilityResponse(
                 ReadTargetFrameworks(manifest),
                 compatibility?.ElsaVersionRange,
-                (compatibility?.RuntimeCapabilities ?? []).Concat(requiredCapabilities).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
-                compatibility?.PackageRules.Select(x => x.Reason).Where(x => !string.IsNullOrWhiteSpace(x)).Cast<string>().ToList() ?? [],
-                compatibility?.PackageRules.Select(x => $"{x.PackageId} {x.VersionRange}".Trim()).Where(x => !string.IsNullOrWhiteSpace(x)).ToList() ?? []),
+                runtimeCapabilities.Concat(requiredCapabilities).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
+                compatibilityPackageRules.Select(x => x.Reason).Where(x => !string.IsNullOrWhiteSpace(x)).Cast<string>().ToList(),
+                compatibilityPackageRules.Select(x => $"{x.PackageId} {x.VersionRange}".Trim()).Where(x => !string.IsNullOrWhiteSpace(x)).ToList()),
             VisibilityReasons(package, version),
             version.Features.Select(ToFeatureResponse).ToList(),
             new AdminManifestResponse(

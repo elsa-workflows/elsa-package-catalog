@@ -66,11 +66,12 @@ export function PackageDetailsPage() {
   const formattedManifest = formatJson(manifestContent?.manifestJson);
   const manifestVisible = !manifestSearch.trim() || formattedManifest.value.toLowerCase().includes(manifestSearch.trim().toLowerCase());
   const listingLabel = selectedVersion ? (selectedVersion.isListed && details?.listed ? "Listed" : "Unlisted") : details?.listed ? "Listed" : "No versions";
+  const selectedReviewTokenKey = selectedVersion ? reviewTokenKey(details?.packageId ?? packageId, selectedVersion.version) : null;
   const selectedAction = selectedVersion
     ? {
         packageId: details?.packageId ?? packageId,
         version: selectedVersion.version,
-        expectedStateToken: reviewedTokens[selectedVersion.version] ?? selectedVersion.versionStateToken
+        expectedStateToken: selectedReviewTokenKey ? reviewedTokens[selectedReviewTokenKey] ?? selectedVersion.versionStateToken : selectedVersion.versionStateToken
       }
     : null;
   const approveVersion = useMutation({
@@ -94,10 +95,11 @@ export function PackageDetailsPage() {
 
   useEffect(() => {
     if (!selectedVersion) return;
+    const tokenKey = reviewTokenKey(details?.packageId ?? packageId, selectedVersion.version);
     setReviewedTokens((current) =>
-      current[selectedVersion.version] ? current : { ...current, [selectedVersion.version]: selectedVersion.versionStateToken }
+      current[tokenKey] ? current : { ...current, [tokenKey]: selectedVersion.versionStateToken }
     );
-  }, [selectedVersion]);
+  }, [details?.packageId, packageId, selectedVersion]);
 
   useEffect(() => {
     if (!activeSection || activeSection === "summary") return;
@@ -106,10 +108,10 @@ export function PackageDetailsPage() {
 
   function handleActionSuccess(message: string) {
     setActionMessage(message);
-    if (selectedVersion) {
+    if (selectedReviewTokenKey) {
       setReviewedTokens((current) => {
         const next = { ...current };
-        delete next[selectedVersion.version];
+        delete next[selectedReviewTokenKey];
         return next;
       });
     }
@@ -490,6 +492,10 @@ function versionPath(packageId: string, version: string, section: string) {
 
 function sectionElementId(section: string) {
   return `package-details-${section}`;
+}
+
+function reviewTokenKey(packageId: string, version: string) {
+  return `${packageId}@${version}`;
 }
 
 function confirmAction(packageId: string, version: string, action: "approve" | "reject") {

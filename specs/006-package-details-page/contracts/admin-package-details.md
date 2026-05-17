@@ -205,7 +205,6 @@ Expected responses:
 - `200`: Manifest metadata returned.
 - `401` or `403`: Admin access failure.
 - `404`: Package or version not found.
-- `422`: Manifest exists but cannot be displayed as formatted content.
 
 ## Version Approval
 
