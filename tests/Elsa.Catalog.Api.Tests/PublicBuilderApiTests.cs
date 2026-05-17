@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Elsa.Catalog.Api.Public.Builder;
 using Elsa.Catalog.Core.Manifests;
+using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Testing;
 using FluentAssertions;
 
@@ -187,6 +188,37 @@ public sealed class PublicBuilderApiTests
 
         var body = await result.Content.ReadFromJsonAsync<BuilderResolveResponse>();
         body!.Compatible.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Resolve_treats_non_browseable_source_versions_as_missing()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var sourceId = Guid.Empty;
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            source.Browseable = false;
+            sourceId = source.Id;
+            var package = PublicCatalogSeedData.CreatePackage(source, "Elsa.Email");
+            PublicCatalogSeedData.AddVersion(package, validationStatus: ValidationStatus.Invalid, approvalStatus: PackageApprovalStatus.Rejected, suspicious: true);
+
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+
+        var result = await app.CreateClient().PostAsJsonAsync("/api/builder/resolve", new
+        {
+            packages = new[]
+            {
+                new { sourceId, packageId = "Elsa.Email", version = "1.0.0", selectedFeatures = Array.Empty<string>() }
+            }
+        });
+
+        var body = await result.Content.ReadFromJsonAsync<BuilderResolveResponse>();
+        body!.Compatible.Should().BeFalse();
+        body.Findings.Should().ContainSingle(x => x.Code == "package.missing");
+        body.Findings.Select(x => x.Code).Should().NotContain(["package.invalid", "package.notApproved", "package.suspicious"]);
     }
 
     [Fact]
