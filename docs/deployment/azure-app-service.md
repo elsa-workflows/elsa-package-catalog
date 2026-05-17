@@ -190,6 +190,13 @@ Each provider has its own EF Core migration assembly:
 The API selects the matching migration assembly with the provider and applies
 migrations at startup outside the `Testing` environment.
 
+SQL Server connections default to a 120-second connect timeout with provider
+retry enabled. This gives Azure SQL room to complete slow post-login handshakes,
+for example after an idle/serverless database resumes. Override
+`Database__SqlServer__ConnectTimeoutSeconds` or an explicit `Connect Timeout`
+connection-string value only when the target database has a known lower latency
+profile.
+
 SQLite remains fine for local development and single-process test runs. For
 production and App Service scale-out, use Azure SQL. SQLite on shared App
 Service storage or Azure Files is not a good production target because SQLite

@@ -46,7 +46,7 @@ public sealed class CatalogDatabaseProviderTests
             .Should().Be(CatalogDatabaseServiceCollectionExtensions.SqlServerMigrationsAssembly);
         var connectionString = new SqlConnectionStringBuilder(db.Database.GetConnectionString());
 
-        connectionString.ConnectTimeout.Should().Be(60);
+        connectionString.ConnectTimeout.Should().Be(120);
         connectionString.ConnectRetryCount.Should().Be(3);
         connectionString.ConnectRetryInterval.Should().Be(10);
     }
