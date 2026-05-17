@@ -86,8 +86,16 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
         version.ValidationStatus == ValidationStatus.Valid &&
         !version.SuspiciousChangeDetected;
 
-    private static PublicPackageProjection ToPackageProjection(Package package) =>
-        new(package.PackageId, ToSourceProjection(package), package.LatestVersion, package.Versions.Where(IsLoadedVisibleVersion).Select(ToVersionProjection).ToList());
+    private static PublicPackageProjection ToPackageProjection(Package package)
+    {
+        var versions = package.Versions.Where(IsLoadedVisibleVersion).ToList();
+        return new(
+            package.PackageId,
+            DisplayNameFromLatestVersion(package, versions),
+            ToSourceProjection(package),
+            package.LatestVersion,
+            versions.Select(ToVersionProjection).ToList());
+    }
 
     private static PublicPackageVersionProjection ToVersionProjection(PackageVersion version) =>
         new(
@@ -151,6 +159,23 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
     {
         var source = package?.Source ?? throw new InvalidOperationException("Visible package source was not loaded.");
         return new PublicPackageSourceProjection(source.Id, source.Name, SanitizeSourceUrl(source.Url));
+    }
+
+    private static string DisplayNameFromLatestVersion(Package package, IReadOnlyList<PackageVersion> versions)
+    {
+        var version = versions.FirstOrDefault(x => x.Version == package.LatestVersion) ?? versions.FirstOrDefault();
+        if (version is null)
+            return package.PackageId;
+
+        try
+        {
+            var manifest = JsonSerializer.Deserialize<ElsaPackageManifest>(version.ManifestJson, ManifestJsonSerializerOptions.Default);
+            return string.IsNullOrWhiteSpace(manifest?.DisplayName) ? package.PackageId : manifest.DisplayName;
+        }
+        catch (JsonException)
+        {
+            return package.PackageId;
+        }
     }
 
     private static string SanitizeSourceUrl(string url)

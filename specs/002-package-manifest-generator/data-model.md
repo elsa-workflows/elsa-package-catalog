@@ -60,6 +60,7 @@ Fields:
 Validation:
 
 - `PackageId` and `Version` are required for package inclusion.
+- Package display name defaults to `Title` when it is distinct from `PackageId`; otherwise it omits the standard `Elsa.` namespace prefix from the package ID.
 - Override files cannot change `PackageId` or `Version`.
 - Target frameworks are ordered deterministically.
 

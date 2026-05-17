@@ -24,7 +24,7 @@ public sealed class PublicCatalogQueryServiceTests
         public Task<IReadOnlyList<PublicPackageProjection>> ListPackagesAsync(CancellationToken cancellationToken = default)
         {
             ListPackagesCalled = true;
-            return Task.FromResult<IReadOnlyList<PublicPackageProjection>>([new PublicPackageProjection("Elsa.Email", new PublicPackageSourceProjection(Guid.NewGuid(), "Test NuGet", "https://example.test/v3/index.json"), "1.0.0", [])]);
+            return Task.FromResult<IReadOnlyList<PublicPackageProjection>>([new PublicPackageProjection("Elsa.Email", "Email", new PublicPackageSourceProjection(Guid.NewGuid(), "Test NuGet", "https://example.test/v3/index.json"), "1.0.0", [])]);
         }
 
         public Task<PublicPackageProjection?> GetPackageAsync(string packageId, CancellationToken cancellationToken = default) => Task.FromResult<PublicPackageProjection?>(null);
