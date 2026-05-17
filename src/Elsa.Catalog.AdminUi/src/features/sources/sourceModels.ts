@@ -1,6 +1,6 @@
 export type SourceStatus = "Healthy" | "Warning" | "Error";
 export type SourceApprovalPolicy = "AutoApprove" | "Manual";
-export type SourceVersionDiscoveryPolicy = "AllVersions" | "LatestStable" | "LatestIncludingPrerelease";
+export type SourceVersionDiscoveryPolicy = "AllVersions" | "LatestStable" | "LatestIncludingPrerelease" | "LatestPreview";
 
 export type PackageSource = {
   id: string;
@@ -81,6 +81,8 @@ export function versionDiscoveryPolicyText(policy: SourceVersionDiscoveryPolicy)
       return "Latest stable";
     case "LatestIncludingPrerelease":
       return "Latest incl. previews";
+    case "LatestPreview":
+      return "Latest preview only";
     default:
       return "All versions";
   }

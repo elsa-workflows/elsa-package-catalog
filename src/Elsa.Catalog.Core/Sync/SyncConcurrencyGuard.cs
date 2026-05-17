@@ -8,17 +8,48 @@ public sealed class SyncConcurrencyGuard
 
     public async Task<bool> TryRunAsync(string scope, Func<Task> action)
     {
-        if (!_runningScopes.TryAdd(scope, 0))
+        if (!TryAcquire(scope, out var lease))
             return false;
 
-        try
+        using (lease)
         {
             await action();
             return true;
         }
-        finally
+    }
+
+    public bool TryAcquire(string scope, out IDisposable lease)
+    {
+        if (!_runningScopes.TryAdd(scope, 0))
         {
-            _runningScopes.TryRemove(scope, out _);
+            lease = EmptyLease.Instance;
+            return false;
+        }
+
+        lease = new ScopeLease(this, scope);
+        return true;
+    }
+
+    private void Release(string scope) =>
+        _runningScopes.TryRemove(scope, out _);
+
+    private sealed class ScopeLease(SyncConcurrencyGuard guard, string scope) : IDisposable
+    {
+        private int _disposed;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) == 0)
+                guard.Release(scope);
+        }
+    }
+
+    private sealed class EmptyLease : IDisposable
+    {
+        public static EmptyLease Instance { get; } = new();
+
+        public void Dispose()
+        {
         }
     }
 }

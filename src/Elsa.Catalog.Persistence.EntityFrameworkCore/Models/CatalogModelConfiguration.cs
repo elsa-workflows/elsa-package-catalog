@@ -106,6 +106,8 @@ internal sealed class SyncRunConfiguration : IEntityTypeConfiguration<SyncRun>
         builder.HasKey(x => x.Id);
         builder.Property(x => x.StartedAt)
             .HasConversion(value => value.UtcTicks, value => new DateTimeOffset(value, TimeSpan.Zero));
+        builder.Property(x => x.CompletedAt)
+            .HasConversion(value => value.HasValue ? value.Value.UtcTicks : (long?)null, value => value.HasValue ? new DateTimeOffset(value.Value, TimeSpan.Zero) : null);
         builder.HasMany(x => x.Items).WithOne(x => x.SyncRun).HasForeignKey(x => x.SyncRunId).OnDelete(DeleteBehavior.Cascade);
     }
 }

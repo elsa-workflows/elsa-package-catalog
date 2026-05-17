@@ -393,8 +393,8 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<DateTimeOffset?>("CompletedAt")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<long?>("CompletedAt")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("Error")
                         .HasColumnType("nvarchar(max)");

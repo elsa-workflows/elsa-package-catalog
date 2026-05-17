@@ -10,6 +10,15 @@ import { syncRunFixture } from "@/test/fixtures";
 
 function renderWithQueryClient(ui: ReactNode, response: unknown, status = 200, routePath?: string) {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(response), { status, headers: { "Content-Type": "application/json" } })));
+  renderWithClient(ui, routePath);
+}
+
+function renderWithFetch(ui: ReactNode, fetch: ReturnType<typeof vi.fn>, routePath?: string) {
+  vi.stubGlobal("fetch", fetch);
+  renderWithClient(ui, routePath);
+}
+
+function renderWithClient(ui: ReactNode, routePath?: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   render(
     <QueryClientProvider client={queryClient}>
@@ -100,6 +109,62 @@ describe("SyncRunsPage", () => {
 
     expect(await screen.findByText("Sync runs could not load")).toBeInTheDocument();
   });
+
+  it("deletes a terminal sync run after confirmation", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (init?.method === "DELETE" && url.endsWith(`/api/admin/sync-runs/${syncRunFixture.id}`)) {
+        return jsonResponse({ deletedRunCount: 1, deletedItemCount: 1, excludedRunCount: 0, notFoundRunCount: 0, deletedRunIds: [syncRunFixture.id] });
+      }
+      return jsonResponse([syncRunFixture]);
+    });
+
+    renderWithFetch(<SyncRunsPage />, fetch);
+    await screen.findAllByText("Completed with errors");
+    await userEvent.click(screen.getByRole("button", { name: /^Delete$/ }));
+
+    expect(confirm).toHaveBeenCalled();
+    expect(fetch).toHaveBeenCalledWith(`/api/admin/sync-runs/${syncRunFixture.id}`, expect.objectContaining({ method: "DELETE", headers: expect.any(Headers) }));
+  });
+
+  it("does not show row delete action for running sync runs", async () => {
+    renderWithQueryClient(<SyncRunsPage />, [{ ...syncRunFixture, status: "Running" }]);
+
+    expect((await screen.findAllByText("Running")).length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: /^Cancel$/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Delete$/ })).not.toBeInTheDocument();
+  });
+
+  it("previews and runs bulk cleanup", async () => {
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/api/admin/sync-runs/deletion-preview")) {
+        return jsonResponse({
+          completedBefore: "2026-05-01T00:00:00Z",
+          eligibleRunCount: 2,
+          eligibleItemCount: 3,
+          excludedRunCount: 1
+        });
+      }
+      if (init?.method === "DELETE" && url.includes("/api/admin/sync-runs?completedBefore=")) {
+        return jsonResponse({ deletedRunCount: 2, deletedItemCount: 3, excludedRunCount: 1, notFoundRunCount: 0, deletedRunIds: [] });
+      }
+      return jsonResponse([syncRunFixture]);
+    });
+
+    renderWithFetch(<SyncRunsPage />, fetch);
+    await screen.findAllByText("Completed with errors");
+    await userEvent.type(screen.getByLabelText("Cleanup cutoff"), "2026-05-01T00:00");
+    await userEvent.click(screen.getByRole("button", { name: "Preview" }));
+
+    expect(await screen.findByText("Eligible runs: 2")).toBeInTheDocument();
+    expect(screen.getByText("Item records: 3")).toBeInTheDocument();
+    expect(screen.getByText("Excluded active runs: 1")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Delete Eligible/ }));
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/admin/sync-runs?completedBefore="), expect.objectContaining({ method: "DELETE", headers: expect.any(Headers) }));
+  });
 });
 
 describe("SyncRunDetailsPage", () => {
@@ -124,3 +189,7 @@ describe("SyncRunDetailsPage", () => {
     expect(await screen.findByText("1 more item is shown in the full table below.")).toBeInTheDocument();
   });
 });
+
+function jsonResponse(value: unknown, status = 200) {
+  return new Response(JSON.stringify(value), { status, headers: { "Content-Type": "application/json" } });
+}

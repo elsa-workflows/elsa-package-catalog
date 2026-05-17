@@ -69,6 +69,7 @@ export function SourceForm({
             <option value="AllVersions">All versions</option>
             <option value="LatestStable">Latest stable</option>
             <option value="LatestIncludingPrerelease">Latest incl. previews</option>
+            <option value="LatestPreview">Latest preview only</option>
           </Select>
         </label>
         <label className="space-y-1 text-sm">

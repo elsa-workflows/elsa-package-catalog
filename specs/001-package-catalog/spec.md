@@ -26,6 +26,11 @@ The first catalog implementation is a modular monolith with separate public and 
 - Q: Should public APIs expose validation warnings for otherwise valid approved packages? -> A: Public discovery hides validation warnings; compatibility checks may return relevant warnings.
 - Q: Which package ID pattern syntax should administrators use first? -> A: Case-insensitive glob patterns, with excludes taking precedence.
 
+### Session 2026-05-16
+
+- Q: How should broad package source sync avoid long admin request timeouts? -> A: Manual sync requests enqueue a durable sync run and return immediately; package discovery and downloads continue in a background worker independent of the HTTP request lifetime.
+- Q: How should preview feeds avoid branch or custom prerelease labels? -> A: Sources can select the latest preview-only package version, defined as the highest NuGet prerelease version whose prerelease label equals `preview` or starts with `preview.`/`preview-`, case-insensitively.
+
 ## Goals
 
 - Define a stable, independently versioned manifest contract that supports forward-compatible evolution.
@@ -205,7 +210,10 @@ Manifest tooling, catalog ingestion, and future runtime validation can all use o
 - **FR-021b**: Package source include and exclude patterns MUST use case-insensitive glob syntax in the first version, and exclude patterns MUST take precedence over include patterns.
 - **FR-022**: The catalog MUST periodically scan enabled sources.
 - **FR-023**: Administrators MUST be able to trigger sync for all sources, one source, or one package.
+- **FR-023a**: Manual sync trigger APIs MUST return a persisted sync run promptly and MUST execute package discovery and downloads in a background worker that is not canceled when the admin HTTP request ends.
 - **FR-024**: Synchronization MUST discover available versions for matching packages.
+- **FR-024a**: Package sources MUST support a version discovery policy that can select all versions, the latest stable version, the latest version including prerelease versions, or the latest preview-only prerelease version.
+- **FR-024b**: The latest preview-only policy MUST ignore stable versions and non-preview prerelease labels such as release candidates or branch-named prereleases.
 - **FR-025**: Synchronization MUST download only new package versions by default.
 - **FR-026**: Synchronization MUST support a forced reindex mode for admin operations while preserving immutable version handling.
 - **FR-027**: Synchronization MUST extract `elsa-package.json` from packages without executing package code or loading package assemblies.

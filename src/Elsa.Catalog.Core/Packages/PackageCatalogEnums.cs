@@ -15,7 +15,8 @@ public enum PackageSourceVersionDiscoveryPolicy
 {
     AllVersions,
     LatestStable,
-    LatestIncludingPrerelease
+    LatestIncludingPrerelease,
+    LatestPreview
 }
 
 public enum PackageSourceStatus

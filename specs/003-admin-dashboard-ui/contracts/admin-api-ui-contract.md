@@ -86,8 +86,9 @@ Response: updated source object.
 
 Validation errors should map to fields when possible.
 
-`versionDiscoveryPolicy` supports `AllVersions`, `LatestStable`, and
-`LatestIncludingPrerelease`. Omitted values default to `AllVersions`.
+`versionDiscoveryPolicy` supports `AllVersions`, `LatestStable`,
+`LatestIncludingPrerelease`, and `LatestPreview`. Omitted values default to
+`AllVersions`.
 
 ## Source Soft-Delete
 

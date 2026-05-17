@@ -38,7 +38,7 @@ public sealed class AdminSourcesApiTests
             ["Elsa.*"],
             ["Elsa.Experimental.*"],
             PackageSourceApprovalPolicy.Manual,
-            PackageSourceVersionDiscoveryPolicy.LatestStable));
+            PackageSourceVersionDiscoveryPolicy.LatestPreview));
 
         create.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -48,7 +48,7 @@ public sealed class AdminSourcesApiTests
             x.Name == "NuGet" &&
             x.IncludePatterns.Contains("Elsa.*") &&
             x.ExcludePatterns.Contains("Elsa.Experimental.*") &&
-            x.VersionDiscoveryPolicy == PackageSourceVersionDiscoveryPolicy.LatestStable);
+            x.VersionDiscoveryPolicy == PackageSourceVersionDiscoveryPolicy.LatestPreview);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public sealed class AdminSourcesApiTests
               "url": "https://example.test/v3/index.json",
               "enabled": true,
               "approvalPolicy": "AutoApprove",
-              "versionDiscoveryPolicy": "LatestIncludingPrerelease",
+              "versionDiscoveryPolicy": "LatestPreview",
               "includePatterns": ["Elsa.*"],
               "excludePatterns": [],
               "pollingInterval": "PT30M"
@@ -77,7 +77,7 @@ public sealed class AdminSourcesApiTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         json.RootElement.GetProperty("approvalPolicy").GetString().Should().Be("AutoApprove");
-        json.RootElement.GetProperty("versionDiscoveryPolicy").GetString().Should().Be("LatestIncludingPrerelease");
+        json.RootElement.GetProperty("versionDiscoveryPolicy").GetString().Should().Be("LatestPreview");
         json.RootElement.GetProperty("type").GetString().Should().Be("NuGetFeed");
     }
 

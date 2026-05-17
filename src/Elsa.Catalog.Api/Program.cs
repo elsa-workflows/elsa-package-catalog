@@ -83,6 +83,7 @@ builder.Services.AddScoped<IPackageArchiveDownloader, NuGetSyncPackageDownloader
 builder.Services.AddScoped<IPackageArchiveManifestReader, PackageArchiveManifestReader>();
 builder.Services.AddScoped<ManifestIngestionService>();
 builder.Services.AddScoped<PackageSyncService>();
+builder.Services.AddScoped<SyncRunCleanupService>();
 builder.Services.AddSingleton<PackageSourceValidator>();
 builder.Services.AddSingleton<PackageSourcePatternMatcher>();
 builder.Services.AddSingleton<ManifestValidator>();
@@ -92,9 +93,11 @@ builder.Services.AddSingleton<InfrastructureProviderCatalog>();
 builder.Services.AddSingleton<SyncConcurrencyGuard>();
 builder.Services.AddSingleton<SourceSyncActivityTracker>();
 builder.Services.AddSingleton<SyncRunCancellationRegistry>();
+builder.Services.AddSingleton<ManualSyncQueue>();
 builder.Services.AddSingleton<PublicCatalogVisibilityPolicy>();
 builder.Services.AddSingleton<PackageVersionPolicy>();
 builder.Services.AddSingleton<ISyncDiagnostics, NoopSyncDiagnostics>();
+builder.Services.AddHostedService<ManualSyncHostedService>();
 builder.Services.AddHostedService<ScheduledSyncHostedService>();
 
 var app = builder.Build();
