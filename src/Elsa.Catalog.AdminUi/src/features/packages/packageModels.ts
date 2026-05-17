@@ -347,14 +347,18 @@ export function visibilityReasonMatchesSearch(reason: VisibilityReason, term: st
 }
 
 function normalizeJsonBackedList<T>(value: JsonBackedList<T>): T[] {
-  if (Array.isArray(value)) return value;
+  if (Array.isArray(value)) return value.filter(isJsonObject) as T[];
   if (!value) return [];
   try {
     const parsed = JSON.parse(value) as unknown;
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
+    return Array.isArray(parsed) ? (parsed.filter(isJsonObject) as T[]) : [];
   } catch {
     return [];
   }
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function normalizeSearchTerm(value: string) {

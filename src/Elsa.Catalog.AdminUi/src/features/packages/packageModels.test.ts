@@ -79,6 +79,19 @@ describe("packageModels", () => {
     expect(dependency.packageId).toBe("Elsa.Core");
   });
 
+  it("ignores invalid entries in JSON-backed feature lists", () => {
+    const feature = normalizeFeature({
+      ...detailsItem.versions[0].features[0],
+      dependencies: [null, { packageId: "Elsa.Core" }, "invalid", 42] as never,
+      conflictsJson: "[null,{\"featureId\":\"http\"},\"invalid\"]",
+      infrastructureJson: "[{\"kind\":\"database\"},false]"
+    });
+
+    expect(feature.dependencies).toEqual([{ packageId: "Elsa.Core" }]);
+    expect(feature.conflicts).toEqual([{ featureId: "http" }]);
+    expect(feature.infrastructure).toEqual([{ kind: "database" }]);
+  });
+
   it("filters validation findings and visibility reasons by diagnostic text", () => {
     const finding = {
       severity: "Error" as const,
