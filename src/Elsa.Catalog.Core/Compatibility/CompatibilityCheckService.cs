@@ -15,9 +15,9 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
         for (var index = 0; index < request.Packages.Count; index++)
         {
             var package = request.Packages[index];
-            if (string.IsNullOrWhiteSpace(package.PackageId) || string.IsNullOrWhiteSpace(package.Version))
+            if (package.SourceId == Guid.Empty || string.IsNullOrWhiteSpace(package.PackageId) || string.IsNullOrWhiteSpace(package.Version))
             {
-                findings.Add(CompatibilityFinding.Error("package.invalidSelection", $"Package selection at index {index} requires packageId and version."));
+                findings.Add(CompatibilityFinding.Error("package.invalidSelection", $"Package selection at index {index} requires sourceId, packageId, and version."));
                 continue;
             }
 
@@ -26,7 +26,7 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
 
         foreach (var package in validPackages)
         {
-            var version = await queries.GetPackageVersionAsync(package.PackageId, package.Version, cancellationToken);
+            var version = await queries.GetPackageVersionAsync(package.SourceId, package.PackageId, package.Version, cancellationToken);
             if (version is null)
             {
                 findings.Add(CompatibilityFinding.Error("package.missing", $"{package.PackageId} {package.Version} is not indexed."));
@@ -153,7 +153,7 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
 
 public interface ICompatibilityQueries
 {
-    Task<PackageVersion?> GetPackageVersionAsync(string packageId, string version, CancellationToken cancellationToken = default);
+    Task<PackageVersion?> GetPackageVersionAsync(Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default);
 }
 
 public sealed record CompatibilityCheckRequest(
@@ -162,7 +162,7 @@ public sealed record CompatibilityCheckRequest(
     IReadOnlyList<SelectedPackageVersion> Packages,
     IReadOnlyList<string> Features);
 
-public sealed record SelectedPackageVersion(string PackageId, string Version);
+public sealed record SelectedPackageVersion(Guid SourceId, string PackageId, string Version);
 
 public sealed record CompatibilityCheckResult(bool Compatible, IReadOnlyList<CompatibilityFinding> Findings);
 

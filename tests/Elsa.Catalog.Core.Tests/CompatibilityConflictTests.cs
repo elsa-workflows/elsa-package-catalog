@@ -25,7 +25,7 @@ public sealed class CompatibilityConflictTests
         """;
         var service = new CompatibilityCheckService(new FakeQueries(email.Versions.Concat(sms.Versions).ToList()), new VersionRangeEvaluator());
 
-        var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [new("Elsa.Email", "1.0.0"), new("Elsa.Sms", "1.0.0")], []));
+        var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [Selection(source, "Elsa.Email"), Selection(source, "Elsa.Sms")], []));
 
         result.Findings.Should().ContainSingle(x => x.Code == "package.conflict");
     }
@@ -48,7 +48,7 @@ public sealed class CompatibilityConflictTests
         """;
         var service = new CompatibilityCheckService(new FakeQueries(email.Versions.Concat(sms.Versions).ToList()), new VersionRangeEvaluator());
 
-        var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [new("Elsa.Email", "1.0.0"), new("Elsa.Sms", "1.0.0")], []));
+        var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [Selection(source, "Elsa.Email"), Selection(source, "Elsa.Sms")], []));
 
         result.Findings.Should().NotContain(x => x.Code == "package.conflict");
     }
@@ -88,14 +88,17 @@ public sealed class CompatibilityConflictTests
         """;
         var service = new CompatibilityCheckService(new FakeQueries(email.Versions.Concat(sms.Versions).ToList()), new VersionRangeEvaluator());
 
-        var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [new("Elsa.Email", "1.0.0"), new("Elsa.Sms", "1.0.0")], ["email", "sms"]));
+        var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [Selection(source, "Elsa.Email"), Selection(source, "Elsa.Sms")], ["email", "sms"]));
 
         result.Findings.Should().NotContain(x => x.Code == "feature.conflict");
     }
 
+    private static SelectedPackageVersion Selection(PackageSource source, string packageId, string version = "1.0.0") =>
+        new(source.Id, packageId, version);
+
     private sealed class FakeQueries(IReadOnlyList<PackageVersion> versions) : ICompatibilityQueries
     {
-        public Task<PackageVersion?> GetPackageVersionAsync(string packageId, string version, CancellationToken cancellationToken = default) =>
-            Task.FromResult(versions.SingleOrDefault(x => x.Package?.PackageId == packageId && x.Version == version));
+        public Task<PackageVersion?> GetPackageVersionAsync(Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default) =>
+            Task.FromResult(versions.SingleOrDefault(x => x.Package?.SourceId == sourceId && x.Package.PackageId == packageId && x.Version == version));
     }
 }

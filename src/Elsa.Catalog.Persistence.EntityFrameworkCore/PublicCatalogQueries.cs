@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Elsa.Catalog.Core.Packages;
+using Elsa.Catalog.Core.Sources;
 using Elsa.PackageManifests;
 using Elsa.PackageManifests.Compatibility;
 using Elsa.PackageManifests.Infrastructure;
@@ -9,35 +10,35 @@ namespace Elsa.Catalog.Persistence.EntityFrameworkCore;
 
 public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCatalogQueries
 {
-    public async Task<IReadOnlyList<PublicPackageProjection>> ListPackagesAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PublicPackageProjection>> ListPackagesAsync(IReadOnlyList<Guid> sourceIds, CancellationToken cancellationToken = default)
     {
-        var packages = await VisiblePackages()
+        var packages = await VisiblePackages(sourceIds)
             .OrderBy(x => x.PackageId)
             .ToListAsync(cancellationToken);
 
         return packages.Select(ToPackageProjection).ToList();
     }
 
-    public async Task<PublicPackageProjection?> GetPackageAsync(string packageId, CancellationToken cancellationToken = default)
+    public async Task<PublicPackageProjection?> GetPackageAsync(Guid sourceId, string packageId, CancellationToken cancellationToken = default)
     {
-        var package = await VisiblePackages()
-            .SingleOrDefaultAsync(x => x.PackageId == packageId, cancellationToken);
+        var package = await VisiblePackages([sourceId])
+            .SingleOrDefaultAsync(x => x.SourceId == sourceId && x.PackageId == packageId, cancellationToken);
 
         return package is null ? null : ToPackageProjection(package);
     }
 
-    public async Task<IReadOnlyList<PublicPackageVersionProjection>> ListVersionsAsync(string packageId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PublicPackageVersionProjection>> ListVersionsAsync(Guid sourceId, string packageId, CancellationToken cancellationToken = default)
     {
-        var package = await VisiblePackages()
-            .SingleOrDefaultAsync(x => x.PackageId == packageId, cancellationToken);
+        var package = await VisiblePackages([sourceId])
+            .SingleOrDefaultAsync(x => x.SourceId == sourceId && x.PackageId == packageId, cancellationToken);
 
         return package?.Versions.Select(ToVersionProjection).ToList() ?? [];
     }
 
-    public async Task<PublicPackageVersionProjection?> GetVersionAsync(string packageId, string version, CancellationToken cancellationToken = default)
+    public async Task<PublicPackageVersionProjection?> GetVersionAsync(Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default)
     {
-        var package = await VisiblePackages()
-            .SingleOrDefaultAsync(x => x.PackageId == packageId, cancellationToken);
+        var package = await VisiblePackages([sourceId])
+            .SingleOrDefaultAsync(x => x.SourceId == sourceId && x.PackageId == packageId, cancellationToken);
 
         var packageVersion = package?.Versions.SingleOrDefault(x => x.Version == version);
         return packageVersion is null ? null : ToVersionProjection(packageVersion);
@@ -62,8 +63,9 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
             .FirstOrDefault(x => x.FeatureId == featureId);
     }
 
-    private IQueryable<Package> VisiblePackages() =>
-        dbContext.Packages
+    private IQueryable<Package> VisiblePackages(IReadOnlyCollection<Guid>? sourceIds = null)
+    {
+        var query = dbContext.Packages
             .AsNoTracking()
             .Include(x => x.Source)
             .Include(x => x.Versions.Where(version =>
@@ -73,12 +75,18 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
                 !version.SuspiciousChangeDetected))
                 .ThenInclude(x => x.Features)
                 .ThenInclude(x => x.Settings)
+            .Where(x => x.Source != null && x.Source.Enabled && x.Source.SoftDeletedAt == null)
             .Where(x => x.Approved && x.Listed)
             .Where(x => x.Versions.Any(version =>
                 version.IsListed &&
                 version.ApprovalStatus == PackageApprovalStatus.Approved &&
                 version.ValidationStatus == ValidationStatus.Valid &&
                 !version.SuspiciousChangeDetected));
+
+        return sourceIds is { Count: > 0 }
+            ? query.Where(x => sourceIds.Contains(x.SourceId))
+            : query;
+    }
 
     private static bool IsLoadedVisibleVersion(PackageVersion version) =>
         version.IsListed &&
@@ -150,23 +158,7 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
     private static PublicPackageSourceProjection ToSourceProjection(Package? package)
     {
         var source = package?.Source ?? throw new InvalidOperationException("Visible package source was not loaded.");
-        return new PublicPackageSourceProjection(source.Id, source.Name, SanitizeSourceUrl(source.Url));
-    }
-
-    private static string SanitizeSourceUrl(string url)
-    {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            return "";
-
-        var builder = new UriBuilder(uri)
-        {
-            UserName = "",
-            Password = "",
-            Query = "",
-            Fragment = ""
-        };
-
-        return builder.Uri.ToString();
+        return new PublicPackageSourceProjection(source.Id, source.Name, PublicSourceUrlSanitizer.Sanitize(source.Url));
     }
 
     private static IReadOnlyList<T> DeserializeList<T>(string json)

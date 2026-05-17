@@ -23,6 +23,7 @@ public sealed record BuilderResolveRequest(
     IReadOnlyList<string>? Features);
 
 public sealed record BuilderSelectedPackageRequest(
+    Guid SourceId,
     string PackageId,
     string Version,
     IReadOnlyList<string>? SelectedFeatures);

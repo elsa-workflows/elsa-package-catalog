@@ -11,9 +11,11 @@ public sealed class PublicCompatibilityApiTests
     public async Task Compatibility_check_returns_findings_for_incompatible_elsa_version()
     {
         await using var app = new CatalogApiTestApplication();
+        var sourceId = Guid.Empty;
         await app.SeedAsync(db =>
         {
             var source = PublicCatalogSeedData.CreatePackageSource();
+            sourceId = source.Id;
             var package = PublicCatalogSeedData.CreatePackage(source);
             var version = PublicCatalogSeedData.AddVersion(package);
             version.ManifestJson = """
@@ -31,7 +33,7 @@ public sealed class PublicCompatibilityApiTests
         var response = await app.CreateClient().PostAsJsonAsync("/api/compatibility/check", new CompatibilityCheckApiRequest(
             "4.0.0",
             null,
-            [new SelectedPackageVersionApiRequest("Elsa.Email", "1.0.0")],
+            [new SelectedPackageVersionApiRequest(sourceId, "Elsa.Email", "1.0.0")],
             []));
         var result = await response.Content.ReadFromJsonAsync<CompatibilityCheckApiResponse>();
 

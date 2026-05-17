@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/005-delete-sync-runs/plan.md
+specs/007-source-scoped-catalog/plan.md
 <!-- SPECKIT END -->
 
 ## Spec Kit Workflow
@@ -24,6 +24,8 @@ specs/005-delete-sync-runs/plan.md
 - Existing configuration secret for the admin API key; HTTP-only auth cookie for dashboard sessions; in-memory per-client failed-login throttle only. No new durable storage. (004-admin-dashboard-auth)
 - C# on .NET 10 LTS for API/Core/Persistence; TypeScript + React for the existing admin UI. + ASP.NET Core minimal APIs and authorization, Entity Framework Core, SQLite/SQL Server EF migrations, React Router, TanStack Query, TailwindCSS, shadcn/ui-style local components. (005-delete-sync-runs)
 - Existing relational catalog database. No new durable entity is required; existing `SyncRuns` and `SyncRunItems` are deleted with existing cascade semantics. (005-delete-sync-runs)
+- C# on .NET 10 LTS for API/Core/Persistence; TypeScript + React for existing admin UI and Lovable-facing public UX integration contracts. + ASP.NET Core minimal APIs and authorization, Entity Framework Core, SQLite/SQL Server EF migrations, OpenID Connect/JWT validation for later account integration. (007-source-scoped-catalog)
+- Existing relational catalog database. Source-scoped browsing reuses `PackageSources`/`Packages`; later account-owned feeds add account, workspace, external identity, source ownership, and entitlement snapshot records. (007-source-scoped-catalog)
 
 ## Recent Changes
 - 001-package-catalog: Added implementation plan, research, data model, OpenAPI contract, quickstart, and current plan reference.
@@ -33,3 +35,4 @@ specs/005-delete-sync-runs/plan.md
 - 003-generator-adoption-fixes: Added plan, research, data model, diagnostic policy, setting discovery, package inclusion contracts, and quickstart.
 - 003-generator-adoption-fixes: Amended setting discovery policy so unsupported non-manifestable setting properties are omitted with low-importance diagnostics instead of failing normal builds.
 - 005-delete-sync-runs: Added implementation plan, research, data model, admin sync cleanup contract, and quickstart for deleting obsolete sync run history.
+- 007-source-scoped-catalog: Added specification, roadmap, plan, research, data model, public source-scoped API contract, account/workspace roadmap contract, quickstart, and tasks for source-qualified package identity and future paid custom feed indexing.
