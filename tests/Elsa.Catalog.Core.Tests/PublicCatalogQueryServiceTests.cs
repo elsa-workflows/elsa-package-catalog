@@ -33,6 +33,17 @@ public sealed class PublicCatalogQueryServiceTests
         queries.ListPackagesCallCount.Should().Be(2);
     }
 
+    [Fact]
+    public async Task Serializes_concurrent_cache_misses_for_the_same_key()
+    {
+        var queries = new CapturingPublicCatalogQueries();
+        var service = new PublicCatalogQueryService(queries, CreateCache());
+
+        await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => service.ListPackagesAsync()));
+
+        queries.ListPackagesCallCount.Should().Be(1);
+    }
+
     private static PublicCatalogCache CreateCache() =>
         new(new MemoryCache(new MemoryCacheOptions()));
 

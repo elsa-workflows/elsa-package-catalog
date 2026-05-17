@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using Elsa.Catalog.Core.Manifests;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Primitives;
 
 namespace Elsa.Catalog.Core.Packages;
 
@@ -26,26 +28,62 @@ public sealed class PublicCatalogQueryService(IPublicCatalogQueries queries, Pub
 
 public sealed class PublicCatalogCache(IMemoryCache memoryCache) : IPublicCatalogCacheInvalidator
 {
-    private static readonly MemoryCacheEntryOptions CacheEntryOptions = new()
-    {
-        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
-        SlidingExpiration = TimeSpan.FromMinutes(5)
-    };
-
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> keyLocks = new();
+    private readonly object generationLock = new();
     private long generation;
+    private CancellationTokenSource generationExpiration = new();
 
-    public Task<T> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T>> factory, CancellationToken cancellationToken = default)
+    public async Task<T> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T>> factory, CancellationToken cancellationToken = default)
     {
-        var generationKey = $"{Volatile.Read(ref generation)}:{key}";
-        return memoryCache.GetOrCreateAsync(generationKey, entry =>
+        var (generationKey, expirationToken) = CreateGenerationKey(key);
+        if (memoryCache.TryGetValue(generationKey, out T? cachedValue))
+            return cachedValue!;
+
+        var keyLock = keyLocks.GetOrAdd(generationKey, _ => new SemaphoreSlim(1, 1));
+        await keyLock.WaitAsync(cancellationToken);
+        try
         {
-            entry.SetOptions(CacheEntryOptions);
-            return factory(cancellationToken);
-        })!;
+            if (memoryCache.TryGetValue(generationKey, out cachedValue))
+                return cachedValue!;
+
+            var value = await factory(cancellationToken);
+            memoryCache.Set(generationKey, value, CreateCacheEntryOptions(expirationToken));
+            return value;
+        }
+        finally
+        {
+            keyLock.Release();
+            keyLocks.TryRemove(generationKey, out _);
+        }
     }
 
-    public void Invalidate() =>
-        Interlocked.Increment(ref generation);
+    public void Invalidate()
+    {
+        CancellationTokenSource expiredGeneration;
+        lock (generationLock)
+        {
+            generation++;
+            expiredGeneration = generationExpiration;
+            generationExpiration = new CancellationTokenSource();
+        }
+
+        expiredGeneration.Cancel();
+    }
+
+    private (string Key, CancellationToken ExpirationToken) CreateGenerationKey(string key)
+    {
+        lock (generationLock)
+        {
+            return ($"{generation}:{key}", generationExpiration.Token);
+        }
+    }
+
+    private static MemoryCacheEntryOptions CreateCacheEntryOptions(CancellationToken expirationToken) =>
+        new MemoryCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
+            SlidingExpiration = TimeSpan.FromMinutes(5)
+        }.AddExpirationToken(new CancellationChangeToken(expirationToken));
 }
 
 public interface IPublicCatalogCacheInvalidator
