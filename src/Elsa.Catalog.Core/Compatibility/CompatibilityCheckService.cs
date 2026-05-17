@@ -11,7 +11,20 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
         var findings = new List<CompatibilityFinding>();
         var selected = new List<(PackageVersion Version, ElsaPackageManifest Manifest)>();
 
-        foreach (var package in request.Packages)
+        var validPackages = new List<SelectedPackageVersion>();
+        for (var index = 0; index < request.Packages.Count; index++)
+        {
+            var package = request.Packages[index];
+            if (string.IsNullOrWhiteSpace(package.PackageId) || string.IsNullOrWhiteSpace(package.Version))
+            {
+                findings.Add(CompatibilityFinding.Error("package.invalidSelection", $"Package selection at index {index} requires packageId and version."));
+                continue;
+            }
+
+            validPackages.Add(package);
+        }
+
+        foreach (var package in validPackages)
         {
             var version = await queries.GetPackageVersionAsync(package.PackageId, package.Version, cancellationToken);
             if (version is null)
@@ -47,7 +60,7 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
                 findings.Add(CompatibilityFinding.Error("compatibility.docker", $"{package.PackageId} {package.Version} is not compatible with Docker image {request.DockerImageVersion}."));
         }
 
-        var selectedVersions = request.Packages
+        var selectedVersions = validPackages
             .GroupBy(x => x.PackageId, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(x => x.Key, x => x.Select(package => package.Version).ToList(), StringComparer.OrdinalIgnoreCase);
         foreach (var (_, manifest) in selected)
