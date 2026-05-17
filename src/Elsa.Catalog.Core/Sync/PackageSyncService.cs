@@ -381,7 +381,8 @@ public sealed class PackageSyncService(
     }
 
     private static string ResolveManifestDisplayName(Package package, ElsaPackageManifest? manifest) =>
-        string.IsNullOrWhiteSpace(manifest?.DisplayName)
+        string.IsNullOrWhiteSpace(manifest?.DisplayName) ||
+        string.Equals(manifest.DisplayName, package.PackageId, StringComparison.OrdinalIgnoreCase)
             ? PackageDisplayNamePolicy.DefaultForPackageId(package.PackageId)
             : manifest.DisplayName;
 

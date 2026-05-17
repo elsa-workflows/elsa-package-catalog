@@ -110,6 +110,28 @@ public sealed class PackageSyncServiceTests
     }
 
     [Fact]
+    public async Task Keeps_prefixless_display_name_when_old_manifest_uses_package_id()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var package = PublicCatalogSeedData.CreatePackage(source);
+        var version = PublicCatalogSeedData.AddVersion(package);
+        version.ManifestJson = new ManifestFixtureBuilder()
+            .WithPackage("Elsa.Email", "1.0.0")
+            .WithDisplayName("Elsa.Email")
+            .WithFeature()
+            .BuildJson();
+        var sources = new InMemorySourceStore([source]);
+        var catalog = new InMemorySyncCatalogStore([package]);
+        var syncRuns = new InMemorySyncRunStore();
+        var service = CreateService(sources, catalog, syncRuns, new FakeDiscovery([new("Elsa.Email", "2.0.0")]), new FakeDownloader("{}"));
+
+        var run = await service.SyncAllAsync();
+
+        run.Items.Should().ContainSingle(x => x.Status == SyncRunItemStatus.Invalid);
+        package.DisplayName.Should().Be("Email");
+    }
+
+    [Fact]
     public async Task Does_not_advance_last_successful_sync_when_source_has_failed_items()
     {
         var source = PublicCatalogSeedData.CreatePackageSource();
