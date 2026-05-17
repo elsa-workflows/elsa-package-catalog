@@ -20,8 +20,8 @@ specs/005-delete-sync-runs/plan.md
 - No frontend-owned durable storage; transient UI state only, with durable catalog state remaining in existing backend persistence (003-admin-dashboard-ui)
 - C# on .NET 10 LTS with nullable reference types + existing MSBuild task APIs, metadata inspection, System.Text.Json, Elsa.PackageManifests validation, xUnit, FluentAssertions (003-generator-adoption-fixes)
 - File artifact generation only: compiled assemblies/XML docs/project metadata in; deterministic `elsa-package.json` and NuGet package root inclusion out (003-generator-adoption-fixes)
-- C# on .NET 10 LTS for API host; existing React + TypeScript admin UI remains a static asset build. + ASP.NET Core authentication/authorization, existing custom API key authentication handler, existing admin UI build output. (004-admin-dashboard-auth)
-- Existing configuration secret for the admin API key; no new persistent storage. (004-admin-dashboard-auth)
+- C# on .NET 10 LTS for API host; existing React + TypeScript admin UI remains a static asset build. + ASP.NET Core authentication/authorization, cookie authentication, existing custom API key authentication handler, existing admin UI build output. (004-admin-dashboard-auth)
+- Existing configuration secret for the admin API key; HTTP-only auth cookie for dashboard sessions; in-memory per-client failed-login throttle only. No new durable storage. (004-admin-dashboard-auth)
 - C# on .NET 10 LTS for API/Core/Persistence; TypeScript + React for the existing admin UI. + ASP.NET Core minimal APIs and authorization, Entity Framework Core, SQLite/SQL Server EF migrations, React Router, TanStack Query, TailwindCSS, shadcn/ui-style local components. (005-delete-sync-runs)
 - Existing relational catalog database. No new durable entity is required; existing `SyncRuns` and `SyncRunItems` are deleted with existing cascade semantics. (005-delete-sync-runs)
 

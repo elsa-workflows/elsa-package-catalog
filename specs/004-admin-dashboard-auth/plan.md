@@ -1,6 +1,6 @@
 # Implementation Plan: Admin Dashboard Authentication
 
-**Branch**: `004-admin-dashboard-auth` | **Date**: 2026-05-15 | **Spec**: [spec.md](spec.md)
+**Branch**: `004-admin-dashboard-auth` | **Date**: 2026-05-16 | **Spec**: [spec.md](spec.md)
 
 **Input**: Feature specification from `/specs/004-admin-dashboard-auth/spec.md`
 
@@ -8,21 +8,15 @@
 
 ## Summary
 
-Protect the deployed admin dashboard from anonymous access by adding a small app-owned cookie session flow backed by the existing configured admin API key. The React dashboard remains unchanged as the operational UI, while the ASP.NET Core host serves a minimal login/logout surface, gates `/admin` dashboard assets, and allows admin REST APIs to authenticate with either the existing API key header or the new dashboard session cookie.
+Protect the deployed admin dashboard from anonymous access by adding a small app-owned cookie session flow backed by the existing configured admin API key. The ASP.NET Core host serves minimal login/logout endpoints, gates `/admin` dashboard assets before static file serving, authorizes admin REST APIs with either the existing API key header or the dashboard cookie, rejects cross-origin cookie-authenticated admin mutations, and throttles repeated failed dashboard logins in memory.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
 **Language/Version**: C# on .NET 10 LTS for API host; existing React + TypeScript admin UI remains a static asset build.
 
-**Primary Dependencies**: ASP.NET Core authentication/authorization, existing custom API key authentication handler, existing admin UI build output.
+**Primary Dependencies**: ASP.NET Core authentication/authorization, cookie authentication, existing custom API key authentication handler, existing admin UI build output.
 
-**Storage**: Existing configuration secret for the admin API key; no new persistent storage.
+**Storage**: Existing configuration secret for the admin API key; HTTP-only auth cookie for dashboard sessions; in-memory per-client failed-login throttle only. No new durable storage.
 
 **Testing**: xUnit, FluentAssertions, ASP.NET Core WebApplicationFactory integration tests.
 
@@ -30,11 +24,11 @@ Protect the deployed admin dashboard from anonymous access by adding a small app
 
 **Project Type**: Web service hosting REST APIs plus static admin UI assets.
 
-**Performance Goals**: Authentication checks add negligible overhead to dashboard and admin API requests.
+**Performance Goals**: Authentication, same-origin checks, and login throttle checks add negligible overhead to dashboard and admin API requests.
 
-**Constraints**: Keep auth small; no OIDC, RBAC, user database, or frontend key storage in this feature.
+**Constraints**: Keep auth small; no OIDC, RBAC, user database, persistent lockout state, or frontend key storage in this feature. Dashboard sessions use 8-hour sliding expiration.
 
-**Scale/Scope**: Internal admin dashboard for a small number of operators.
+**Scale/Scope**: Internal admin dashboard for a small number of operators. In-memory throttling is acceptable because failed-login state may reset on process restart.
 
 ## Constitution Check
 
@@ -42,30 +36,18 @@ Protect the deployed admin dashboard from anonymous access by adding a small app
 
 The plan MUST answer these gates:
 
-- **Manifest-first**: Does package metadata flow through explicit, versioned manifests rather than package code execution?
-  - Not impacted. This feature only changes dashboard access.
-- **No arbitrary code execution**: Does every package-processing path inspect only package files, nuspec metadata, and manifest JSON?
-  - Not impacted. No package processing paths change.
-- **Stable contracts**: Are `Elsa.PackageManifests` changes dependency-light, versioned, and separate from persistence/runtime internals?
-  - Not impacted. No manifest contracts change.
-- **Schema evolution**: Are schema versioning, extension metadata, compatibility behavior, and breaking-change rules documented?
-  - Not impacted.
-- **Immutable versions**: Does package-version handling preserve existing manifests and flag suspicious content changes?
-  - Not impacted.
-- **Approval separation**: Are validation, approval, and listing modeled as separate concerns?
-  - Preserved. This feature only gates access to existing admin workflows.
-- **Explicit sources**: Are package sources configured explicitly with include/exclude scope?
-  - Not impacted.
-- **Safe public API**: Are public responses limited to valid, approved, listed versions?
-  - Preserved. Public endpoints remain anonymous and unchanged.
-- **Debuggability**: Are sync runs, validation errors, indexing decisions, and suspicious changes persisted and inspectable?
-  - Preserved. Dashboard inspectability remains available after login.
-- **Modular monolith**: Does the design avoid distributed infrastructure unless justified?
-  - Pass. The design stays inside the existing ASP.NET Core host.
-- **Runtime Builder readiness**: Do APIs and manifests support package discovery, feature selection, settings schemas, and compatibility checks?
-  - Not impacted.
-- **Simplicity**: Are new abstractions, dependencies, and infrastructure justified by current requirements?
-  - Pass. Uses existing framework authentication and existing admin key configuration.
+- **Manifest-first**: Not impacted. This feature only changes dashboard/admin API access control.
+- **No arbitrary code execution**: Not impacted. No package processing paths change.
+- **Stable contracts**: Not impacted. No `Elsa.PackageManifests` contracts change.
+- **Schema evolution**: Not impacted. No manifest schema changes.
+- **Immutable versions**: Not impacted. Package-version handling is unchanged.
+- **Approval separation**: Preserved. This feature gates existing admin workflows without merging validation, approval, or listing concerns.
+- **Explicit sources**: Not impacted. Source configuration behavior is unchanged.
+- **Safe public API**: Preserved. Public endpoints remain anonymous and unchanged.
+- **Debuggability**: Preserved. Dashboard inspectability remains available after login; failed login throttling is transient and does not create durable audit records in this MVP.
+- **Modular monolith**: Pass. The design stays inside the existing ASP.NET Core host.
+- **Runtime Builder readiness**: Not impacted. Existing catalog APIs remain available to authenticated admin dashboard sessions.
+- **Simplicity**: Pass. Uses existing framework authentication, the existing admin key, same-origin request checks, and in-memory throttling rather than new identity infrastructure.
 
 ## Project Structure
 
@@ -73,21 +55,16 @@ The plan MUST answer these gates:
 
 ```text
 specs/004-admin-dashboard-auth/
-├── plan.md              # This file (/speckit-plan command output)
-├── research.md          # Phase 0 output (/speckit-plan command)
-├── data-model.md        # Phase 1 output (/speckit-plan command)
-├── quickstart.md        # Phase 1 output (/speckit-plan command)
-├── contracts/           # Phase 1 output (/speckit-plan command)
-└── tasks.md             # Phase 2 output (/speckit-tasks command - NOT created by /speckit-plan)
+├── plan.md
+├── research.md
+├── data-model.md
+├── quickstart.md
+├── contracts/
+│   └── admin-dashboard-auth.md
+└── tasks.md
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
 src/
@@ -103,7 +80,7 @@ tests/
     └── AdminDashboardAuthenticationTests.cs
 ```
 
-**Structure Decision**: Keep the implementation in the existing API host because it already owns admin API authentication and serves the built dashboard assets. Add focused integration tests in the API test project.
+**Structure Decision**: Keep the implementation in the existing API host because it already owns admin API authentication and serves the built dashboard assets. Add focused integration tests in the API test project. Do not add a frontend login app because the login page must remain available before protected React assets are served.
 
 ## Complexity Tracking
 

@@ -231,7 +231,8 @@ Fields:
 
 - `id`.
 - `trigger`: `Scheduled`, `ManualAll`, `ManualSource`, or `ManualPackage`.
-- `status`: `Running`, `Completed`, `Failed`, or `CompletedWithErrors`.
+- `status`: `Running`, `Completed`, `Failed`, `CompletedWithErrors`, or
+  `Canceled`.
 - `startedAt`.
 - `completedAt`.
 - `duration`.
@@ -249,6 +250,9 @@ Relationships:
 - Has many Sync Run Items.
 - Source references are derived from sync items for list/detail diagnostics.
 - Items may reference source, package ID, and version.
+- Only `Running` runs can be canceled; cancellation is best-effort and becomes
+  visible as `Canceled` after in-flight sync work observes the cancellation
+  token.
 
 ## Sync Run Item
 

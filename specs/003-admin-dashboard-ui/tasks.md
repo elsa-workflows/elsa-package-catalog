@@ -154,22 +154,22 @@
 
 **Goal**: Administrators can browse sync runs, inspect run details, understand failures, and follow source/package links for troubleshooting.
 
-**Independent Test**: Seed scheduled, manual all-source, manual source, and manual package sync runs with completed, failed, running, and completed-with-errors states; verify summary rows, filtering, polling, details, and diagnostic links.
+**Independent Test**: Seed scheduled, manual all-source, manual source, and manual package sync runs with completed, failed, running, canceled, and completed-with-errors states; verify summary rows, filtering, polling, cancellation, details, and diagnostic links.
 
 ### Tests for User Story 4
 
-- [ ] T070 [P] [US4] Add API tests for sync run summary counters, duration inputs, and item diagnostics in `tests/Elsa.Catalog.Api.Tests/AdminSyncApiTests.cs`
-- [ ] T071 [P] [US4] Add component tests for sync run list states, status filters, polling refresh, and active run labels in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/SyncRunsPage.test.tsx`
+- [ ] T070 [P] [US4] Add API tests for sync run summary counters, duration inputs, item diagnostics, and run cancellation in `tests/Elsa.Catalog.Api.Tests/AdminSyncApiTests.cs`
+- [ ] T071 [P] [US4] Add component tests for sync run list states, status filters, polling refresh, active run labels, and cancel actions in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/SyncRunsPage.test.tsx`
 - [ ] T072 [P] [US4] Add component tests for sync run details timeline, grouped failures, warnings, and diagnostic links in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/SyncRunDetailsPage.test.tsx`
 - [ ] T073 [P] [US4] Add E2E test for failed sync run troubleshooting workflow in `tests/Elsa.Catalog.AdminUi.E2E/sync-runs.spec.ts`
 
 ### Implementation for User Story 4
 
 - [ ] T074 [US4] Update sync contracts to expose summary counters in typed form while preserving existing JSON counters in `src/Elsa.Catalog.Api/Admin/Sync/AdminSyncContracts.cs`
-- [ ] T075 [US4] Update sync run endpoint mapping for duration-ready fields and item diagnostics in `src/Elsa.Catalog.Api/Admin/Sync/AdminSyncEndpoints.cs`
-- [ ] T076 [US4] Create sync run API adapter functions in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/syncRunApi.ts`
-- [ ] T077 [US4] Create sync run view models and summary counter helpers in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/syncRunModels.ts`
-- [ ] T078 [US4] Implement Sync Runs page with table columns, filters, active-run polling, empty states, and manual refresh in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/SyncRunsPage.tsx`
+- [ ] T075 [US4] Update sync run endpoint mapping for duration-ready fields, item diagnostics, and cancel requests in `src/Elsa.Catalog.Api/Admin/Sync/AdminSyncEndpoints.cs`
+- [ ] T076 [US4] Create sync run API adapter functions, including cancel, in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/syncRunApi.ts`
+- [ ] T077 [US4] Create sync run view models and summary counter helpers, including canceled status handling, in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/syncRunModels.ts`
+- [ ] T078 [US4] Implement Sync Runs page with table columns, filters, active-run polling, cancel controls, empty states, and manual refresh in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/SyncRunsPage.tsx`
 - [ ] T079 [US4] Implement Sync Run Details page with summary, timeline, discovered/downloaded/validated item groups, failures, warnings, and links in `src/Elsa.Catalog.AdminUi/src/features/sync-runs/SyncRunDetailsPage.tsx`
 - [ ] T080 [US4] Wire Sync Runs routes into the app route tree in `src/Elsa.Catalog.AdminUi/src/app/routes.tsx`
 

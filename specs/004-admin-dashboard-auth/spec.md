@@ -8,6 +8,15 @@
 
 **Input**: User description: "The deployed admin dashboard is anonymously accessible. Proceed with the recommended option: app-owned cookie authentication for the dashboard using the existing configured admin API key, using Spec Kit."
 
+## Clarifications
+
+### Session 2026-05-16
+
+- Q: What dashboard session lifetime should the app-owned cookie use? → A: 8-hour sliding session.
+- Q: What CSRF protection should apply when dashboard cookies authorize admin API calls? → A: Same-origin checks for cookie-authenticated admin API mutations.
+- Q: How should repeated failed dashboard login attempts be handled? → A: In-memory per-client throttling for repeated failed login attempts.
+- Q: What failed-login threshold and retry delay should the dashboard throttle use? → A: 5 failures in 15 minutes, then 5-minute retry delay.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Require Admin Login For Dashboard (Priority: P1)
@@ -58,8 +67,11 @@ An administrator can explicitly end the dashboard browser session from a server 
 ### Edge Cases
 
 - The admin API key is not configured: dashboard login attempts fail safely and no anonymous dashboard access is granted.
+- Repeated failed login attempts from the same client are throttled in-memory after 5 failures in 15 minutes, returning a 5-minute retry delay without introducing persistent lockout state.
+- Failed-login throttling identifies a client by the normalized remote IP address after trusted forwarded-header processing; if no trusted forwarded IP is available, the direct connection remote IP is used.
 - A login request includes a non-admin or external return URL: the system redirects only to safe local admin paths.
 - A non-browser client calls dashboard routes without credentials: the system returns an unauthorized response instead of serving dashboard content.
+- Cookie-authenticated admin API mutation requests from cross-origin browser contexts are rejected; API-key header clients are unchanged.
 - Existing machine clients using the admin API key header continue to work.
 - Public package catalog endpoints remain anonymous.
 
@@ -70,8 +82,12 @@ An administrator can explicitly end the dashboard browser session from a server 
 - **FR-001**: System MUST require authenticated admin access for all `/admin` dashboard pages and dashboard static assets except the login endpoint.
 - **FR-002**: System MUST provide an admin login page that accepts the existing configured admin API key.
 - **FR-003**: System MUST create an HTTP-only browser session after a successful admin key login.
+- **FR-003a**: Dashboard browser sessions MUST use an 8-hour sliding expiration.
 - **FR-004**: System MUST reject invalid or missing admin keys without creating a browser session.
+- **FR-004a**: System MUST apply in-memory per-client throttling to repeated failed dashboard login attempts.
+- **FR-004b**: System MUST throttle a client after 5 failed dashboard login attempts within 15 minutes and require a 5-minute retry delay before processing another login attempt from that client.
 - **FR-005**: System MUST authorize admin REST API calls with either the existing admin API key header or the authenticated dashboard session.
+- **FR-005a**: System MUST require same-origin request validation for cookie-authenticated admin API mutation requests while preserving existing API-key header clients.
 - **FR-006**: System MUST preserve anonymous access to public catalog APIs and health endpoints.
 - **FR-007**: System MUST provide a logout endpoint that clears the dashboard browser session.
 - **FR-008**: System MUST prevent login return URLs from redirecting outside safe local admin routes.

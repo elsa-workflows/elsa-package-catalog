@@ -16,14 +16,30 @@ public static class AdminDashboardAuthEndpoints
             return Results.Content(RenderLoginPage(context.Request.Query["returnUrl"], null), "text/html");
         }).AllowAnonymous();
 
-        endpoints.MapPost(AdminDashboardAuthenticationDefaults.LoginPath, async (HttpContext context, AdminApiKeyValidator validator) =>
+        endpoints.MapPost(AdminDashboardAuthenticationDefaults.LoginPath, async (HttpContext context, AdminApiKeyValidator validator, AdminDashboardLoginThrottle throttle, TimeProvider timeProvider) =>
         {
+            var throttleDecision = throttle.Check(context);
+            if (throttleDecision.IsThrottled)
+            {
+                var remainingSeconds = Math.Ceiling((throttleDecision.RetryAfter!.Value - timeProvider.GetUtcNow()).TotalSeconds);
+                context.Response.Headers.RetryAfter = Math.Max(0, (int)remainingSeconds).ToString();
+                var throttledForm = context.Request.HasFormContentType
+                    ? await context.Request.ReadFormAsync(context.RequestAborted)
+                    : null;
+
+                return Results.Content(
+                    RenderLoginPage(throttledForm?["returnUrl"].FirstOrDefault(), "Too many failed attempts. Try again later."),
+                    "text/html",
+                    statusCode: StatusCodes.Status429TooManyRequests);
+            }
+
             var form = await context.Request.ReadFormAsync(context.RequestAborted);
             var returnUrl = form["returnUrl"].FirstOrDefault();
             var apiKey = form["apiKey"].FirstOrDefault();
 
             if (!validator.IsValid(apiKey))
             {
+                throttle.RecordFailure(throttleDecision.ClientKey);
                 return Results.Content(
                     RenderLoginPage(returnUrl, "The admin key was not accepted."),
                     "text/html",
@@ -37,9 +53,10 @@ public static class AdminDashboardAuthEndpoints
                 new AuthenticationProperties
                 {
                     IsPersistent = false,
-                    IssuedUtc = DateTimeOffset.UtcNow
+                    IssuedUtc = timeProvider.GetUtcNow()
                 });
 
+            throttle.Clear(throttleDecision.ClientKey);
             return Results.Redirect(GetSafeReturnUrl(returnUrl));
         }).AllowAnonymous();
 

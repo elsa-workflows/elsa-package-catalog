@@ -207,13 +207,39 @@ public sealed class PackageSyncServiceTests
         syncActivity.IsSourceSyncing(source.Id).Should().BeFalse();
     }
 
+    [Fact]
+    public async Task Cancels_running_sync_when_requested()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var discovery = new GatedDiscovery();
+        var syncRuns = new InMemorySyncRunStore();
+        var cancellationRegistry = new SyncRunCancellationRegistry();
+        var service = CreateService(
+            new InMemorySourceStore([source]),
+            new InMemorySyncCatalogStore(),
+            syncRuns,
+            discovery,
+            new FakeDownloader("{}"),
+            cancellationRegistry: cancellationRegistry);
+
+        var running = service.SyncAllAsync();
+        await discovery.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        cancellationRegistry.Cancel(syncRuns.Runs.Single().Id).Should().BeTrue();
+        var run = await running;
+
+        run.Status.Should().Be(SyncRunStatus.Canceled);
+        run.Error.Should().Be("Sync canceled by operator.");
+    }
+
     private static PackageSyncService CreateService(
         IPackageSourceStore sources,
         ISyncCatalogStore catalog,
         ISyncRunStore syncRuns,
         IPackageVersionDiscoveryClient discovery,
         IPackageArchiveDownloader downloader,
-        SourceSyncActivityTracker? syncActivity = null) =>
+        SourceSyncActivityTracker? syncActivity = null,
+        SyncRunCancellationRegistry? cancellationRegistry = null) =>
         new(
             sources,
             catalog,
@@ -226,7 +252,8 @@ public sealed class PackageSyncServiceTests
             new PackageVersionPolicy(),
             new NoopSyncDiagnostics(),
             new SyncConcurrencyGuard(),
-            syncActivity ?? new SourceSyncActivityTracker());
+            syncActivity ?? new SourceSyncActivityTracker(),
+            cancellationRegistry ?? new SyncRunCancellationRegistry());
 
     private sealed class InMemorySourceStore(IReadOnlyList<PackageSource> sources) : IPackageSourceStore
     {
