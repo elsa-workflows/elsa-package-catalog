@@ -63,6 +63,9 @@ Fields relevant to details:
 - `indexedAt`: Catalog indexing timestamp.
 - `manifestJson`: Read-only raw manifest content.
 - `features`: Indexed feature records.
+- `compatibility`: Compatibility metadata for the selected version when indexed.
+- `versionStateToken`: Opaque freshness marker derived from the selected
+  version's review-relevant state.
 
 Rules:
 
@@ -70,8 +73,9 @@ Rules:
   specify a version.
 - All version-scoped sections and actions derive from the selected version.
 - Version routes and version-specific links preserve the selected version.
-- Stale trust-changing actions are blocked until the administrator refreshes and
-  reviews the current version state.
+- Stale trust-changing actions compare the loaded `versionStateToken` with the
+  current version state and are blocked until the administrator refreshes and
+  reviews the current state.
 
 ## Visibility Reason
 
@@ -137,9 +141,30 @@ Fields:
 Rules:
 
 - Feature list supports in-page search and filtering.
-- Dependencies, conflicts, and compatibility-adjacent metadata are visible from
+- Dependencies, conflicts, and related infrastructure metadata are visible from
   the selected version.
 - Empty feature lists show an explicit no-indexed-features state.
+
+## Compatibility Metadata
+
+Indexed compatibility information for the selected package version.
+
+Fields:
+
+- `targetFrameworks`: Supported target framework or runtime ranges when known.
+- `elsaVersionRange`: Supported Elsa version range when known.
+- `requiredCapabilities`: Runtime capabilities required by the package version.
+- `notes`: Human-readable compatibility notes.
+- `unsupportedCombinations`: Known unsupported target, runtime, package, feature,
+  or capability combinations.
+
+Rules:
+
+- Compatibility metadata is read-only.
+- Missing compatibility metadata produces a scoped empty state.
+- Compatibility metadata is never inferred from package implementation code.
+- Compatibility filtering supports target, runtime, capability, and unsupported
+  combination terms when those values are present.
 
 ## Feature Setting
 
@@ -198,11 +223,15 @@ Fields:
 - `reason`: Optional for approval and required for rejection.
 - `available`: Whether the current system supports the action.
 - `requiresFreshState`: Whether stale state blocks execution.
+- `expectedStateToken`: The version state token reviewed by the administrator
+  before submitting a trust-changing action.
 
 Rules:
 
 - Approval and rejection identify package ID and version before submission.
 - Rejection requires a non-empty reason.
 - Unsupported optional actions are omitted or disabled with an explanation.
+- Trust-changing actions include or compare the reviewed state token so stale
+  decisions are rejected before changing approval state.
 - Action success refreshes affected version state.
 - Action failure preserves package and version context.

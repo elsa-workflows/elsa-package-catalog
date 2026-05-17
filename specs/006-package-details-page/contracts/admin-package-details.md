@@ -53,10 +53,18 @@ Response:
       "schemaVersion": "1.0",
       "manifestHash": "sha256:abc",
       "suspiciousManifestHash": null,
+      "versionStateToken": "W/\"approval:pending-validation:valid-hash:sha256:abc\"",
       "publishedAt": "2026-05-15T06:30:00Z",
       "indexedAt": "2026-05-15T08:10:00Z",
       "featuresCount": 3,
       "settingsCount": 12,
+      "compatibility": {
+        "targetFrameworks": ["net10.0"],
+        "elsaVersionRange": "[4.0.0,5.0.0)",
+        "requiredCapabilities": ["persistence"],
+        "notes": ["Requires a PostgreSQL provider configured at runtime."],
+        "unsupportedCombinations": []
+      },
       "visibilityReasons": [
         {
           "code": "VersionPendingApproval",
@@ -122,6 +130,9 @@ Notes:
 
 - If a package has no versions, `versions` is empty and the UI shows a package
   empty state.
+- `versionStateToken` is an opaque freshness marker. Clients must not parse it;
+  they pass it back with trust-changing actions so stale decisions can be
+  rejected.
 - Feature and setting JSON-backed fields may be returned either as parsed arrays
   or JSON strings, but the UI model must normalize them before display.
 - The details response may include validation findings directly in each version
@@ -204,16 +215,19 @@ Request:
 
 ```json
 {
-  "reason": "Reviewed manifest and source ownership."
+  "reason": "Reviewed manifest and source ownership.",
+  "expectedStateToken": "W/\"approval:pending-validation:valid-hash:sha256:abc\""
 }
 ```
 
 Rules:
 
 - `reason` is optional for approval.
+- `expectedStateToken` is required for UI-submitted approval requests.
 - The UI confirmation identifies the canonical package ID and selected version.
-- If the selected version changed after page load, the UI blocks submission and
-  requires refresh before retry.
+- If the selected version changed after page load, the UI blocks submission when
+  it can detect the mismatch locally; otherwise the API returns `409` when the
+  submitted `expectedStateToken` no longer matches the current version state.
 
 Expected responses:
 
@@ -230,16 +244,19 @@ Request:
 
 ```json
 {
-  "reason": "Manifest is missing required feature descriptions."
+  "reason": "Manifest is missing required feature descriptions.",
+  "expectedStateToken": "W/\"approval:pending-validation:valid-hash:sha256:abc\""
 }
 ```
 
 Rules:
 
 - `reason` is required and must contain non-whitespace text.
+- `expectedStateToken` is required for UI-submitted rejection requests.
 - The UI confirmation identifies the canonical package ID and selected version.
-- If the selected version changed after page load, the UI blocks submission and
-  requires refresh before retry.
+- If the selected version changed after page load, the UI blocks submission when
+  it can detect the mismatch locally; otherwise the API returns `409` when the
+  submitted `expectedStateToken` no longer matches the current version state.
 
 Expected responses:
 

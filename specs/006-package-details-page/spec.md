@@ -180,8 +180,8 @@ of those details; verify both rich and empty states are useful.
    to the catalog.
 4. **Given** compatibility metadata exists, **When** the compatibility section is
    viewed, **Then** administrators can see supported target framework or runtime
-   ranges, package-specific compatibility notes, and any known unsupported
-   combinations.
+   ranges, Elsa version ranges, required runtime capabilities, package-specific
+   compatibility notes, and any known unsupported combinations.
 5. **Given** the selected version has no indexed features, settings,
    dependencies, conflicts, or compatibility metadata, **When** the relevant
    section is viewed, **Then** the page states that no data was indexed for that
@@ -284,7 +284,9 @@ actions are omitted or clearly unavailable.
   including setting identity, label, value type, required state, default value
   presence, and validation hints when available.
 - **FR-014**: The page MUST display dependencies, conflicts, and compatibility
-  metadata for the selected version when indexed.
+  metadata for the selected version when indexed, including target framework
+  ranges, Elsa version ranges, required capabilities, notes, and unsupported
+  combinations when those values are available.
 - **FR-015**: The page MUST display manifest metadata and read-only raw manifest
   content when available.
 - **FR-016**: The raw manifest view MUST support efficient inspection of large
@@ -306,8 +308,9 @@ actions are omitted or clearly unavailable.
 - **FR-023**: If an action fails, the page MUST preserve the selected package and
   version context and show an actionable failure message.
 - **FR-024**: If the selected version changed after the page loaded, the page
-  MUST block trust-changing actions, explain that the version state changed, and
-  require refresh before retry.
+  MUST block trust-changing actions using a version state token or equivalent
+  freshness marker, explain that the version state changed, and require refresh
+  before retry.
 - **FR-025**: The page MUST preserve direct-link usability for package details
   and version-specific details.
 - **FR-026**: The page MUST support direct links to major sections for a
