@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PackageDetailsPage } from "@/features/packages/PackageDetailsPage";
 import { handleMockAdminRequest } from "@/test/adminApiHandlers";
 import type { MockResponse } from "@/test/adminApiHandlers";
+import { packageDetailsFixture } from "@/test/fixtures";
 
 export function renderPackageDetailsPage(
   initialEntry = "/admin/packages/Elsa.Persistence.PostgreSql",
@@ -136,6 +137,41 @@ describe("PackageDetailsPage", () => {
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/admin/packages/Elsa.Persistence.PostgreSql/versions/1.0.2/reject"),
       expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("refreshes the reviewed state token before a version action", async () => {
+    let detailsRequests = 0;
+    const refreshedDetails = {
+      ...packageDetailsFixture,
+      versions: packageDetailsFixture.versions.map((version) =>
+        version.version === "1.0.2" ? { ...version, versionStateToken: "state-102-refreshed" } : version
+      )
+    };
+    const fetchMock = renderPackageDetailsPage("/admin/packages/Elsa.Persistence.PostgreSql", (path, method) => {
+      if (path.endsWith("/api/admin/packages/Elsa.Persistence.PostgreSql")) {
+        detailsRequests += 1;
+        return { status: 200, body: detailsRequests > 1 ? refreshedDetails : packageDetailsFixture };
+      }
+
+      return handleMockAdminRequest(path, method);
+    });
+
+    expect(await screen.findByRole("button", { name: "Approve Version" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
+    await waitFor(() => expect(detailsRequests).toBeGreaterThan(1));
+    fireEvent.click(screen.getByRole("button", { name: "Approve Version" }));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url, init]) => {
+          if (!url.toString().includes("/api/admin/packages/Elsa.Persistence.PostgreSql/versions/1.0.2/approve") || init?.method !== "POST")
+            return false;
+
+          const body = JSON.parse(init.body?.toString() ?? "{}") as { expectedStateToken?: string };
+          return body.expectedStateToken === "state-102-refreshed";
+        })
+      ).toBe(true)
     );
   });
 });

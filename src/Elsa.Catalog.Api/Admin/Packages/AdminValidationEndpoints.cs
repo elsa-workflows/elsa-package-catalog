@@ -18,7 +18,7 @@ public static class AdminValidationEndpoints
             if (packageVersion is null)
                 return Results.NotFound();
 
-            var results = await store.GetValidationResultsAsync(packageId, version, cancellationToken);
+            var results = await store.GetValidationResultsAsync(packageVersion, cancellationToken);
             return Results.Ok(new AdminValidationFindingsResponse(
                 packageVersion.Package?.PackageId ?? packageId,
                 version,

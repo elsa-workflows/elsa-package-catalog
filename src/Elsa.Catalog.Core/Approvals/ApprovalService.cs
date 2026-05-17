@@ -93,7 +93,7 @@ public interface IApprovalStore
     Task<IReadOnlyList<Package>> ListPackagesAsync(CancellationToken cancellationToken = default);
     Task<Package?> GetPackageAsync(string packageId, CancellationToken cancellationToken = default);
     Task<PackageVersion?> GetPackageVersionAsync(string packageId, string version, CancellationToken cancellationToken = default);
-    Task<IReadOnlyList<ManifestValidationResultRecord>> GetValidationResultsAsync(string packageId, string version, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ManifestValidationResultRecord>> GetValidationResultsAsync(PackageVersion packageVersion, CancellationToken cancellationToken = default);
     Task<VersionApprovalUpdateResult> TryUpdateVersionApprovalAsync(PackageVersion packageVersion, PackageApprovalStatus status, ApprovalRecord approvalRecord, CancellationToken cancellationToken = default);
     Task AddApprovalRecordAsync(ApprovalRecord record, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

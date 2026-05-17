@@ -121,6 +121,13 @@ export function PackageDetailsPage() {
   }
 
   function refreshPackageDetails() {
+    if (selectedReviewTokenKey) {
+      setReviewedTokens((current) => {
+        const next = { ...current };
+        delete next[selectedReviewTokenKey];
+        return next;
+      });
+    }
     void packageDetails.refetch();
     if (selectedVersion) {
       void validation.refetch();

@@ -42,16 +42,10 @@ public sealed class ApprovalStore(CatalogDbContext dbContext) : IApprovalStore
             cancellationToken);
     }
 
-    public async Task<IReadOnlyList<ManifestValidationResultRecord>> GetValidationResultsAsync(string packageId, string version, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<ManifestValidationResultRecord>> GetValidationResultsAsync(PackageVersion packageVersion, CancellationToken cancellationToken = default)
     {
-        var packageVersion = await GetPackageVersionAsync(packageId, version, cancellationToken);
-        if (packageVersion is null)
-            return [];
-
         return (await dbContext.ManifestValidationResults
             .AsNoTracking()
-            .Include(x => x.PackageVersion)
-            .ThenInclude(x => x!.Package)
             .Where(x => x.PackageVersionId == packageVersion.Id)
             .ToListAsync(cancellationToken))
             .OrderByDescending(x => x.ValidatedAt)

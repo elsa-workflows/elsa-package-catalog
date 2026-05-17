@@ -231,7 +231,7 @@ public static class AdminPackageEndpoints
 
     private static IReadOnlyList<string> ReadTargetFrameworks(ElsaPackageManifest? manifest)
     {
-        if (manifest is null || !manifest.Extensions.TryGetValue("targetFrameworks", out var value) || value is null)
+        if (manifest?.Extensions is not { } extensions || !extensions.TryGetValue("targetFrameworks", out var value) || value is null)
             return [];
 
         if (value is JsonElement element)
