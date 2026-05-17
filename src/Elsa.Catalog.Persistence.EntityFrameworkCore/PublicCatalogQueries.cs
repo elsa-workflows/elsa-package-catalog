@@ -91,7 +91,7 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
         var versions = package.Versions.Where(IsLoadedVisibleVersion).ToList();
         return new(
             package.PackageId,
-            string.IsNullOrWhiteSpace(package.DisplayName) ? package.PackageId : package.DisplayName,
+            string.IsNullOrWhiteSpace(package.DisplayName) ? PackageDisplayNamePolicy.DefaultForPackageId(package.PackageId) : package.DisplayName,
             ToSourceProjection(package),
             package.LatestVersion,
             versions.Select(ToVersionProjection).ToList());

@@ -229,7 +229,7 @@ public sealed class PackageSyncService(
                 {
                     SourceId = source.Id,
                     PackageId = discovered.PackageId,
-                    DisplayName = discovered.PackageId,
+                    DisplayName = PackageDisplayNamePolicy.DefaultForPackageId(discovered.PackageId),
                     Approved = source.ApprovalPolicy == PackageSourceApprovalPolicy.AutoApprove,
                     Listed = true
                 };
@@ -292,7 +292,7 @@ public sealed class PackageSyncService(
             {
                 var ingested = ingestion.Ingest(packageVersion, read.ManifestJson);
                 package.DisplayName = string.IsNullOrWhiteSpace(ingested.Manifest.DisplayName)
-                    ? package.PackageId
+                    ? PackageDisplayNamePolicy.DefaultForPackageId(package.PackageId)
                     : ingested.Manifest.DisplayName;
             }
 

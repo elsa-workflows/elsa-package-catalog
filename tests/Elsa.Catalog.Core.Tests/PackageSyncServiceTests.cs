@@ -69,6 +69,21 @@ public sealed class PackageSyncServiceTests
     }
 
     [Fact]
+    public async Task Uses_prefixless_display_name_when_manifest_is_invalid()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var sources = new InMemorySourceStore([source]);
+        var catalog = new InMemorySyncCatalogStore();
+        var syncRuns = new InMemorySyncRunStore();
+        var service = CreateService(sources, catalog, syncRuns, new FakeDiscovery([new("Elsa.Email", "1.0.0")]), new FakeDownloader("{}"));
+
+        var run = await service.SyncAllAsync();
+
+        run.Items.Should().ContainSingle(x => x.Status == SyncRunItemStatus.Invalid);
+        catalog.Packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email" && x.DisplayName == "Email");
+    }
+
+    [Fact]
     public async Task Does_not_advance_last_successful_sync_when_source_has_failed_items()
     {
         var source = PublicCatalogSeedData.CreatePackageSource();
