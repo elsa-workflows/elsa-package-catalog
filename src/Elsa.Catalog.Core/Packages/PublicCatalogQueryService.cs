@@ -40,9 +40,12 @@ public sealed class PublicCatalogCache(IMemoryCache memoryCache) : IPublicCatalo
             return cachedValue!;
 
         var keyLock = keyLocks.GetOrAdd(generationKey, _ => new SemaphoreSlim(1, 1));
-        await keyLock.WaitAsync(cancellationToken);
+        var acquired = false;
         try
         {
+            await keyLock.WaitAsync(cancellationToken);
+            acquired = true;
+
             if (memoryCache.TryGetValue(generationKey, out cachedValue))
                 return cachedValue!;
 
@@ -52,8 +55,11 @@ public sealed class PublicCatalogCache(IMemoryCache memoryCache) : IPublicCatalo
         }
         finally
         {
-            keyLock.Release();
-            keyLocks.TryRemove(generationKey, out _);
+            if (acquired)
+            {
+                keyLock.Release();
+                keyLocks.TryRemove(generationKey, out _);
+            }
         }
     }
 

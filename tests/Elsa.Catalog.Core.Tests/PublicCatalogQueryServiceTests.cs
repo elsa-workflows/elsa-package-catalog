@@ -44,6 +44,46 @@ public sealed class PublicCatalogQueryServiceTests
         queries.ListPackagesCallCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task Canceled_waiter_does_not_release_or_remove_unacquired_key_lock()
+    {
+        var cache = CreateCache();
+        var factoryCalls = 0;
+        var factoryStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseFactory = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var first = cache.GetOrCreateAsync("packages:list", async _ =>
+        {
+            Interlocked.Increment(ref factoryCalls);
+            factoryStarted.SetResult();
+            await releaseFactory.Task;
+            return 1;
+        });
+        await factoryStarted.Task;
+
+        using var canceledWait = new CancellationTokenSource();
+        var waiting = cache.GetOrCreateAsync("packages:list", _ =>
+        {
+            Interlocked.Increment(ref factoryCalls);
+            return Task.FromResult(2);
+        }, canceledWait.Token);
+        canceledWait.Cancel();
+
+        var canceledAct = async () => await waiting;
+        await canceledAct.Should().ThrowAsync<OperationCanceledException>();
+
+        var next = cache.GetOrCreateAsync("packages:list", _ =>
+        {
+            Interlocked.Increment(ref factoryCalls);
+            return Task.FromResult(3);
+        });
+        factoryCalls.Should().Be(1);
+
+        releaseFactory.SetResult();
+        (await first).Should().Be(1);
+        (await next).Should().Be(1);
+        factoryCalls.Should().Be(1);
+    }
+
     private static PublicCatalogCache CreateCache() =>
         new(new MemoryCache(new MemoryCacheOptions()));
 
