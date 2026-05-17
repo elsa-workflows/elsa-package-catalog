@@ -37,7 +37,7 @@ public static class PublicPackageEndpoints
     }
 
     public static PublicPackageResponse ToResponse(PublicPackageProjection package) =>
-        new(package.PackageId, ToResponse(package.Source), package.LatestVersion, package.Versions.Select(ToResponse).ToList());
+        new(package.PackageId, package.DisplayName, ToResponse(package.Source), package.LatestVersion, package.Versions.Select(ToResponse).ToList());
 
     public static PublicPackageVersionResponse ToResponse(PublicPackageVersionProjection version) =>
         new(version.PackageId, version.Version, ToResponse(version.Source), version.SchemaVersion, version.PublishedAt, version.Features.Select(ToResponse).ToList());

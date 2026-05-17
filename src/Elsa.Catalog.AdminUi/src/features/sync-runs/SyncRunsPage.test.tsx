@@ -57,6 +57,35 @@ describe("SyncRunsPage", () => {
     expect(screen.getAllByText("1").length).toBeGreaterThan(0);
   });
 
+  it("can cancel a running sync run", async () => {
+    const runningRun = { ...syncRunFixture, status: "Running", completedAt: null, error: null };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = input.toString();
+      if (path.endsWith(`/api/admin/sync-runs/${runningRun.id}/cancel`) && init?.method === "POST") {
+        return new Response(JSON.stringify({ ...runningRun, status: "Canceled", error: "Sync canceled by operator." }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      return new Response(JSON.stringify([runningRun]), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter>
+          <SyncRunsPage />
+        </MemoryRouter>
+      </QueryClientProvider>
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: "Cancel Sync" }));
+
+    expect(fetchMock).toHaveBeenCalledWith(`/api/admin/sync-runs/${runningRun.id}/cancel`, expect.objectContaining({ method: "POST" }));
+  });
+
   it("filters populated sync run rows", async () => {
     renderWithQueryClient(<SyncRunsPage />, [syncRunFixture]);
 
@@ -103,7 +132,7 @@ describe("SyncRunsPage", () => {
     renderWithQueryClient(<SyncRunsPage />, [{ ...syncRunFixture, status: "Running" }]);
 
     expect((await screen.findAllByText("Running")).length).toBeGreaterThan(0);
-    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Cancel$/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Delete$/ })).not.toBeInTheDocument();
   });
 

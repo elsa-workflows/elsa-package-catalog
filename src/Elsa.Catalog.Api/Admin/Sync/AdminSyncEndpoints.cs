@@ -1,4 +1,5 @@
 using Elsa.Catalog.Api.Authentication;
+using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Sync;
 using System.Security.Claims;
 
@@ -63,6 +64,21 @@ public static class AdminSyncEndpoints
             var run = await syncRuns.GetAsync(id, cancellationToken);
             if (run is null)
                 return Results.NotFound();
+
+            return Results.Ok(await ToResponseAsync(run, syncRuns, cancellationToken));
+        });
+
+        group.MapPost("/sync-runs/{id:guid}/cancel", async (Guid id, ISyncRunStore syncRuns, SyncRunCancellationRegistry cancellationRegistry, CancellationToken cancellationToken) =>
+        {
+            var run = await syncRuns.GetAsync(id, cancellationToken);
+            if (run is null)
+                return Results.NotFound();
+
+            if (run.Status != SyncRunStatus.Running)
+                return Results.Conflict(new { error = "Sync run is not running." });
+
+            if (!cancellationRegistry.Cancel(id))
+                return Results.Conflict(new { error = "Sync run is not active on this API host." });
 
             return Results.Ok(await ToResponseAsync(run, syncRuns, cancellationToken));
         });

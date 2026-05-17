@@ -283,6 +283,8 @@ Future bulk endpoint shape:
 
 `GET /api/admin/sync-runs/{id}`
 
+`POST /api/admin/sync-runs/{id}/cancel`
+
 Required UI fields:
 
 - `id`
@@ -296,6 +298,15 @@ Required UI fields:
 - `itemCount`
 - `sources`
 - `items`
+
+Cancel response:
+
+- `200`: cancellation was requested and the response includes the current sync
+  run representation. The run may still be `Running` until in-flight work
+  observes cancellation.
+- `404`: sync run does not exist.
+- `409`: sync run is not currently cancelable, either because it is already
+  terminal or because this API host no longer owns the in-process run.
 
 Sync run source fields:
 

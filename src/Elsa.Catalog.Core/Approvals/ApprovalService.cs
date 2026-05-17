@@ -3,7 +3,7 @@ using Elsa.Catalog.Core.Sync;
 
 namespace Elsa.Catalog.Core.Approvals;
 
-public sealed class ApprovalService(IApprovalStore store)
+public sealed class ApprovalService(IApprovalStore store, IPublicCatalogCacheInvalidator? publicCatalogCache = null)
 {
     public Task<IReadOnlyList<Package>> ListPackagesAsync(CancellationToken cancellationToken = default) =>
         store.ListPackagesAsync(cancellationToken);
@@ -27,6 +27,7 @@ public sealed class ApprovalService(IApprovalStore store)
             Reason = reason
         }, cancellationToken);
         await store.SaveChangesAsync(cancellationToken);
+        publicCatalogCache?.Invalidate();
         return true;
     }
 
@@ -62,6 +63,7 @@ public sealed class ApprovalService(IApprovalStore store)
             Reason = reason
         }, cancellationToken);
         await store.SaveChangesAsync(cancellationToken);
+        publicCatalogCache?.Invalidate();
         return VersionApprovalUpdateResult.Updated;
     }
 

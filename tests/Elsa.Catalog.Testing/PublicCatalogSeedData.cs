@@ -22,6 +22,7 @@ public static class PublicCatalogSeedData
         var package = new Package
         {
             PackageId = packageId,
+            DisplayName = PackageDisplayNamePolicy.DefaultForPackageId(packageId),
             Source = source,
             SourceId = source.Id,
             Approved = approved,

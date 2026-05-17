@@ -165,6 +165,11 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("LatestVersion")
                         .HasColumnType("nvarchar(max)");
 

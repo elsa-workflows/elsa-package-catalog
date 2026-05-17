@@ -2,7 +2,7 @@ using Elsa.Catalog.Core.Packages;
 
 namespace Elsa.Catalog.Core.Sources;
 
-public sealed class PackageSourceService(IPackageSourceStore store, PackageSourceValidator validator)
+public sealed class PackageSourceService(IPackageSourceStore store, PackageSourceValidator validator, IPublicCatalogCacheInvalidator? publicCatalogCache = null)
 {
     public Task<IReadOnlyList<PackageSource>> ListAsync(CancellationToken cancellationToken = default) =>
         store.ListAsync(cancellationToken);
@@ -29,6 +29,7 @@ public sealed class PackageSourceService(IPackageSourceStore store, PackageSourc
         source.UpdatedAt = source.CreatedAt;
         await store.AddAsync(source, cancellationToken);
         await store.SaveChangesAsync(cancellationToken);
+        publicCatalogCache?.Invalidate();
         return PackageSourceResult.Success(source);
     }
 
@@ -54,6 +55,7 @@ public sealed class PackageSourceService(IPackageSourceStore store, PackageSourc
         existing.UpdatedAt = DateTimeOffset.UtcNow;
 
         await store.SaveChangesAsync(cancellationToken);
+        publicCatalogCache?.Invalidate();
         return PackageSourceResult.Success(existing);
     }
 
@@ -67,6 +69,7 @@ public sealed class PackageSourceService(IPackageSourceStore store, PackageSourc
         source.SoftDeletedAt = DateTimeOffset.UtcNow;
         source.UpdatedAt = source.SoftDeletedAt.Value;
         await store.SaveChangesAsync(cancellationToken);
+        publicCatalogCache?.Invalidate();
         return true;
     }
 }

@@ -14,6 +14,10 @@ export async function syncAll() {
   return normalizeSyncRun(await apiRequest<SyncRun>("/api/admin/sync", { method: "POST" }));
 }
 
+export async function cancelSyncRun(runId: string) {
+  return normalizeSyncRun(await apiRequest<SyncRun>(`/api/admin/sync-runs/${runId}/cancel`, { method: "POST" }));
+}
+
 export async function previewSyncRunCleanup(completedBefore: string) {
   return normalizeCleanupPreview(await apiRequest<unknown>(`/api/admin/sync-runs/deletion-preview?completedBefore=${encodeURIComponent(completedBefore)}`));
 }

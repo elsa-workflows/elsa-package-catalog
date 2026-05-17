@@ -266,6 +266,41 @@ public sealed class AdminSyncApiTests
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
+    [Fact]
+    public async Task Running_sync_can_be_canceled()
+    {
+        var discovery = new GatedDiscoveryClient();
+        await using var app = new CatalogApiTestApplication().WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<IPackageVersionDiscoveryClient>();
+                services.AddSingleton<IPackageVersionDiscoveryClient>(discovery);
+            });
+        });
+
+        await SeedAsync(app, db =>
+        {
+            db.PackageSources.Add(PublicCatalogSeedData.CreatePackageSource());
+            return Task.CompletedTask;
+        });
+
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+
+        var running = client.PostAsync("/api/admin/sync", null);
+        await discovery.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        var activeRun = (await client.GetCatalogJsonAsync<List<AdminSyncRunResponse>>("/api/admin/sync-runs"))!.Should().ContainSingle().Subject;
+
+        var cancelResponse = await client.PostAsync($"/api/admin/sync-runs/{activeRun.Id}/cancel", null);
+        await running;
+        var completedRun = await WaitForRunStatusAsync(client, activeRun.Id, SyncRunStatus.Canceled);
+
+        cancelResponse.StatusCode.Should().Be(HttpStatusCode.OK, await cancelResponse.Content.ReadAsStringAsync());
+        completedRun.Status.Should().Be(SyncRunStatus.Canceled);
+        completedRun.Error.Should().Be("Sync canceled by operator.");
+    }
+
     private static async Task<(Guid RunId, Guid SourceId)> SeedSyncRunWithSourceAsync(CatalogApiTestApplication app)
     {
         var runId = Guid.NewGuid();

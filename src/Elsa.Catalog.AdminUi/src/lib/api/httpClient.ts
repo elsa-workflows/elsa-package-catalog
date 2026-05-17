@@ -20,21 +20,15 @@ export class ApiError extends Error {
 
 export type ApiClientOptions = {
   baseUrl?: string;
-  apiKey?: string;
 };
 
 const defaultBaseUrl = import.meta.env.VITE_CATALOG_CLIENT_BASE_URL ?? "";
-const defaultApiKey = import.meta.env.VITE_ADMIN_API_KEY;
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}, options: ApiClientOptions = {}): Promise<T> {
   const headers = new Headers(init.headers);
   headers.set("Accept", "application/json");
   if (init.body && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
-  }
-  const apiKey = options.apiKey ?? defaultApiKey;
-  if (apiKey) {
-    headers.set("X-Api-Key", apiKey);
   }
 
   const response = await fetch(`${options.baseUrl ?? defaultBaseUrl}${path}`, { ...init, headers });

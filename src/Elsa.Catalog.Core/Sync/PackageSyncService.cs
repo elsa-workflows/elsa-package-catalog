@@ -21,7 +21,9 @@ public sealed class PackageSyncService(
     PackageVersionPolicy versionPolicy,
     ISyncDiagnostics diagnostics,
     SyncConcurrencyGuard concurrencyGuard,
-    SourceSyncActivityTracker syncActivity)
+    SourceSyncActivityTracker syncActivity,
+    SyncRunCancellationRegistry cancellationRegistry,
+    IPublicCatalogCacheInvalidator? publicCatalogCache = null)
 {
     private const string SyncScope = "sync";
 
@@ -131,9 +133,10 @@ public sealed class PackageSyncService(
 
     private async Task ExecuteRunAsync(SyncRun run, Func<Task<IReadOnlyList<PackageSource>>> getSources, CancellationToken cancellationToken, bool addRun)
     {
+        using var runCancellation = cancellationRegistry.Track(run.Id, cancellationToken);
         diagnostics.SyncRunStarted(run.Id);
         if (addRun)
-            await AddRunAsync(run, cancellationToken);
+            await AddRunAsync(run, runCancellation.Token);
 
         var counters = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
@@ -141,13 +144,19 @@ public sealed class PackageSyncService(
         {
             foreach (var source in (await getSources()).Where(x => x.Enabled))
             {
-                await SyncSourceAsync(run, source, counters, cancellationToken);
-                await sources.SaveChangesAsync(cancellationToken);
+                runCancellation.Token.ThrowIfCancellationRequested();
+                await SyncSourceAsync(run, source, counters, runCancellation.Token);
+                await sources.SaveChangesAsync(runCancellation.Token);
             }
 
             run.Status = run.Items.Any(x => x.Status == SyncRunItemStatus.Failed)
                 ? SyncRunStatus.CompletedWithErrors
                 : SyncRunStatus.Completed;
+        }
+        catch (OperationCanceledException) when (runCancellation.IsOperatorCancellationRequested)
+        {
+            run.Status = SyncRunStatus.Canceled;
+            run.Error = "Sync canceled by operator.";
         }
         catch (Exception ex)
         {
@@ -159,6 +168,7 @@ public sealed class PackageSyncService(
             run.CompletedAt = DateTimeOffset.UtcNow;
             run.SummaryCountersJson = JsonSerializer.Serialize(counters);
             await syncRuns.SaveChangesAsync(CancellationToken.None);
+            publicCatalogCache?.Invalidate();
             diagnostics.SyncRunCompleted(run.Id, run.Status);
         }
     }
@@ -176,6 +186,10 @@ public sealed class PackageSyncService(
         try
         {
             discovered = await discovery.FindPackageVersionsAsync(source, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -217,6 +231,7 @@ public sealed class PackageSyncService(
                 {
                     SourceId = source.Id,
                     PackageId = discovered.PackageId,
+                    DisplayName = PackageDisplayNamePolicy.DefaultForPackageId(discovered.PackageId),
                     Approved = source.ApprovalPolicy == PackageSourceApprovalPolicy.AutoApprove,
                     Listed = true
                 };
@@ -276,9 +291,12 @@ public sealed class PackageSyncService(
             };
 
             if (packageVersion.ValidationStatus == ValidationStatus.Valid)
+            {
                 ingestion.Ingest(packageVersion, read.ManifestJson);
+            }
 
             package.Versions.Add(packageVersion);
+            UpdatePackageDisplayName(package);
 
             if (await catalog.GetPackageAsync(source.Id, discovered.PackageId, cancellationToken) is null)
                 await catalog.AddPackageAsync(package, cancellationToken);
@@ -298,6 +316,10 @@ public sealed class PackageSyncService(
             runItem.PackageVersion = packageVersion;
             runItem.PackageVersionId = packageVersion.Id;
             Increment(counters, runItem.Status == SyncRunItemStatus.Indexed ? "indexed" : "invalid");
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch (Exception ex)
         {
@@ -345,6 +367,26 @@ public sealed class PackageSyncService(
             : validation.IsValid
                 ? ValidationStatus.Valid
                 : ValidationStatus.Invalid;
+
+    private static void UpdatePackageDisplayName(Package package)
+    {
+        var latestValidVersion = package.Versions
+            .Where(x => x.ValidationStatus == ValidationStatus.Valid)
+            .OrderByDescending(x => x.Version, Comparer<string>.Create(CompareVersions))
+            .FirstOrDefault();
+
+        if (latestValidVersion is null)
+            return;
+
+        var manifest = JsonSerializer.Deserialize<ElsaPackageManifest>(latestValidVersion.ManifestJson, ManifestJsonSerializerOptions.Default);
+        package.DisplayName = ResolveManifestDisplayName(package, manifest);
+    }
+
+    private static string ResolveManifestDisplayName(Package package, ElsaPackageManifest? manifest) =>
+        string.IsNullOrWhiteSpace(manifest?.DisplayName) ||
+        string.Equals(manifest.DisplayName, package.PackageId, StringComparison.OrdinalIgnoreCase)
+            ? PackageDisplayNamePolicy.DefaultForPackageId(package.PackageId)
+            : manifest.DisplayName;
 
     private static string? ExtractSchemaVersion(string manifestJson)
     {

@@ -39,6 +39,7 @@ internal sealed class PackageConfiguration : IEntityTypeConfiguration<Package>
     {
         builder.HasKey(x => x.Id);
         builder.Property(x => x.PackageId).HasMaxLength(256).IsRequired();
+        builder.Property(x => x.DisplayName).HasMaxLength(256).IsRequired();
         builder.HasIndex(x => new { x.SourceId, x.PackageId }).IsUnique();
         builder.HasMany(x => x.Versions).WithOne(x => x.Package).HasForeignKey(x => x.PackageId).OnDelete(DeleteBehavior.Cascade);
     }

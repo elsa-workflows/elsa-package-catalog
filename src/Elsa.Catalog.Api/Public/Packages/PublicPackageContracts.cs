@@ -4,6 +4,7 @@ namespace Elsa.Catalog.Api.Public.Packages;
 
 public sealed record PublicPackageResponse(
     string PackageId,
+    string DisplayName,
     PublicPackageSourceResponse Source,
     string? LatestVersion,
     IReadOnlyList<PublicPackageVersionResponse> Versions);

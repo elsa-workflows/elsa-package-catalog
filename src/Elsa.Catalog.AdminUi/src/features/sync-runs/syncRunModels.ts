@@ -1,5 +1,5 @@
 export type SyncRunTrigger = "Scheduled" | "ManualAll" | "ManualSource" | "ManualPackage";
-export type SyncRunStatus = "Running" | "Completed" | "Failed" | "CompletedWithErrors";
+export type SyncRunStatus = "Running" | "Completed" | "Failed" | "CompletedWithErrors" | "Canceled";
 export type SyncRunItemStatus = "Discovered" | "Skipped" | "Downloaded" | "Indexed" | "Unchanged" | "Invalid" | "Failed" | "Suspicious";
 
 export type SummaryCounters = Record<string, number>;
