@@ -59,8 +59,11 @@ public sealed class PublicBuilderApiTests
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
-    [Fact]
-    public async Task Resolve_reports_invalid_package_selection_when_package_id_is_null()
+    [Theory]
+    [InlineData(null, "1.0.0")]
+    [InlineData("Elsa.Email", "")]
+    [InlineData(" ", "1.0.0")]
+    public async Task Resolve_reports_invalid_package_selections(string? packageId, string version)
     {
         await using var app = new CatalogApiTestApplication();
 
@@ -68,7 +71,7 @@ public sealed class PublicBuilderApiTests
         {
             packages = new[]
             {
-                new { packageId = (string?)null, version = "1.0.0", selectedFeatures = Array.Empty<string>() }
+                new { packageId, version, selectedFeatures = Array.Empty<string>() }
             }
         });
 
