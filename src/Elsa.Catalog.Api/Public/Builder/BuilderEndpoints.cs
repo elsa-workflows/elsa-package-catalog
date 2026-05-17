@@ -3,6 +3,7 @@ using Elsa.Catalog.Api.Public.Packages;
 using Elsa.Catalog.Core.Builder;
 using Elsa.Catalog.Core.Compatibility;
 using Elsa.Catalog.Core.Packages;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Elsa.Catalog.Api.Public.Builder;
 
@@ -12,9 +13,9 @@ public static class BuilderEndpoints
     {
         var group = endpoints.MapGroup("/api/builder").WithTags("Runtime Builder");
 
-        group.MapGet("/catalog", async (PublicCatalogQueryService catalog, InfrastructureProviderCatalog infrastructure, CancellationToken cancellationToken) =>
+        group.MapGet("/catalog", async ([FromQuery] Guid[] sourceIds, PublicCatalogQueryService catalog, InfrastructureProviderCatalog infrastructure, CancellationToken cancellationToken) =>
         {
-            var packages = await catalog.ListPackagesAsync(cancellationToken);
+            var packages = await catalog.ListPackagesAsync(sourceIds, cancellationToken);
             return Results.Ok(new BuilderCatalogResponse(
                 packages.Select(PublicPackageEndpoints.ToResponse).ToList(),
                 infrastructure.ListProviders().Select(ToResponse).ToList()));
@@ -36,7 +37,7 @@ public static class BuilderEndpoints
             var result = await compatibility.CheckAsync(new CompatibilityCheckRequest(
                 request.ElsaVersion,
                 request.DockerImageVersion,
-                request.Packages.Select(x => new SelectedPackageVersion(x.PackageId, x.Version)).ToList(),
+                request.Packages.Select(x => new SelectedPackageVersion(x.SourceId, x.PackageId, x.Version)).ToList(),
                 features), cancellationToken);
 
             return Results.Ok(new BuilderResolveResponse(

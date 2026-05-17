@@ -7,6 +7,7 @@ servers:
   - url: http://localhost:5000
 security: []
 tags:
+  - name: Public Sources
   - name: Public Packages
   - name: Public Features
   - name: Runtime Builder
@@ -20,6 +21,7 @@ paths:
       tags: [Public Packages]
       summary: List public packages
       parameters:
+        - $ref: '#/components/parameters/SourceIdsQuery'
         - $ref: '#/components/parameters/PackageIdQuery'
         - $ref: '#/components/parameters/TagQuery'
         - $ref: '#/components/parameters/FeatureIdQuery'
@@ -36,11 +38,25 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/PackageSummary'
-  /api/packages/{packageId}:
+  /api/sources:
+    get:
+      tags: [Public Sources]
+      summary: List public browseable package sources
+      responses:
+        '200':
+          description: Public catalog-owned sources that can be selected for browsing.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PublicPackageSource'
+  /api/sources/{sourceId}/packages/{packageId}:
     get:
       tags: [Public Packages]
-      summary: Get public package details
+      summary: Get source-qualified public package details
       parameters:
+        - $ref: '#/components/parameters/SourceIdPath'
         - $ref: '#/components/parameters/PackageIdPath'
       responses:
         '200':
@@ -51,11 +67,12 @@ paths:
                 $ref: '#/components/schemas/PackageDetails'
         '404':
           $ref: '#/components/responses/NotFound'
-  /api/packages/{packageId}/versions:
+  /api/sources/{sourceId}/packages/{packageId}/versions:
     get:
       tags: [Public Packages]
-      summary: List public package versions
+      summary: List public source-qualified package versions
       parameters:
+        - $ref: '#/components/parameters/SourceIdPath'
         - $ref: '#/components/parameters/PackageIdPath'
       responses:
         '200':
@@ -69,11 +86,12 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/PackageVersionSummary'
-  /api/packages/{packageId}/versions/{version}:
+  /api/sources/{sourceId}/packages/{packageId}/versions/{version}:
     get:
       tags: [Public Packages]
-      summary: Get public package version details
+      summary: Get public source-qualified package version details
       parameters:
+        - $ref: '#/components/parameters/SourceIdPath'
         - $ref: '#/components/parameters/PackageIdPath'
         - $ref: '#/components/parameters/VersionPath'
       responses:
@@ -157,6 +175,8 @@ paths:
     get:
       tags: [Runtime Builder]
       summary: Get Runtime Builder package and infrastructure catalog
+      parameters:
+        - $ref: '#/components/parameters/SourceIdsQuery'
       responses:
         '200':
           description: Builder-ready package catalog with source provenance and infrastructure providers.
@@ -467,6 +487,13 @@ components:
       required: true
       schema:
         type: string
+    SourceIdPath:
+      name: sourceId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
     PackageIdPath:
       name: packageId
       in: path
@@ -505,6 +532,16 @@ components:
       in: query
       schema:
         type: string
+    SourceIdsQuery:
+      name: sourceIds
+      in: query
+      schema:
+        type: array
+        items:
+          type: string
+          format: uuid
+      style: form
+      explode: true
   requestBodies:
     ApprovalRequest:
       required: false
@@ -551,6 +588,19 @@ components:
                 type: string
                 format: date-time
   schemas:
+    PublicPackageSource:
+      type: object
+      required: [id, name, url, packageCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        url:
+          type: string
+        packageCount:
+          type: integer
     PackageSummary:
       type: object
       required: [packageId, displayName, latestVersion]
@@ -792,8 +842,11 @@ components:
           type: array
           items:
             type: object
-            required: [packageId, version]
+            required: [sourceId, packageId, version]
             properties:
+              sourceId:
+                type: string
+                format: uuid
               packageId:
                 type: string
               version:
@@ -833,8 +886,11 @@ components:
           type: array
           items:
             type: object
-            required: [packageId, version]
+            required: [sourceId, packageId, version]
             properties:
+              sourceId:
+                type: string
+                format: uuid
               packageId:
                 type: string
               version:

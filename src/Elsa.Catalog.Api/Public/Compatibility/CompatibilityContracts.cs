@@ -6,7 +6,7 @@ public sealed record CompatibilityCheckApiRequest(
     IReadOnlyList<SelectedPackageVersionApiRequest> Packages,
     IReadOnlyList<string>? Features);
 
-public sealed record SelectedPackageVersionApiRequest(string PackageId, string Version);
+public sealed record SelectedPackageVersionApiRequest(Guid SourceId, string PackageId, string Version);
 
 public sealed record CompatibilityCheckApiResponse(
     bool Compatible,

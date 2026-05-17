@@ -11,11 +11,13 @@ public sealed class PublicCatalogQueryServiceTests
     {
         var queries = new CapturingPublicCatalogQueries();
         var service = new PublicCatalogQueryService(queries, CreateCache());
+        var sourceId = Guid.NewGuid();
 
-        var packages = await service.ListPackagesAsync();
+        var packages = await service.ListPackagesAsync([sourceId]);
 
         packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email");
         queries.ListPackagesCalled.Should().BeTrue();
+        queries.ListPackageSourceIds.Should().ContainSingle().Which.Should().Be(sourceId);
     }
 
     [Fact]
@@ -91,6 +93,18 @@ public sealed class PublicCatalogQueryServiceTests
         factoryCalls.Should().Be(1);
     }
 
+    [Fact]
+    public async Task Uses_distinct_cache_entries_for_different_source_filters()
+    {
+        var queries = new CapturingPublicCatalogQueries();
+        var service = new PublicCatalogQueryService(queries, CreateCache());
+
+        await service.ListPackagesAsync([Guid.Parse("00000000-0000-0000-0000-000000000001")]);
+        await service.ListPackagesAsync([Guid.Parse("00000000-0000-0000-0000-000000000002")]);
+
+        queries.ListPackagesCallCount.Should().Be(2);
+    }
+
     private static PublicCatalogCache CreateCache() =>
         new(new MemoryCache(new MemoryCacheOptions()));
 
@@ -111,21 +125,23 @@ public sealed class PublicCatalogQueryServiceTests
     {
         public bool ListPackagesCalled { get; private set; }
         public int ListPackagesCallCount { get; private set; }
+        public IReadOnlyList<Guid> ListPackageSourceIds { get; private set; } = [];
         public Task? ListPackagesDelay { get; set; }
 
-        public async Task<IReadOnlyList<PublicPackageProjection>> ListPackagesAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<PublicPackageProjection>> ListPackagesAsync(IReadOnlyList<Guid> sourceIds, CancellationToken cancellationToken = default)
         {
             ListPackagesCalled = true;
             ListPackagesCallCount++;
+            ListPackageSourceIds = sourceIds;
             if (ListPackagesDelay is not null)
                 await ListPackagesDelay;
 
             return [new PublicPackageProjection("Elsa.Email", "Email", new PublicPackageSourceProjection(Guid.NewGuid(), "Test NuGet", "https://example.test/v3/index.json"), "1.0.0", [])];
         }
 
-        public Task<PublicPackageProjection?> GetPackageAsync(string packageId, CancellationToken cancellationToken = default) => Task.FromResult<PublicPackageProjection?>(null);
-        public Task<IReadOnlyList<PublicPackageVersionProjection>> ListVersionsAsync(string packageId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PublicPackageVersionProjection>>([]);
-        public Task<PublicPackageVersionProjection?> GetVersionAsync(string packageId, string version, CancellationToken cancellationToken = default) => Task.FromResult<PublicPackageVersionProjection?>(null);
+        public Task<PublicPackageProjection?> GetPackageAsync(Guid sourceId, string packageId, CancellationToken cancellationToken = default) => Task.FromResult<PublicPackageProjection?>(null);
+        public Task<IReadOnlyList<PublicPackageVersionProjection>> ListVersionsAsync(Guid sourceId, string packageId, CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PublicPackageVersionProjection>>([]);
+        public Task<PublicPackageVersionProjection?> GetVersionAsync(Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default) => Task.FromResult<PublicPackageVersionProjection?>(null);
         public Task<IReadOnlyList<PublicFeatureProjection>> ListFeaturesAsync(CancellationToken cancellationToken = default) => Task.FromResult<IReadOnlyList<PublicFeatureProjection>>([]);
         public Task<PublicFeatureProjection?> GetFeatureAsync(string featureId, CancellationToken cancellationToken = default) => Task.FromResult<PublicFeatureProjection?>(null);
     }

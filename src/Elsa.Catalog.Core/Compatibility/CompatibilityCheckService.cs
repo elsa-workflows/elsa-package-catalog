@@ -9,15 +9,15 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
     public async Task<CompatibilityCheckResult> CheckAsync(CompatibilityCheckRequest request, CancellationToken cancellationToken = default)
     {
         var findings = new List<CompatibilityFinding>();
-        var selected = new List<(PackageVersion Version, ElsaPackageManifest Manifest)>();
+        var selected = new List<(SelectedPackageIdentity Identity, ElsaPackageManifest Manifest)>();
 
         var validPackages = new List<SelectedPackageVersion>();
         for (var index = 0; index < request.Packages.Count; index++)
         {
             var package = request.Packages[index];
-            if (string.IsNullOrWhiteSpace(package.PackageId) || string.IsNullOrWhiteSpace(package.Version))
+            if (package.SourceId == Guid.Empty || string.IsNullOrWhiteSpace(package.PackageId) || string.IsNullOrWhiteSpace(package.Version))
             {
-                findings.Add(CompatibilityFinding.Error("package.invalidSelection", $"Package selection at index {index} requires packageId and version."));
+                findings.Add(CompatibilityFinding.Error("package.invalidSelection", $"Package selection at index {index} requires sourceId, packageId, and version."));
                 continue;
             }
 
@@ -26,7 +26,7 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
 
         foreach (var package in validPackages)
         {
-            var version = await queries.GetPackageVersionAsync(package.PackageId, package.Version, cancellationToken);
+            var version = await queries.GetPackageVersionAsync(package.SourceId, package.PackageId, package.Version, cancellationToken);
             if (version is null)
             {
                 findings.Add(CompatibilityFinding.Error("package.missing", $"{package.PackageId} {package.Version} is not indexed."));
@@ -51,7 +51,7 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
                 continue;
             }
 
-            selected.Add((version, manifest!));
+            selected.Add((new SelectedPackageIdentity(package.SourceId, package.PackageId), manifest!));
 
             if (manifest?.Compatibility?.ElsaVersionRange is { } elsaRange && !ranges.Includes(elsaRange, request.ElsaVersion))
                 findings.Add(CompatibilityFinding.Error("compatibility.elsa", $"{package.PackageId} {package.Version} is not compatible with Elsa {request.ElsaVersion}."));
@@ -77,21 +77,21 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
         }
 
         if (request.Features.Count > 0)
-            ValidateSelectedFeatures(request.Features, selected.Select(x => x.Manifest), selectedVersions, ranges, findings);
+            ValidateSelectedFeatures(request.Features, selected, selectedVersions, ranges, findings);
 
         return new CompatibilityCheckResult(findings.Count == 0, findings);
     }
 
     private static void ValidateSelectedFeatures(
         IReadOnlyList<string> selectedFeatureIds,
-        IEnumerable<ElsaPackageManifest> manifests,
+        IReadOnlyList<(SelectedPackageIdentity Identity, ElsaPackageManifest Manifest)> selected,
         IReadOnlyDictionary<string, List<string>> selectedVersions,
         VersionRangeEvaluator ranges,
         List<CompatibilityFinding> findings)
     {
         var selectedFeatures = new HashSet<string>(selectedFeatureIds, StringComparer.OrdinalIgnoreCase);
-        var features = manifests
-            .SelectMany(manifest => manifest.Features.Select(feature => new SelectedFeatureManifest(manifest.Package.Id, manifest.Package.Version, feature)))
+        var features = selected
+            .SelectMany(package => package.Manifest.Features.Select(feature => new SelectedFeatureManifest(package.Manifest.Package.Id, package.Manifest.Package.Version, feature)))
             .Where(x => selectedFeatures.Contains(x.Id))
             .ToList();
 
@@ -153,7 +153,7 @@ public sealed class CompatibilityCheckService(ICompatibilityQueries queries, Ver
 
 public interface ICompatibilityQueries
 {
-    Task<PackageVersion?> GetPackageVersionAsync(string packageId, string version, CancellationToken cancellationToken = default);
+    Task<PackageVersion?> GetPackageVersionAsync(Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default);
 }
 
 public sealed record CompatibilityCheckRequest(
@@ -162,7 +162,7 @@ public sealed record CompatibilityCheckRequest(
     IReadOnlyList<SelectedPackageVersion> Packages,
     IReadOnlyList<string> Features);
 
-public sealed record SelectedPackageVersion(string PackageId, string Version);
+public sealed record SelectedPackageVersion(Guid SourceId, string PackageId, string Version);
 
 public sealed record CompatibilityCheckResult(bool Compatible, IReadOnlyList<CompatibilityFinding> Findings);
 
@@ -171,6 +171,8 @@ public sealed record CompatibilityFinding(string Severity, string Code, string M
     public static CompatibilityFinding Error(string code, string message) => new("error", code, message);
     public static CompatibilityFinding Warning(string code, string message) => new("warning", code, message);
 }
+
+internal sealed record SelectedPackageIdentity(Guid SourceId, string PackageId);
 
 internal sealed record SelectedFeatureManifest(string PackageId, string PackageVersion, FeatureManifest Feature)
 {

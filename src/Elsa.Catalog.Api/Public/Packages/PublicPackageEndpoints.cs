@@ -1,5 +1,6 @@
 using Elsa.Catalog.Api.Public;
 using Elsa.Catalog.Core.Packages;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Elsa.Catalog.Api.Public.Packages;
 
@@ -9,29 +10,29 @@ public static class PublicPackageEndpoints
     {
         var group = endpoints.MapGroup("/api/packages").WithTags("Public Packages");
 
-        group.MapGet("/", async (PublicCatalogQueryService catalog, CancellationToken cancellationToken) =>
+        group.MapGet("/", async ([FromQuery] Guid[] sourceIds, PublicCatalogQueryService catalog, CancellationToken cancellationToken) =>
         {
-            var packages = await catalog.ListPackagesAsync(cancellationToken);
+            var packages = await catalog.ListPackagesAsync(sourceIds, cancellationToken);
             return Results.Ok(packages.Select(ToResponse));
         });
 
-        group.MapGet("/{packageId}", async (string packageId, PublicCatalogQueryService catalog, CancellationToken cancellationToken) =>
+        endpoints.MapGet("/api/sources/{sourceId:guid}/packages/{packageId}", async (Guid sourceId, string packageId, PublicCatalogQueryService catalog, CancellationToken cancellationToken) =>
         {
-            var package = await catalog.GetPackageAsync(packageId, cancellationToken);
+            var package = await catalog.GetPackageAsync(sourceId, packageId, cancellationToken);
             return package is null ? Results.NotFound() : Results.Ok(ToResponse(package));
-        });
+        }).WithTags("Public Packages");
 
-        group.MapGet("/{packageId}/versions", async (string packageId, PublicCatalogQueryService catalog, CancellationToken cancellationToken) =>
+        endpoints.MapGet("/api/sources/{sourceId:guid}/packages/{packageId}/versions", async (Guid sourceId, string packageId, PublicCatalogQueryService catalog, CancellationToken cancellationToken) =>
         {
-            var versions = await catalog.ListVersionsAsync(packageId, cancellationToken);
+            var versions = await catalog.ListVersionsAsync(sourceId, packageId, cancellationToken);
             return Results.Ok(versions.Select(ToResponse));
-        });
+        }).WithTags("Public Packages");
 
-        group.MapGet("/{packageId}/versions/{version}", async (string packageId, string version, PublicCatalogQueryService catalog, CancellationToken cancellationToken) =>
+        endpoints.MapGet("/api/sources/{sourceId:guid}/packages/{packageId}/versions/{version}", async (Guid sourceId, string packageId, string version, PublicCatalogQueryService catalog, CancellationToken cancellationToken) =>
         {
-            var packageVersion = await catalog.GetVersionAsync(packageId, version, cancellationToken);
+            var packageVersion = await catalog.GetVersionAsync(sourceId, packageId, version, cancellationToken);
             return packageVersion is null ? Results.NotFound() : Results.Ok(ToResponse(packageVersion));
-        });
+        }).WithTags("Public Packages");
 
         return endpoints;
     }

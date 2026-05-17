@@ -11,7 +11,7 @@ public static class CompatibilityEndpoints
             var result = await compatibility.CheckAsync(new CompatibilityCheckRequest(
                 request.ElsaVersion,
                 request.DockerImageVersion,
-                request.Packages.Select(x => new SelectedPackageVersion(x.PackageId, x.Version)).ToList(),
+                request.Packages.Select(x => new SelectedPackageVersion(x.SourceId, x.PackageId, x.Version)).ToList(),
                 request.Features ?? []), cancellationToken);
 
             return Results.Ok(new CompatibilityCheckApiResponse(
