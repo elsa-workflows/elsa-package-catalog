@@ -120,7 +120,7 @@ public sealed class PublicCatalogQueryServiceTests
             if (ListPackagesDelay is not null)
                 await ListPackagesDelay;
 
-            return [new PublicPackageProjection("Elsa.Email", new PublicPackageSourceProjection(Guid.NewGuid(), "Test NuGet", "https://example.test/v3/index.json"), "1.0.0", [])];
+            return [new PublicPackageProjection("Elsa.Email", "Email", new PublicPackageSourceProjection(Guid.NewGuid(), "Test NuGet", "https://example.test/v3/index.json"), "1.0.0", [])];
         }
 
         public Task<PublicPackageProjection?> GetPackageAsync(string packageId, CancellationToken cancellationToken = default) => Task.FromResult<PublicPackageProjection?>(null);

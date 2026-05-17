@@ -26,6 +26,7 @@ public sealed class Package
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public string PackageId { get; set; } = "";
+    public string DisplayName { get; set; } = "";
     public Guid SourceId { get; set; }
     public PackageSource? Source { get; set; }
     public bool Approved { get; set; }

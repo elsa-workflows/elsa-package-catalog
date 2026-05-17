@@ -107,6 +107,7 @@ public interface IPublicCatalogQueries
 
 public sealed record PublicPackageProjection(
     string PackageId,
+    string DisplayName,
     PublicPackageSourceProjection Source,
     string? LatestVersion,
     IReadOnlyList<PublicPackageVersionProjection> Versions);

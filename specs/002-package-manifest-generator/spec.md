@@ -114,6 +114,7 @@ A package author can use XML documentation, CShells metadata, manifest hints, an
 1. **Given** XML documentation contains feature and setting summaries, **When** generation runs, **Then** those summaries populate missing descriptions.
 2. **Given** CShells metadata or manifest hints provide display names or categories, **When** generation runs, **Then** those values override inferred defaults for the annotated target.
 3. **Given** the override file provides package, feature, or setting metadata, **When** generation runs, **Then** override values take precedence over inferred, XML, CShells metadata, and manifest hint values according to merge rules.
+4. **Given** the package title is absent or duplicates the package ID, **When** generation runs for an `Elsa.*` package, **Then** the package display name omits the standard `Elsa.` prefix while retaining the remaining package name.
 
 ---
 
