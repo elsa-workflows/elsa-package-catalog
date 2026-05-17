@@ -10,6 +10,7 @@ using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Persistence.EntityFrameworkCore;
 using Elsa.Catalog.Testing;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Elsa.Catalog.Api.Tests;
@@ -54,6 +55,19 @@ public sealed class WorkspaceCustomFeedsApiTests
         await app.SeedAsync(_ => Task.CompletedTask);
 
         var response = await app.CreateClient().GetAsync("/api/me/workspaces");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Me_workspaces_rejects_trusted_headers_from_untrusted_remote_ip()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+        var client = WorkspaceClient(app);
+        client.DefaultRequestHeaders.Add(CatalogApiTestApplication.TestRemoteIpHeader, "203.0.113.10");
+
+        var response = await client.GetAsync("/api/me/workspaces");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
@@ -140,7 +154,7 @@ public sealed class WorkspaceCustomFeedsApiTests
     private static WorkspaceSourceRequest CreateSourceRequest(string name, string url) =>
         new(name, url, true, ["Elsa.*"], [], PackageSourceVersionDiscoveryPolicy.AllVersions);
 
-    private static HttpClient WorkspaceClient(CatalogApiTestApplication app)
+    private static HttpClient WorkspaceClient(WebApplicationFactory<Program> app)
     {
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(TrustedHeaderWorkspaceIdentityReader.IssuerHeader, "https://elsaworkflows.io");
@@ -150,7 +164,7 @@ public sealed class WorkspaceCustomFeedsApiTests
         return client;
     }
 
-    private static HttpClient AdminClient(CatalogApiTestApplication app)
+    private static HttpClient AdminClient(WebApplicationFactory<Program> app)
     {
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");

@@ -15,6 +15,7 @@ Rules:
 
 - `Issuer` and `Subject` are required.
 - The adapter is accepted only when enabled by configuration.
+- Enabled trusted-header identity is accepted only from configured proxy IPs/CIDR ranges (`Authentication:WorkspaceTrustedHeaders:AllowedProxyNetworks`); direct clients must not be able to provide these headers.
 - Browser-supplied user IDs, account IDs, or workspace IDs without this trusted context are rejected.
 - Later OIDC/JWT validation must map to the same trusted identity model.
 
