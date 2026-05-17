@@ -22,6 +22,7 @@ public static class PublicCatalogSeedData
         var package = new Package
         {
             PackageId = packageId,
+            DisplayName = packageId.StartsWith("Elsa.", StringComparison.OrdinalIgnoreCase) ? packageId["Elsa.".Length..] : packageId,
             Source = source,
             SourceId = source.Id,
             Approved = approved,

@@ -26,7 +26,7 @@ public sealed class PackageSyncServiceTests
 
         run.Status.Should().Be(SyncRunStatus.Completed);
         run.Items.Should().ContainSingle(x => x.Status == SyncRunItemStatus.Indexed);
-        catalog.Packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email");
+        catalog.Packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email" && x.DisplayName == "Email");
     }
 
     [Fact]

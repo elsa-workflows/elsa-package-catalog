@@ -229,6 +229,7 @@ public sealed class PackageSyncService(
                 {
                     SourceId = source.Id,
                     PackageId = discovered.PackageId,
+                    DisplayName = discovered.PackageId,
                     Approved = source.ApprovalPolicy == PackageSourceApprovalPolicy.AutoApprove,
                     Listed = true
                 };
@@ -288,7 +289,12 @@ public sealed class PackageSyncService(
             };
 
             if (packageVersion.ValidationStatus == ValidationStatus.Valid)
-                ingestion.Ingest(packageVersion, read.ManifestJson);
+            {
+                var ingested = ingestion.Ingest(packageVersion, read.ManifestJson);
+                package.DisplayName = string.IsNullOrWhiteSpace(ingested.Manifest.DisplayName)
+                    ? package.PackageId
+                    : ingested.Manifest.DisplayName;
+            }
 
             package.Versions.Add(packageVersion);
 
