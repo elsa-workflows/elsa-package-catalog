@@ -204,6 +204,11 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                     b.Property<int>("ApprovalPolicy")
                         .HasColumnType("int");
 
+                    b.Property<bool>("Browseable")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetimeoffset");
 

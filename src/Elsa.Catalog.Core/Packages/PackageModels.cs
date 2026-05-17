@@ -7,6 +7,7 @@ public sealed class PackageSource
     public PackageSourceType Type { get; set; } = PackageSourceType.NuGetFeed;
     public string Url { get; set; } = "";
     public bool Enabled { get; set; } = true;
+    public bool Browseable { get; set; } = true;
     public List<string> IncludePatterns { get; set; } = [];
     public List<string> ExcludePatterns { get; set; } = [];
     public PackageSourceApprovalPolicy ApprovalPolicy { get; set; } = PackageSourceApprovalPolicy.Manual;

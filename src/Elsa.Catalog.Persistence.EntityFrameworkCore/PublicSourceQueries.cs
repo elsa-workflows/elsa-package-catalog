@@ -10,7 +10,7 @@ public sealed class PublicSourceQueries(CatalogDbContext dbContext) : IPublicSou
     {
         var sources = await dbContext.PackageSources
             .AsNoTracking()
-            .Where(x => x.Enabled && x.SoftDeletedAt == null)
+            .Where(x => x.Enabled && x.Browseable && x.SoftDeletedAt == null)
             .OrderBy(x => x.Name)
             .Select(x => new
             {

@@ -93,6 +93,30 @@ public sealed class CompatibilityConflictTests
         result.Findings.Should().NotContain(x => x.Code == "feature.conflict");
     }
 
+    [Fact]
+    public async Task Ignores_package_conflicts_from_package_with_same_id_in_another_source()
+    {
+        var sourceA = PublicCatalogSeedData.CreatePackageSource();
+        var sourceB = PublicCatalogSeedData.CreatePackageSource();
+        var emailA = PublicCatalogSeedData.CreatePackage(sourceA, "Elsa.Email");
+        var emailB = PublicCatalogSeedData.CreatePackage(sourceB, "Elsa.Email");
+        var emailAVersion = PublicCatalogSeedData.AddVersion(emailA, "1.0.0");
+        PublicCatalogSeedData.AddVersion(emailB, "2.0.0");
+        emailAVersion.ManifestJson = """
+        {
+          "schemaVersion": "1.0",
+          "package": { "id": "Elsa.Email", "version": "1.0.0" },
+          "displayName": "Email",
+          "conflicts": [{ "packageId": "Elsa.Email", "versionRange": ">=2.0.0" }]
+        }
+        """;
+        var service = new CompatibilityCheckService(new FakeQueries(emailA.Versions.Concat(emailB.Versions).ToList()), new VersionRangeEvaluator());
+
+        var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [Selection(sourceA, "Elsa.Email", "1.0.0"), Selection(sourceB, "Elsa.Email", "2.0.0")], []));
+
+        result.Findings.Should().NotContain(x => x.Code == "package.conflict");
+    }
+
     private static SelectedPackageVersion Selection(PackageSource source, string packageId, string version = "1.0.0") =>
         new(source.Id, packageId, version);
 

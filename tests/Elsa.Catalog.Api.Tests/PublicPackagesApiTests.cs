@@ -57,6 +57,31 @@ public sealed class PublicPackagesApiTests
     }
 
     [Fact]
+    public async Task Get_public_sources_excludes_non_browseable_sources()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(db =>
+        {
+            var publicSource = PublicCatalogSeedData.CreatePackageSource();
+            publicSource.Name = "Public";
+            PublicCatalogSeedData.AddVersion(PublicCatalogSeedData.CreatePackage(publicSource, "Elsa.Public"));
+
+            var internalSource = PublicCatalogSeedData.CreatePackageSource();
+            internalSource.Name = "Internal";
+            internalSource.Browseable = false;
+            PublicCatalogSeedData.AddVersion(PublicCatalogSeedData.CreatePackage(internalSource, "Elsa.Internal"));
+
+            db.PackageSources.AddRange(publicSource, internalSource);
+            return Task.CompletedTask;
+        });
+
+        var sources = await app.CreateClient().GetFromJsonAsync<List<PublicSourceResponse>>("/api/sources");
+
+        sources.Should().ContainSingle(x => x.Name == "Public");
+        sources.Should().NotContain(x => x.Name == "Internal");
+    }
+
+    [Fact]
     public async Task Get_packages_filters_by_selected_source_ids()
     {
         await using var app = new CatalogApiTestApplication();

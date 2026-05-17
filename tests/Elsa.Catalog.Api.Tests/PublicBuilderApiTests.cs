@@ -95,7 +95,7 @@ public sealed class PublicBuilderApiTests
         {
             packages = new[]
             {
-                new { packageId, version, selectedFeatures = Array.Empty<string>() }
+                new { sourceId = Guid.NewGuid(), packageId, version, selectedFeatures = Array.Empty<string>() }
             }
         });
 
