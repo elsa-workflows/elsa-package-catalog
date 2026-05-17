@@ -18,6 +18,7 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
                 nullable: false,
                 defaultValue: "");
 
+            // Strips the "Elsa." prefix (5 chars). Keep in sync with PackageDisplayNamePolicy.ElsaPackagePrefix.
             migrationBuilder.Sql(
                 """
                 UPDATE Packages

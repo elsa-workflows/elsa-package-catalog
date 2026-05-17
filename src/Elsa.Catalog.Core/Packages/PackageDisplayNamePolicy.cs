@@ -2,6 +2,7 @@ namespace Elsa.Catalog.Core.Packages;
 
 public static class PackageDisplayNamePolicy
 {
+    // Keep in sync with the build-time generator's NamingHelpers.ToPackageDisplayName rule.
     private const string ElsaPackagePrefix = "Elsa.";
 
     public static string DefaultForPackageId(string packageId)

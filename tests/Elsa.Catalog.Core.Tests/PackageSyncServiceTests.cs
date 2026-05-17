@@ -84,6 +84,32 @@ public sealed class PackageSyncServiceTests
     }
 
     [Fact]
+    public async Task Uses_display_name_from_latest_valid_version_regardless_of_discovery_order()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        source.ApprovalPolicy = PackageSourceApprovalPolicy.AutoApprove;
+        var sources = new InMemorySourceStore([source]);
+        var catalog = new InMemorySyncCatalogStore();
+        var syncRuns = new InMemorySyncRunStore();
+        var manifests = new Dictionary<string, string>
+        {
+            ["1.0.0"] = new ManifestFixtureBuilder().WithPackage("Elsa.Email", "1.0.0").WithDisplayName("Email Classic").WithFeature().BuildJson(),
+            ["2.0.0"] = new ManifestFixtureBuilder().WithPackage("Elsa.Email", "2.0.0").WithDisplayName("Email Modern").WithFeature().BuildJson()
+        };
+        var service = CreateService(
+            sources,
+            catalog,
+            syncRuns,
+            new FakeDiscovery([new("Elsa.Email", "2.0.0"), new("Elsa.Email", "1.0.0")]),
+            new FakeDownloader("{}", manifests));
+
+        var run = await service.SyncAllAsync();
+
+        run.Status.Should().Be(SyncRunStatus.Completed);
+        catalog.Packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email" && x.LatestVersion == "2.0.0" && x.DisplayName == "Email Modern");
+    }
+
+    [Fact]
     public async Task Does_not_advance_last_successful_sync_when_source_has_failed_items()
     {
         var source = PublicCatalogSeedData.CreatePackageSource();
@@ -390,10 +416,13 @@ public sealed class PackageSyncServiceTests
         }
     }
 
-    private sealed class FakeDownloader(string manifestJson) : IPackageArchiveDownloader
+    private sealed class FakeDownloader(string manifestJson, IReadOnlyDictionary<string, string>? manifestsByVersion = null) : IPackageArchiveDownloader
     {
-        public Task<Stream> DownloadPackageAsync(PackageSource source, string packageId, string version, CancellationToken cancellationToken = default) =>
-            Task.FromResult<Stream>(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(manifestJson)));
+        public Task<Stream> DownloadPackageAsync(PackageSource source, string packageId, string version, CancellationToken cancellationToken = default)
+        {
+            var json = manifestsByVersion?.GetValueOrDefault(version) ?? manifestJson;
+            return Task.FromResult<Stream>(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)));
+        }
     }
 
     private sealed class ThrowingDownloader : IPackageArchiveDownloader

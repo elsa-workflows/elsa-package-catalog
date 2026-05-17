@@ -7,12 +7,19 @@ public sealed class ManifestFixtureBuilder
 {
     private string _packageId = "Elsa.Email";
     private string _version = "1.0.0";
+    private string _displayName = "Email";
     private readonly List<FeatureManifest> _features = [];
 
     public ManifestFixtureBuilder WithPackage(string packageId, string version)
     {
         _packageId = packageId;
         _version = version;
+        return this;
+    }
+
+    public ManifestFixtureBuilder WithDisplayName(string displayName)
+    {
+        _displayName = displayName;
         return this;
     }
 
@@ -34,7 +41,7 @@ public sealed class ManifestFixtureBuilder
     {
         SchemaVersion = ManifestSchemaVersions.Current,
         Package = new PackageIdentityManifest { Id = _packageId, Version = _version },
-        DisplayName = "Email",
+        DisplayName = _displayName,
         Features = _features
     };
 

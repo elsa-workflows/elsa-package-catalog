@@ -291,12 +291,11 @@ public sealed class PackageSyncService(
             if (packageVersion.ValidationStatus == ValidationStatus.Valid)
             {
                 var ingested = ingestion.Ingest(packageVersion, read.ManifestJson);
-                package.DisplayName = string.IsNullOrWhiteSpace(ingested.Manifest.DisplayName)
-                    ? PackageDisplayNamePolicy.DefaultForPackageId(package.PackageId)
-                    : ingested.Manifest.DisplayName;
+                package.DisplayName = ResolveManifestDisplayName(package, ingested.Manifest);
             }
 
             package.Versions.Add(packageVersion);
+            UpdatePackageDisplayName(package);
 
             if (await catalog.GetPackageAsync(source.Id, discovered.PackageId, cancellationToken) is null)
                 await catalog.AddPackageAsync(package, cancellationToken);
@@ -367,6 +366,25 @@ public sealed class PackageSyncService(
             : validation.IsValid
                 ? ValidationStatus.Valid
                 : ValidationStatus.Invalid;
+
+    private static void UpdatePackageDisplayName(Package package)
+    {
+        var latestValidVersion = package.Versions
+            .Where(x => x.ValidationStatus == ValidationStatus.Valid)
+            .OrderByDescending(x => x.Version, Comparer<string>.Create(CompareVersions))
+            .FirstOrDefault();
+
+        if (latestValidVersion is null)
+            return;
+
+        var manifest = JsonSerializer.Deserialize<ElsaPackageManifest>(latestValidVersion.ManifestJson, ManifestJsonSerializerOptions.Default);
+        package.DisplayName = ResolveManifestDisplayName(package, manifest);
+    }
+
+    private static string ResolveManifestDisplayName(Package package, ElsaPackageManifest? manifest) =>
+        string.IsNullOrWhiteSpace(manifest?.DisplayName)
+            ? PackageDisplayNamePolicy.DefaultForPackageId(package.PackageId)
+            : manifest.DisplayName;
 
     private static string? ExtractSchemaVersion(string manifestJson)
     {
