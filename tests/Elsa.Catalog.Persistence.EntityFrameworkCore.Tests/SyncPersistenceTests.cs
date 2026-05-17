@@ -115,7 +115,8 @@ public sealed class SyncPersistenceTests
             new PackageVersionPolicy(),
             new NoopSyncDiagnostics(),
             new SyncConcurrencyGuard(),
-            new SourceSyncActivityTracker());
+            new SourceSyncActivityTracker(),
+            new SyncRunCancellationRegistry());
 
         var run = await service.SyncAllAsync();
 
@@ -150,7 +151,8 @@ public sealed class SyncPersistenceTests
             new PackageVersionPolicy(),
             new NoopSyncDiagnostics(),
             new SyncConcurrencyGuard(),
-            new SourceSyncActivityTracker());
+            new SourceSyncActivityTracker(),
+            new SyncRunCancellationRegistry());
 
         await service.SyncAllAsync();
 

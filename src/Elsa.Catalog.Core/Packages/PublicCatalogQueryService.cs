@@ -1,26 +1,56 @@
 using Elsa.Catalog.Core.Manifests;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Elsa.Catalog.Core.Packages;
 
-public sealed class PublicCatalogQueryService(IPublicCatalogQueries queries)
+public sealed class PublicCatalogQueryService(IPublicCatalogQueries queries, PublicCatalogCache cache)
 {
     public Task<IReadOnlyList<PublicPackageProjection>> ListPackagesAsync(CancellationToken cancellationToken = default) =>
-        queries.ListPackagesAsync(cancellationToken);
+        cache.GetOrCreateAsync("packages:list", queries.ListPackagesAsync, cancellationToken);
 
     public Task<PublicPackageProjection?> GetPackageAsync(string packageId, CancellationToken cancellationToken = default) =>
-        queries.GetPackageAsync(packageId, cancellationToken);
+        cache.GetOrCreateAsync($"packages:item:{packageId}", token => queries.GetPackageAsync(packageId, token), cancellationToken);
 
     public Task<IReadOnlyList<PublicPackageVersionProjection>> ListVersionsAsync(string packageId, CancellationToken cancellationToken = default) =>
-        queries.ListVersionsAsync(packageId, cancellationToken);
+        cache.GetOrCreateAsync($"packages:versions:{packageId}", token => queries.ListVersionsAsync(packageId, token), cancellationToken);
 
     public Task<PublicPackageVersionProjection?> GetVersionAsync(string packageId, string version, CancellationToken cancellationToken = default) =>
-        queries.GetVersionAsync(packageId, version, cancellationToken);
+        cache.GetOrCreateAsync($"packages:version:{packageId}:{version}", token => queries.GetVersionAsync(packageId, version, token), cancellationToken);
 
     public Task<IReadOnlyList<PublicFeatureProjection>> ListFeaturesAsync(CancellationToken cancellationToken = default) =>
-        queries.ListFeaturesAsync(cancellationToken);
+        cache.GetOrCreateAsync("features:list", queries.ListFeaturesAsync, cancellationToken);
 
     public Task<PublicFeatureProjection?> GetFeatureAsync(string featureId, CancellationToken cancellationToken = default) =>
-        queries.GetFeatureAsync(featureId, cancellationToken);
+        cache.GetOrCreateAsync($"features:item:{featureId}", token => queries.GetFeatureAsync(featureId, token), cancellationToken);
+}
+
+public sealed class PublicCatalogCache(IMemoryCache memoryCache) : IPublicCatalogCacheInvalidator
+{
+    private static readonly MemoryCacheEntryOptions CacheEntryOptions = new()
+    {
+        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
+        SlidingExpiration = TimeSpan.FromMinutes(5)
+    };
+
+    private long generation;
+
+    public Task<T> GetOrCreateAsync<T>(string key, Func<CancellationToken, Task<T>> factory, CancellationToken cancellationToken = default)
+    {
+        var generationKey = $"{Volatile.Read(ref generation)}:{key}";
+        return memoryCache.GetOrCreateAsync(generationKey, entry =>
+        {
+            entry.SetOptions(CacheEntryOptions);
+            return factory(cancellationToken);
+        })!;
+    }
+
+    public void Invalidate() =>
+        Interlocked.Increment(ref generation);
+}
+
+public interface IPublicCatalogCacheInvalidator
+{
+    void Invalidate();
 }
 
 public interface IPublicCatalogQueries
