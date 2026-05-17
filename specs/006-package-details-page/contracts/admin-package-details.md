@@ -232,6 +232,7 @@ Rules:
 Expected responses:
 
 - `204`: Approved.
+- `400`: Expected state token missing or blank.
 - `401` or `403`: Admin access failure.
 - `404`: Package or version not found.
 - `409`: Version state changed; refresh before retry.

@@ -63,6 +63,12 @@ test.describe("package details", () => {
     await page.route("**/api/admin/packages/Elsa.Persistence.PostgreSql", async (route) => {
       await route.fulfill({ json: packageDetails });
     });
+    await page.route("**/api/admin/packages/Elsa.Persistence.PostgreSql/versions/*/validation", async (route) => {
+      await route.fulfill({ json: { packageId: packageDetails.packageId, version: "1.0.2", findings: [] } });
+    });
+    await page.route("**/api/admin/packages/Elsa.Persistence.PostgreSql/versions/*/manifest", async (route) => {
+      await route.fulfill({ json: packageDetails.versions[0].manifest });
+    });
 
     await page.goto("/admin/packages/Elsa.Persistence.PostgreSql");
     await expect(page.getByRole("heading", { name: "Elsa.Persistence.PostgreSql" })).toBeVisible();

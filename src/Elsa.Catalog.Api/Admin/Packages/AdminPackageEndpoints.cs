@@ -136,7 +136,7 @@ public static class AdminPackageEndpoints
                 version.SchemaVersion,
                 version.ManifestHash,
                 version.SuspiciousManifestHash,
-                version.ManifestJson));
+                ""));
     }
 
     private static AdminFeatureResponse ToFeatureResponse(FeatureRecord feature) =>

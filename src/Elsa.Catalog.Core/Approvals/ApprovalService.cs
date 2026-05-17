@@ -37,7 +37,7 @@ public sealed class ApprovalService(IApprovalStore store, IPublicCatalogCacheInv
         if (packageVersion is null)
             return false;
 
-        var result = await TrySetVersionApprovalAsync(packageId, version, status, actor, reason, CreateVersionStateToken(packageVersion), cancellationToken);
+        var result = await TrySetLoadedVersionApprovalAsync(packageVersion, status, actor, reason, CreateVersionStateToken(packageVersion), cancellationToken);
         return result == VersionApprovalUpdateResult.Updated;
     }
 
@@ -53,8 +53,15 @@ public sealed class ApprovalService(IApprovalStore store, IPublicCatalogCacheInv
         if (!string.Equals(CreateVersionStateToken(packageVersion), expectedStateToken, StringComparison.Ordinal))
             return VersionApprovalUpdateResult.Conflict;
 
-        packageVersion.ApprovalStatus = status;
-        await store.AddApprovalRecordAsync(new ApprovalRecord
+        return await TrySetLoadedVersionApprovalAsync(packageVersion, status, actor, reason, expectedStateToken, cancellationToken);
+    }
+
+    private async Task<VersionApprovalUpdateResult> TrySetLoadedVersionApprovalAsync(PackageVersion packageVersion, PackageApprovalStatus status, string actor, string? reason, string expectedStateToken, CancellationToken cancellationToken)
+    {
+        if (!string.Equals(CreateVersionStateToken(packageVersion), expectedStateToken, StringComparison.Ordinal))
+            return VersionApprovalUpdateResult.Conflict;
+
+        var result = await store.TryUpdateVersionApprovalAsync(packageVersion, status, new ApprovalRecord
         {
             TargetType = ApprovalTargetType.PackageVersion,
             TargetId = packageVersion.Id,
@@ -62,9 +69,11 @@ public sealed class ApprovalService(IApprovalStore store, IPublicCatalogCacheInv
             Actor = actor,
             Reason = reason
         }, cancellationToken);
-        await store.SaveChangesAsync(cancellationToken);
-        publicCatalogCache?.Invalidate();
-        return VersionApprovalUpdateResult.Updated;
+
+        if (result == VersionApprovalUpdateResult.Updated)
+            publicCatalogCache?.Invalidate();
+
+        return result;
     }
 
     public static string CreateVersionStateToken(PackageVersion version) =>
@@ -85,6 +94,7 @@ public interface IApprovalStore
     Task<Package?> GetPackageAsync(string packageId, CancellationToken cancellationToken = default);
     Task<PackageVersion?> GetPackageVersionAsync(string packageId, string version, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ManifestValidationResultRecord>> GetValidationResultsAsync(string packageId, string version, CancellationToken cancellationToken = default);
+    Task<VersionApprovalUpdateResult> TryUpdateVersionApprovalAsync(PackageVersion packageVersion, PackageApprovalStatus status, ApprovalRecord approvalRecord, CancellationToken cancellationToken = default);
     Task AddApprovalRecordAsync(ApprovalRecord record, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
 }

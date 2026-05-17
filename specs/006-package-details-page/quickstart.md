@@ -21,9 +21,13 @@
 7. Confirm validation errors and warnings are normalized into findings with
    severity, message, optional code/path, and blocking impact.
 8. Approve a selected version with
-   `POST /api/admin/packages/<packageId>/versions/<version>/approve`.
-9. Reject a selected version with a non-empty reason using
-   `POST /api/admin/packages/<packageId>/versions/<version>/reject`.
+   `POST /api/admin/packages/<packageId>/versions/<version>/approve` and a body
+   containing the selected version's `expectedStateToken`:
+   `{"expectedStateToken":"<versionStateToken>","reason":"Reviewed"}`.
+9. Reject a selected version with a non-empty reason and the selected version's
+   `expectedStateToken` using
+   `POST /api/admin/packages/<packageId>/versions/<version>/reject`:
+   `{"expectedStateToken":"<versionStateToken>","reason":"Not ready"}`.
 10. Attempt a rejection with a blank reason and confirm it is blocked.
 
 ## Admin UI Verification

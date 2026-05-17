@@ -152,6 +152,7 @@ public sealed class AdminPackagesApiTests
         var version = package!.Versions.Single();
         version.Manifest.Available.Should().BeTrue();
         version.Manifest.ManifestHash.Should().Be("sha256:email");
+        version.Manifest.ManifestJson.Should().BeEmpty();
         version.Compatibility.TargetFrameworks.Should().ContainSingle("net10.0");
         version.Features.Should().ContainSingle();
         var feature = version.Features.Single();

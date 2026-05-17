@@ -64,8 +64,12 @@ public static class PublicCatalogSeedData
         return packageVersion;
     }
 
-    public static Package CreatePackageWithoutVersions(PackageSource source, string packageId = "Elsa.Empty") =>
-        CreatePackage(source, packageId);
+    public static Package CreatePackageWithoutVersions(PackageSource source, string packageId = "Elsa.Empty")
+    {
+        var package = CreatePackage(source, packageId);
+        package.LatestVersion = null;
+        return package;
+    }
 
     public static Package CreateMultiVersionPackage(PackageSource source, string packageId = "Elsa.Persistence.PostgreSql")
     {

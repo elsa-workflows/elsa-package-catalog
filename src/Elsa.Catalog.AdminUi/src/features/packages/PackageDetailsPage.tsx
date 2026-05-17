@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Badge, Button, EmptyState, Input, SecondaryButton } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
-import { approvePackageVersion, getPackageDetails, getPackageValidation, rejectPackageVersion } from "@/features/packages/packageApi";
+import { approvePackageVersion, getPackageDetails, getPackageManifest, getPackageValidation, rejectPackageVersion } from "@/features/packages/packageApi";
 import {
   compatibilityMatchesSearch,
   featureMatchesSearch,
@@ -47,6 +47,11 @@ export function PackageDetailsPage() {
     queryFn: () => getPackageValidation(details!.packageId, selectedVersion!.version),
     enabled: Boolean(details && selectedVersion)
   });
+  const manifest = useQuery({
+    queryKey: queryKeys.packageManifest(details?.packageId ?? packageId, selectedVersion?.version ?? ""),
+    queryFn: () => getPackageManifest(details!.packageId, selectedVersion!.version),
+    enabled: Boolean(details && selectedVersion)
+  });
   const normalizedFeatures = useMemo(() => selectedVersion?.features.map(normalizeFeature) ?? [], [selectedVersion]);
   const visibleFeatures = useMemo(
     () => normalizedFeatures.filter((feature) => featureMatchesSearch(feature, inspectionSearch)),
@@ -57,8 +62,10 @@ export function PackageDetailsPage() {
     () => (validation.data?.findings ?? []).filter((finding) => validationFindingMatchesSearch(finding, validationSearch)),
     [validation.data?.findings, validationSearch]
   );
-  const formattedManifest = formatJson(selectedVersion?.manifest.manifestJson);
+  const manifestContent = manifest.data ?? selectedVersion?.manifest;
+  const formattedManifest = formatJson(manifestContent?.manifestJson);
   const manifestVisible = !manifestSearch.trim() || formattedManifest.value.toLowerCase().includes(manifestSearch.trim().toLowerCase());
+  const listingLabel = selectedVersion ? (selectedVersion.isListed && details?.listed ? "Listed" : "Unlisted") : details?.listed ? "Listed" : "No versions";
   const selectedAction = selectedVersion
     ? {
         packageId: details?.packageId ?? packageId,
@@ -161,8 +168,8 @@ export function PackageDetailsPage() {
               <Badge className={statusToneClass(sourceStatusTone(selectedVersion?.validationStatus ?? "NotValidated"))}>
                 {selectedVersion?.validationStatus ?? "NotValidated"}
               </Badge>
-              <Badge className={statusToneClass(sourceStatusTone(selectedVersion?.isListed && details.listed ? "Listed" : "Unlisted"))}>
-                {selectedVersion?.isListed && details.listed ? "Listed" : "Unlisted"}
+              <Badge className={statusToneClass(sourceStatusTone(listingLabel))}>
+                {listingLabel}
               </Badge>
               {selectedVersion?.suspiciousChangeDetected ? (
                 <Badge className={statusToneClass(sourceStatusTone("Suspicious"))}>Suspicious</Badge>
@@ -181,7 +188,7 @@ export function PackageDetailsPage() {
             </dl>
           </section>
 
-          <section id={sectionElementId("validation")} className="rounded-ui border border-border bg-surface p-4">
+          <section className="rounded-ui border border-border bg-surface p-4">
             <h2 className="text-base font-medium">Visibility</h2>
             {selectedVersion && Object.keys(reasonGroups).length > 0 ? (
               <div className="mt-3 space-y-3">
@@ -207,7 +214,7 @@ export function PackageDetailsPage() {
             )}
           </section>
 
-          <section id={sectionElementId("actions")} className="rounded-ui border border-border bg-surface p-4">
+          <section id={sectionElementId("validation")} className="rounded-ui border border-border bg-surface p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <h2 className="text-base font-medium">Validation Findings</h2>
               <label className="relative block md:w-72">
@@ -233,6 +240,7 @@ export function PackageDetailsPage() {
                   <li key={`${finding.severity}-${finding.code ?? index}-${finding.path ?? ""}`} className="rounded-ui border border-border bg-background p-3 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge className={statusToneClass(sourceStatusTone(finding.severity))}>{finding.severity}</Badge>
+                      {finding.blocksPublicVisibility ? <Badge className={statusToneClass(sourceStatusTone("Blocking"))}>Blocks public visibility</Badge> : null}
                       {finding.code ? <span className="font-medium">{finding.code}</span> : null}
                       {finding.path ? <span className="text-muted-foreground">{finding.path}</span> : null}
                     </div>
@@ -268,7 +276,7 @@ export function PackageDetailsPage() {
             {visibleFeatures.length === 0 ? (
               <p className="mt-3 text-sm text-muted-foreground">No feature metadata matches this package version.</p>
             ) : (
-              <div className="mt-3 space-y-3">
+              <div id={sectionElementId("dependencies")} className="mt-3 space-y-3">
                 {visibleFeatures.map((feature) => (
                   <div key={feature.featureId} className="rounded-ui border border-border bg-background p-3 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
@@ -277,8 +285,9 @@ export function PackageDetailsPage() {
                       {feature.experimental ? <Badge>Experimental</Badge> : null}
                     </div>
                     <p className="mt-1 text-muted-foreground">{feature.description ?? feature.typeName}</p>
-                    <dl id={sectionElementId("dependencies")} className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <dl className="mt-3 grid gap-3 sm:grid-cols-2">
                       <DetailItem label="Feature ID" value={feature.featureId} />
+                      <DetailItem label="Type" value={feature.typeName} />
                       <DetailItem label="Category" value={feature.category ?? "Uncategorized"} />
                       <DetailItem label="Dependencies" value={formatDependencies(feature.dependencies)} />
                       <DetailItem label="Conflicts" value={formatConflicts(feature.conflicts)} />
@@ -290,11 +299,13 @@ export function PackageDetailsPage() {
                           <thead className="text-muted-foreground">
                             <tr>
                               <th className="py-1 pr-3">Setting</th>
+                              <th className="py-1 pr-3">Name</th>
                               <th className="py-1 pr-3">Type</th>
                               <th className="py-1 pr-3">Required</th>
                               <th className="py-1 pr-3">Secret</th>
                               <th className="py-1 pr-3">Restart</th>
                               <th className="py-1 pr-3">Default</th>
+                              <th className="py-1 pr-3">Validation</th>
                               <th className="py-1 pr-3">Environment</th>
                               <th className="py-1 pr-3">Notes</th>
                             </tr>
@@ -303,11 +314,13 @@ export function PackageDetailsPage() {
                             {feature.settings.map((setting) => (
                               <tr key={setting.name}>
                                 <td className="py-1 pr-3 font-medium">{setting.displayName}</td>
+                                <td className="py-1 pr-3">{setting.name}</td>
                                 <td className="py-1 pr-3">{setting.jsonType}</td>
                                 <td className="py-1 pr-3">{setting.required ? "Yes" : "No"}</td>
                                 <td className="py-1 pr-3">{setting.secret ? "Yes" : "No"}</td>
                                 <td className="py-1 pr-3">{setting.restartRequired ? "Yes" : "No"}</td>
                                 <td className="py-1 pr-3">{setting.defaultValueJson ?? "None"}</td>
+                                <td className="py-1 pr-3">{setting.validationJson && setting.validationJson !== "{}" ? setting.validationJson : "None"}</td>
                                 <td className="py-1 pr-3">{setting.environmentVariable ?? "None"}</td>
                                 <td className="py-1 pr-3">{[setting.category, setting.description].filter(Boolean).join(" - ") || "None"}</td>
                               </tr>
@@ -330,14 +343,18 @@ export function PackageDetailsPage() {
                 <Input value={manifestSearch} onChange={(event) => setManifestSearch(event.target.value)} className="pl-9" placeholder="Search manifest" />
               </label>
             </div>
-            {selectedVersion?.manifest.available ? (
+            {manifest.isError ? (
+              <RequestStateView state="stale" title="Manifest content could not load" description="Manifest metadata is still available. Refresh to retry manifest content." />
+            ) : selectedVersion?.manifest.available ? (
               <div className="mt-3 space-y-3">
                 <dl className="grid gap-3 sm:grid-cols-3">
                   <DetailItem label="Schema" value={selectedVersion.manifest.schemaVersion ?? "Unknown"} />
                   <DetailItem label="Stored hash" value={selectedVersion.manifest.manifestHash} />
                   <DetailItem label="Suspicious hash" value={selectedVersion.manifest.suspiciousManifestHash ?? "None"} />
                 </dl>
-                {manifestVisible ? (
+                {manifest.isLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading manifest content</p>
+                ) : manifestVisible ? (
                   <pre className="max-h-[28rem] overflow-auto rounded-ui border border-border bg-background p-3 text-xs">{formattedManifest.value}</pre>
                 ) : (
                   <p className="text-sm text-muted-foreground">No manifest content matches the search.</p>
@@ -350,7 +367,7 @@ export function PackageDetailsPage() {
         </div>
 
         <aside className="space-y-4">
-          <section className="rounded-ui border border-border bg-surface p-4">
+          <section id={sectionElementId("actions")} className="rounded-ui border border-border bg-surface p-4">
             <h2 className="text-base font-medium">Version Actions</h2>
             {selectedVersion ? (
               <div className="mt-3 space-y-3">

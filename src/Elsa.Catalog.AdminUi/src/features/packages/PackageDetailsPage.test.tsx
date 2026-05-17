@@ -83,6 +83,15 @@ describe("PackageDetailsPage", () => {
     );
   });
 
+  it("renders unique deep-link targets for dependencies and actions", async () => {
+    renderPackageDetailsPage("/admin/packages/Elsa.Persistence.PostgreSql/versions/1.0.2/actions");
+
+    expect(await screen.findByRole("heading", { name: "Elsa.Persistence.PostgreSql" })).toBeInTheDocument();
+    expect(document.querySelectorAll("#package-details-dependencies")).toHaveLength(1);
+    expect(document.querySelector("#package-details-actions")).toHaveTextContent("Version Actions");
+    expect(document.querySelector("#package-details-validation")).toHaveTextContent("Validation Findings");
+  });
+
   it("recovers when a direct version link no longer matches an indexed version", async () => {
     renderPackageDetailsPage("/admin/packages/Elsa.Persistence.PostgreSql/versions/9.9.9");
 
