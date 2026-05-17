@@ -106,6 +106,13 @@ export function PackageDetailsPage() {
 
   function handleActionSuccess(message: string) {
     setActionMessage(message);
+    if (selectedVersion) {
+      setReviewedTokens((current) => {
+        const next = { ...current };
+        delete next[selectedVersion.version];
+        return next;
+      });
+    }
     void queryClient.invalidateQueries({ queryKey: queryKeys.packageDetails(packageId) });
     void queryClient.invalidateQueries({ queryKey: queryKeys.packageDetails(details!.packageId) });
     void queryClient.invalidateQueries({ queryKey: queryKeys.packages });
