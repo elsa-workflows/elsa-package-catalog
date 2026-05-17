@@ -290,8 +290,7 @@ public sealed class PackageSyncService(
 
             if (packageVersion.ValidationStatus == ValidationStatus.Valid)
             {
-                var ingested = ingestion.Ingest(packageVersion, read.ManifestJson);
-                package.DisplayName = ResolveManifestDisplayName(package, ingested.Manifest);
+                ingestion.Ingest(packageVersion, read.ManifestJson);
             }
 
             package.Versions.Add(packageVersion);
