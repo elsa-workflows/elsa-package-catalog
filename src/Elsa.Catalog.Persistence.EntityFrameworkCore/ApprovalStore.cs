@@ -36,11 +36,10 @@ public sealed class ApprovalStore(CatalogDbContext dbContext) : IApprovalStore
         if (exactMatch is not null)
             return exactMatch;
 
-        var candidates = await query
-            .Where(x => x.Package != null && x.Version == version)
-            .ToListAsync(cancellationToken);
-
-        return candidates.SingleOrDefault(x => string.Equals(x.Package!.PackageId, packageId, StringComparison.OrdinalIgnoreCase));
+        var normalizedPackageId = packageId.ToLowerInvariant();
+        return await query.SingleOrDefaultAsync(
+            x => x.Package != null && x.Package.PackageId.ToLower() == normalizedPackageId && x.Version == version,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyList<ManifestValidationResultRecord>> GetValidationResultsAsync(string packageId, string version, CancellationToken cancellationToken = default)
@@ -94,7 +93,7 @@ public sealed class ApprovalStore(CatalogDbContext dbContext) : IApprovalStore
         if (exactMatch is not null)
             return exactMatch;
 
-        var packages = await query.ToListAsync(cancellationToken);
-        return packages.SingleOrDefault(x => string.Equals(x.PackageId, packageId, StringComparison.OrdinalIgnoreCase));
+        var normalizedPackageId = packageId.ToLowerInvariant();
+        return await query.SingleOrDefaultAsync(x => x.PackageId.ToLower() == normalizedPackageId, cancellationToken);
     }
 }
