@@ -175,6 +175,27 @@ public sealed class CatalogDatabaseProviderTests
             .WithMessage("*ConnectRetryIntervalSeconds*between 1 and 60*");
     }
 
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(256)]
+    public void AddCatalogDbContext_rejects_invalid_sql_server_connect_retry_count(int connectRetryCount)
+    {
+        var settings = new Dictionary<string, string?>
+        {
+            ["Database:Provider"] = "SqlServer",
+            ["Database:SqlServer:ConnectRetryCount"] = connectRetryCount.ToString(),
+            ["ConnectionStrings:Catalog"] = SqlServerConnectionString()
+        };
+
+        using var provider = BuildProvider(settings);
+        using var scope = provider.CreateScope();
+
+        var act = () => scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*ConnectRetryCount*between 0 and 255*");
+    }
+
     [Fact]
     public void AddCatalogDbContext_requires_sql_server_connection_string()
     {

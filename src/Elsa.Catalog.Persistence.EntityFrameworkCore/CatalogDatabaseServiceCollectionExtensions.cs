@@ -73,6 +73,9 @@ public static class CatalogDatabaseServiceCollectionExtensions
         if (options.ConnectRetryIntervalSeconds is < 1 or > 60)
             throw new InvalidOperationException("Database:SqlServer:ConnectRetryIntervalSeconds must be between 1 and 60 seconds.");
 
+        if (options.ConnectRetryCount is < 0 or > 255)
+            throw new InvalidOperationException("Database:SqlServer:ConnectRetryCount must be between 0 and 255.");
+
         var builder = new SqlConnectionStringBuilder(connectionString);
 
         if (!HasExplicitSqlServerKeyword(connectionString, "ConnectTimeout", "ConnectionTimeout", "Timeout"))
