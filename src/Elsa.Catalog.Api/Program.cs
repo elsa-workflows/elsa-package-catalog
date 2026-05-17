@@ -31,6 +31,7 @@ builder.AddServiceDefaults();
 
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
+builder.Services.AddMemoryCache();
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(allowIntegerValues: false));
@@ -70,6 +71,8 @@ builder.Services.AddCatalogDbContext(builder.Configuration);
 builder.Services.AddScoped<ICatalogStore, EfCoreCatalogStore>();
 builder.Services.AddScoped<IPublicCatalogQueries, PublicCatalogQueries>();
 builder.Services.AddScoped<PublicCatalogQueryService>();
+builder.Services.AddSingleton<PublicCatalogCache>();
+builder.Services.AddSingleton<IPublicCatalogCacheInvalidator>(services => services.GetRequiredService<PublicCatalogCache>());
 builder.Services.AddScoped<IPackageSourceStore, PackageSourceStore>();
 builder.Services.AddScoped<PackageSourceService>();
 builder.Services.AddScoped<ISyncCatalogStore, SyncCatalogStore>();
