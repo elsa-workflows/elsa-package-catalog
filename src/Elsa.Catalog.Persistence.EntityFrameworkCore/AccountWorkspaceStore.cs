@@ -61,6 +61,11 @@ public sealed class AccountWorkspaceStore(CatalogDbContext dbContext) : IAccount
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public Task<bool> WorkspaceExistsAsync(Guid workspaceId, CancellationToken cancellationToken = default) =>
+        dbContext.Workspaces
+            .AsNoTracking()
+            .AnyAsync(x => x.Id == workspaceId && x.SoftDeletedAt == null, cancellationToken);
+
     public async Task<WorkspaceEntitlementSnapshot> SaveEntitlementAsync(WorkspaceEntitlementSnapshot entitlement, CancellationToken cancellationToken = default)
     {
         entitlement.SyncedAt = DateTimeOffset.UtcNow;

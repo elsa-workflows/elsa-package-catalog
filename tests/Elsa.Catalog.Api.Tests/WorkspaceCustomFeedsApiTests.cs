@@ -98,6 +98,19 @@ public sealed class WorkspaceCustomFeedsApiTests
     }
 
     [Fact]
+    public async Task Admin_entitlement_update_returns_not_found_for_unknown_workspace()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+
+        var response = await AdminClient(app).PutCatalogJsonAsync(
+            $"/api/admin/workspaces/{Guid.NewGuid()}/entitlements",
+            new WorkspaceEntitlementRequest(true, 1, 500, 20, 25, false));
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task Workspace_sources_and_packages_are_visible_only_to_workspace_members()
     {
         await using var app = new CatalogApiTestApplication();

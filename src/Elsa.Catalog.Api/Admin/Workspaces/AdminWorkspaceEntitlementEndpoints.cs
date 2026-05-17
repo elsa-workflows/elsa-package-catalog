@@ -21,6 +21,9 @@ public static class AdminWorkspaceEntitlementEndpoints
             if (request.MaxSources < 0)
                 return Results.BadRequest(new WorkspaceValidationErrorResponse(["MaxSources must be greater than or equal to zero."]));
 
+            if (!await store.WorkspaceExistsAsync(workspaceId, cancellationToken))
+                return Results.NotFound();
+
             var entitlement = await store.SaveEntitlementAsync(new WorkspaceEntitlementSnapshot
             {
                 WorkspaceId = workspaceId,
