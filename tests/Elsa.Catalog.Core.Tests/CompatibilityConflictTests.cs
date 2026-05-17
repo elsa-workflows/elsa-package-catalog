@@ -94,7 +94,7 @@ public sealed class CompatibilityConflictTests
     }
 
     [Fact]
-    public async Task Ignores_package_conflicts_from_package_with_same_id_in_another_source()
+    public async Task Reports_package_conflicts_against_matching_package_id_from_another_source()
     {
         var sourceA = PublicCatalogSeedData.CreatePackageSource();
         var sourceB = PublicCatalogSeedData.CreatePackageSource();
@@ -114,7 +114,48 @@ public sealed class CompatibilityConflictTests
 
         var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [Selection(sourceA, "Elsa.Email", "1.0.0"), Selection(sourceB, "Elsa.Email", "2.0.0")], []));
 
-        result.Findings.Should().NotContain(x => x.Code == "package.conflict");
+        result.Findings.Should().ContainSingle(x => x.Code == "package.conflict");
+    }
+
+    [Fact]
+    public async Task Reports_feature_conflicts_against_matching_package_feature_from_another_source()
+    {
+        var sourceA = PublicCatalogSeedData.CreatePackageSource();
+        var sourceB = PublicCatalogSeedData.CreatePackageSource();
+        var email = PublicCatalogSeedData.CreatePackage(sourceA, "Elsa.Email");
+        var sms = PublicCatalogSeedData.CreatePackage(sourceB, "Elsa.Sms");
+        var emailVersion = PublicCatalogSeedData.AddVersion(email);
+        var smsVersion = PublicCatalogSeedData.AddVersion(sms);
+        emailVersion.ManifestJson = """
+        {
+          "schemaVersion": "1.0",
+          "package": { "id": "Elsa.Email", "version": "1.0.0" },
+          "displayName": "Email",
+          "features": [
+            {
+              "id": "email",
+              "typeName": "Elsa.Email.EmailFeature",
+              "displayName": "Email",
+              "conflicts": [{ "packageId": "Elsa.Sms", "featureId": "sms" }]
+            }
+          ]
+        }
+        """;
+        smsVersion.ManifestJson = """
+        {
+          "schemaVersion": "1.0",
+          "package": { "id": "Elsa.Sms", "version": "1.0.0" },
+          "displayName": "SMS",
+          "features": [
+            { "id": "sms", "typeName": "Elsa.Sms.SmsFeature", "displayName": "SMS" }
+          ]
+        }
+        """;
+        var service = new CompatibilityCheckService(new FakeQueries(email.Versions.Concat(sms.Versions).ToList()), new VersionRangeEvaluator());
+
+        var result = await service.CheckAsync(new CompatibilityCheckRequest(null, null, [Selection(sourceA, "Elsa.Email"), Selection(sourceB, "Elsa.Sms")], ["email", "sms"]));
+
+        result.Findings.Should().ContainSingle(x => x.Code == "feature.conflict");
     }
 
     private static SelectedPackageVersion Selection(PackageSource source, string packageId, string version = "1.0.0") =>
