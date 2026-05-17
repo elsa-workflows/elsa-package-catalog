@@ -30,6 +30,7 @@ public sealed class PublicPackagesApiTests
         var packages = await app.CreateClient().GetFromJsonAsync<List<PublicPackageResponse>>("/api/packages");
 
         packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email");
+        packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email" && x.DisplayName == "Email");
         packages.Should().NotContain(x => x.PackageId == "Elsa.Rejected");
     }
 

@@ -20,6 +20,7 @@ export function sourceStatusTone(status?: string): StatusTone {
     case "rejected":
     case "suspicious":
     case "unsupportedschema":
+    case "blocking":
       return "destructive";
     default:
       return "neutral";

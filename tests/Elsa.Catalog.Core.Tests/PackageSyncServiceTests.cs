@@ -26,7 +26,7 @@ public sealed class PackageSyncServiceTests
 
         run.Status.Should().Be(SyncRunStatus.Completed);
         run.Items.Should().ContainSingle(x => x.Status == SyncRunItemStatus.Indexed);
-        catalog.Packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email");
+        catalog.Packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email" && x.DisplayName == "Email");
     }
 
     [Fact]
@@ -66,6 +66,69 @@ public sealed class PackageSyncServiceTests
 
         run.Status.Should().Be(SyncRunStatus.Completed);
         package.LatestVersion.Should().Be("2.0.0");
+    }
+
+    [Fact]
+    public async Task Uses_prefixless_display_name_when_manifest_is_invalid()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var sources = new InMemorySourceStore([source]);
+        var catalog = new InMemorySyncCatalogStore();
+        var syncRuns = new InMemorySyncRunStore();
+        var service = CreateService(sources, catalog, syncRuns, new FakeDiscovery([new("Elsa.Email", "1.0.0")]), new FakeDownloader("{}"));
+
+        var run = await service.SyncAllAsync();
+
+        run.Items.Should().ContainSingle(x => x.Status == SyncRunItemStatus.Invalid);
+        catalog.Packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email" && x.DisplayName == "Email");
+    }
+
+    [Fact]
+    public async Task Uses_display_name_from_latest_valid_version_regardless_of_discovery_order()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        source.ApprovalPolicy = PackageSourceApprovalPolicy.AutoApprove;
+        var sources = new InMemorySourceStore([source]);
+        var catalog = new InMemorySyncCatalogStore();
+        var syncRuns = new InMemorySyncRunStore();
+        var manifests = new Dictionary<string, string>
+        {
+            ["1.0.0"] = new ManifestFixtureBuilder().WithPackage("Elsa.Email", "1.0.0").WithDisplayName("Email Classic").WithFeature().BuildJson(),
+            ["2.0.0"] = new ManifestFixtureBuilder().WithPackage("Elsa.Email", "2.0.0").WithDisplayName("Email Modern").WithFeature().BuildJson()
+        };
+        var service = CreateService(
+            sources,
+            catalog,
+            syncRuns,
+            new FakeDiscovery([new("Elsa.Email", "2.0.0"), new("Elsa.Email", "1.0.0")]),
+            new FakeDownloader("{}", manifests));
+
+        var run = await service.SyncAllAsync();
+
+        run.Status.Should().Be(SyncRunStatus.Completed);
+        catalog.Packages.Should().ContainSingle(x => x.PackageId == "Elsa.Email" && x.LatestVersion == "2.0.0" && x.DisplayName == "Email Modern");
+    }
+
+    [Fact]
+    public async Task Keeps_prefixless_display_name_when_old_manifest_uses_package_id()
+    {
+        var source = PublicCatalogSeedData.CreatePackageSource();
+        var package = PublicCatalogSeedData.CreatePackage(source);
+        var version = PublicCatalogSeedData.AddVersion(package);
+        version.ManifestJson = new ManifestFixtureBuilder()
+            .WithPackage("Elsa.Email", "1.0.0")
+            .WithDisplayName("Elsa.Email")
+            .WithFeature()
+            .BuildJson();
+        var sources = new InMemorySourceStore([source]);
+        var catalog = new InMemorySyncCatalogStore([package]);
+        var syncRuns = new InMemorySyncRunStore();
+        var service = CreateService(sources, catalog, syncRuns, new FakeDiscovery([new("Elsa.Email", "2.0.0")]), new FakeDownloader("{}"));
+
+        var run = await service.SyncAllAsync();
+
+        run.Items.Should().ContainSingle(x => x.Status == SyncRunItemStatus.Invalid);
+        package.DisplayName.Should().Be("Email");
     }
 
     [Fact]
@@ -375,10 +438,13 @@ public sealed class PackageSyncServiceTests
         }
     }
 
-    private sealed class FakeDownloader(string manifestJson) : IPackageArchiveDownloader
+    private sealed class FakeDownloader(string manifestJson, IReadOnlyDictionary<string, string>? manifestsByVersion = null) : IPackageArchiveDownloader
     {
-        public Task<Stream> DownloadPackageAsync(PackageSource source, string packageId, string version, CancellationToken cancellationToken = default) =>
-            Task.FromResult<Stream>(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(manifestJson)));
+        public Task<Stream> DownloadPackageAsync(PackageSource source, string packageId, string version, CancellationToken cancellationToken = default)
+        {
+            var json = manifestsByVersion?.GetValueOrDefault(version) ?? manifestJson;
+            return Task.FromResult<Stream>(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)));
+        }
     }
 
     private sealed class ThrowingDownloader : IPackageArchiveDownloader

@@ -26,6 +26,8 @@ specs/007-source-scoped-catalog/plan.md
 - Existing relational catalog database. No new durable entity is required; existing `SyncRuns` and `SyncRunItems` are deleted with existing cascade semantics. (005-delete-sync-runs)
 - C# on .NET 10 LTS for API/Core/Persistence; TypeScript + React for existing admin UI and Lovable-facing public UX integration contracts. + ASP.NET Core minimal APIs and authorization, Entity Framework Core, SQLite/SQL Server EF migrations, OpenID Connect/JWT validation for later account integration. (007-source-scoped-catalog)
 - Existing relational catalog database. Source-scoped browsing reuses `PackageSources`/`Packages`; later account-owned feeds add account, workspace, external identity, source ownership, and entitlement snapshot records. (007-source-scoped-catalog)
+- C# on .NET 10 LTS for API/Core/Persistence; TypeScript + React for the existing admin UI. + ASP.NET Core minimal APIs and authorization, Entity Framework Core, System.Text.Json, Elsa.PackageManifests JSON shape, React Router, TanStack Query, TailwindCSS, shadcn/ui-style local components, Vitest/Testing Library. (006-package-details-page)
+- Existing relational catalog database. No new durable entity is required; the feature reads existing `Packages`, `PackageVersions`, `PackageSources`, validation result records, feature records, and feature setting records. (006-package-details-page)
 
 ## Recent Changes
 - 001-package-catalog: Added implementation plan, research, data model, OpenAPI contract, quickstart, and current plan reference.
@@ -36,3 +38,4 @@ specs/007-source-scoped-catalog/plan.md
 - 003-generator-adoption-fixes: Amended setting discovery policy so unsupported non-manifestable setting properties are omitted with low-importance diagnostics instead of failing normal builds.
 - 005-delete-sync-runs: Added implementation plan, research, data model, admin sync cleanup contract, and quickstart for deleting obsolete sync run history.
 - 007-source-scoped-catalog: Added specification, roadmap, plan, research, data model, public source-scoped API contract, account/workspace roadmap contract, quickstart, and tasks for source-qualified package identity and future paid custom feed indexing.
+- 006-package-details-page: Added plan, research, data model, admin package details contract, and quickstart for the admin package details page.

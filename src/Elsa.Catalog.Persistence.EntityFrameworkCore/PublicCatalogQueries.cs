@@ -94,8 +94,16 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
         version.ValidationStatus == ValidationStatus.Valid &&
         !version.SuspiciousChangeDetected;
 
-    private static PublicPackageProjection ToPackageProjection(Package package) =>
-        new(package.PackageId, ToSourceProjection(package), package.LatestVersion, package.Versions.Where(IsLoadedVisibleVersion).Select(ToVersionProjection).ToList());
+    private static PublicPackageProjection ToPackageProjection(Package package)
+    {
+        var versions = package.Versions.Where(IsLoadedVisibleVersion).ToList();
+        return new(
+            package.PackageId,
+            string.IsNullOrWhiteSpace(package.DisplayName) ? PackageDisplayNamePolicy.DefaultForPackageId(package.PackageId) : package.DisplayName,
+            ToSourceProjection(package),
+            package.LatestVersion,
+            versions.Select(ToVersionProjection).ToList());
+    }
 
     private static PublicPackageVersionProjection ToVersionProjection(PackageVersion version) =>
         new(
