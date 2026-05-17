@@ -6,6 +6,10 @@ describe("sourceStatusTone", () => {
     expect(sourceStatusTone("UnsupportedSchema")).toBe("destructive");
   });
 
+  it("treats blocking review reasons as destructive states", () => {
+    expect(sourceStatusTone("Blocking")).toBe("destructive");
+  });
+
   it("treats syncing as an in-progress warning state", () => {
     expect(sourceStatusTone("Syncing")).toBe("warning");
   });

@@ -18,6 +18,9 @@ export const queryKeys = {
   application: ["application"] as const,
   sources: ["sources"] as const,
   packages: ["packages"] as const,
+  packageDetails: (packageId: string) => ["packages", packageId] as const,
+  packageValidation: (packageId: string, version: string) => ["packages", packageId, "versions", version, "validation"] as const,
+  packageManifest: (packageId: string, version: string) => ["packages", packageId, "versions", version, "manifest"] as const,
   syncRuns: ["sync-runs"] as const,
   syncRun: (runId: string) => ["sync-runs", runId] as const,
   overview: ["overview"] as const

@@ -73,7 +73,7 @@ describe("PackagesPage", () => {
       );
     });
     const approveCall = fetchMock.mock.calls.find(([url]) => url.toString().endsWith("/approve"));
-    expect(approveCall?.[1]).not.toHaveProperty("body");
+    expect(approveCall?.[1]).toHaveProperty("body", JSON.stringify({ expectedStateToken: "state-102-pending-valid" }));
   });
 
   it("requires a rejection reason before rejecting selected versions", async () => {

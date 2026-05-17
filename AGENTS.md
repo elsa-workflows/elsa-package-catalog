@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/005-delete-sync-runs/plan.md
+specs/006-package-details-page/plan.md
 <!-- SPECKIT END -->
 
 ## Spec Kit Workflow
@@ -24,6 +24,8 @@ specs/005-delete-sync-runs/plan.md
 - Existing configuration secret for the admin API key; HTTP-only auth cookie for dashboard sessions; in-memory per-client failed-login throttle only. No new durable storage. (004-admin-dashboard-auth)
 - C# on .NET 10 LTS for API/Core/Persistence; TypeScript + React for the existing admin UI. + ASP.NET Core minimal APIs and authorization, Entity Framework Core, SQLite/SQL Server EF migrations, React Router, TanStack Query, TailwindCSS, shadcn/ui-style local components. (005-delete-sync-runs)
 - Existing relational catalog database. No new durable entity is required; existing `SyncRuns` and `SyncRunItems` are deleted with existing cascade semantics. (005-delete-sync-runs)
+- C# on .NET 10 LTS for API/Core/Persistence; TypeScript + React for the existing admin UI. + ASP.NET Core minimal APIs and authorization, Entity Framework Core, System.Text.Json, Elsa.PackageManifests JSON shape, React Router, TanStack Query, TailwindCSS, shadcn/ui-style local components, Vitest/Testing Library. (006-package-details-page)
+- Existing relational catalog database. No new durable entity is required; the feature reads existing `Packages`, `PackageVersions`, `PackageSources`, validation result records, feature records, and feature setting records. (006-package-details-page)
 
 ## Recent Changes
 - 001-package-catalog: Added implementation plan, research, data model, OpenAPI contract, quickstart, and current plan reference.
@@ -33,3 +35,4 @@ specs/005-delete-sync-runs/plan.md
 - 003-generator-adoption-fixes: Added plan, research, data model, diagnostic policy, setting discovery, package inclusion contracts, and quickstart.
 - 003-generator-adoption-fixes: Amended setting discovery policy so unsupported non-manifestable setting properties are omitted with low-importance diagnostics instead of failing normal builds.
 - 005-delete-sync-runs: Added implementation plan, research, data model, admin sync cleanup contract, and quickstart for deleting obsolete sync run history.
+- 006-package-details-page: Added plan, research, data model, admin package details contract, and quickstart for the admin package details page.
