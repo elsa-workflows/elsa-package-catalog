@@ -59,6 +59,28 @@ public sealed class PublicBuilderApiTests
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
+    [Theory]
+    [InlineData(null, "1.0.0")]
+    [InlineData("Elsa.Email", "")]
+    [InlineData(" ", "1.0.0")]
+    public async Task Resolve_reports_invalid_package_selections(string? packageId, string version)
+    {
+        await using var app = new CatalogApiTestApplication();
+
+        var response = await app.CreateClient().PostAsJsonAsync("/api/builder/resolve", new
+        {
+            packages = new[]
+            {
+                new { packageId, version, selectedFeatures = Array.Empty<string>() }
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<BuilderResolveResponse>();
+        body!.Compatible.Should().BeFalse();
+        body.Findings.Should().ContainSingle(x => x.Code == "package.invalidSelection");
+    }
+
     [Fact]
     public async Task Resolve_returns_success_for_compatible_selection()
     {

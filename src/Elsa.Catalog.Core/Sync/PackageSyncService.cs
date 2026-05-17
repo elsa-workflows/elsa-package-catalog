@@ -22,7 +22,8 @@ public sealed class PackageSyncService(
     ISyncDiagnostics diagnostics,
     SyncConcurrencyGuard concurrencyGuard,
     SourceSyncActivityTracker syncActivity,
-    SyncRunCancellationRegistry cancellationRegistry)
+    SyncRunCancellationRegistry cancellationRegistry,
+    IPublicCatalogCacheInvalidator? publicCatalogCache = null)
 {
     private const string SyncScope = "sync";
 
@@ -167,6 +168,7 @@ public sealed class PackageSyncService(
             run.CompletedAt = DateTimeOffset.UtcNow;
             run.SummaryCountersJson = JsonSerializer.Serialize(counters);
             await syncRuns.SaveChangesAsync(CancellationToken.None);
+            publicCatalogCache?.Invalidate();
             diagnostics.SyncRunCompleted(run.Id, run.Status);
         }
     }

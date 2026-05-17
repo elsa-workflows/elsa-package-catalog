@@ -56,6 +56,20 @@ public sealed class CompatibilityCheckServiceTests
     }
 
     [Fact]
+    public async Task Reports_invalid_package_selection_without_querying_or_throwing()
+    {
+        var queries = new FakeQueries([]);
+        var service = new CompatibilityCheckService(queries, new VersionRangeEvaluator());
+
+        var result = await service.CheckAsync(new CompatibilityCheckRequest("1.0.0", null, [new(null!, "1.0.0"), new("Elsa.Email", "")], []));
+
+        result.Compatible.Should().BeFalse();
+        queries.CallCount.Should().Be(0);
+        result.Findings.Should().HaveCount(2);
+        result.Findings.Should().OnlyContain(x => x.Code == "package.invalidSelection");
+    }
+
+    [Fact]
     public async Task Reports_missing_package_dependency_for_selected_feature()
     {
         var source = PublicCatalogSeedData.CreatePackageSource();
@@ -115,7 +129,12 @@ public sealed class CompatibilityCheckServiceTests
 
     private sealed class FakeQueries(IReadOnlyList<PackageVersion> versions) : ICompatibilityQueries
     {
-        public Task<PackageVersion?> GetPackageVersionAsync(string packageId, string version, CancellationToken cancellationToken = default) =>
-            Task.FromResult(versions.SingleOrDefault(x => x.Package?.PackageId == packageId && x.Version == version));
+        public int CallCount { get; private set; }
+
+        public Task<PackageVersion?> GetPackageVersionAsync(string packageId, string version, CancellationToken cancellationToken = default)
+        {
+            CallCount++;
+            return Task.FromResult(versions.SingleOrDefault(x => x.Package?.PackageId == packageId && x.Version == version));
+        }
     }
 }

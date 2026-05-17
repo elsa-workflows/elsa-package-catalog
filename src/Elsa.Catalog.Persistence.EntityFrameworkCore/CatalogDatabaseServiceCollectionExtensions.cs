@@ -1,3 +1,5 @@
+using System.Data.Common;
+using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,17 +24,17 @@ public static class CatalogDatabaseServiceCollectionExtensions
         var connectionString = configuration.GetConnectionString("Catalog");
 
         services.AddDbContext<CatalogDbContext>(options =>
-            ConfigureProvider(options, databaseOptions.Provider, connectionString));
+            ConfigureProvider(options, databaseOptions, connectionString));
 
         return services;
     }
 
     private static void ConfigureProvider(
         DbContextOptionsBuilder options,
-        CatalogDatabaseProvider provider,
+        CatalogDatabaseOptions databaseOptions,
         string? connectionString)
     {
-        switch (provider)
+        switch (databaseOptions.Provider)
         {
             case CatalogDatabaseProvider.Sqlite:
                 var sqliteConnectionString = string.IsNullOrWhiteSpace(connectionString)
@@ -50,17 +52,56 @@ public static class CatalogDatabaseServiceCollectionExtensions
                 if (string.IsNullOrWhiteSpace(connectionString))
                     throw new InvalidOperationException("ConnectionStrings:Catalog is required when Database:Provider is SqlServer.");
 
-                options.UseSqlServer(connectionString, sqlServer =>
+                var sqlServerConnectionString = BuildSqlServerConnectionString(connectionString, databaseOptions.SqlServer);
+                options.UseSqlServer(sqlServerConnectionString, sqlServer =>
                 {
                     sqlServer.MigrationsAssembly(SqlServerMigrationsAssembly);
-                    sqlServer.EnableRetryOnFailure();
+                    sqlServer.EnableRetryOnFailure(
+                        databaseOptions.SqlServer.MaxRetryCount,
+                        databaseOptions.SqlServer.MaxRetryDelay,
+                        errorNumbersToAdd: null);
                 });
                 break;
 
             default:
-                throw new InvalidOperationException($"Unsupported catalog database provider '{provider}'.");
+                throw new InvalidOperationException($"Unsupported catalog database provider '{databaseOptions.Provider}'.");
         }
     }
+
+    private static string BuildSqlServerConnectionString(string connectionString, CatalogSqlServerOptions options)
+    {
+        if (options.ConnectRetryIntervalSeconds is < 1 or > 60)
+            throw new InvalidOperationException("Database:SqlServer:ConnectRetryIntervalSeconds must be between 1 and 60 seconds.");
+
+        if (options.ConnectRetryCount is < 0 or > 255)
+            throw new InvalidOperationException("Database:SqlServer:ConnectRetryCount must be between 0 and 255.");
+
+        var builder = new SqlConnectionStringBuilder(connectionString);
+
+        if (!HasExplicitSqlServerKeyword(connectionString, "ConnectTimeout", "ConnectionTimeout", "Timeout"))
+            builder.ConnectTimeout = options.ConnectTimeoutSeconds;
+
+        if (!HasExplicitSqlServerKeyword(connectionString, "ConnectRetryCount"))
+            builder.ConnectRetryCount = options.ConnectRetryCount;
+
+        if (!HasExplicitSqlServerKeyword(connectionString, "ConnectRetryInterval"))
+            builder.ConnectRetryInterval = options.ConnectRetryIntervalSeconds;
+
+        return builder.ConnectionString;
+    }
+
+    private static bool HasExplicitSqlServerKeyword(string connectionString, params string[] aliases)
+    {
+        var builder = new DbConnectionStringBuilder { ConnectionString = connectionString };
+        var normalizedAliases = aliases.Select(NormalizeSqlServerKeyword).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return builder.Keys
+            .Cast<string>()
+            .Select(NormalizeSqlServerKeyword)
+            .Any(normalizedAliases.Contains);
+    }
+
+    private static string NormalizeSqlServerKeyword(string keyword) =>
+        keyword.Replace(" ", "", StringComparison.Ordinal).ToUpperInvariant();
 
     private static void EnsureSqliteDirectoryExists(string connectionString)
     {
