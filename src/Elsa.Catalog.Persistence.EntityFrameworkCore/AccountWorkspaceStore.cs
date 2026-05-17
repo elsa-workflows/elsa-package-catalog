@@ -53,15 +53,12 @@ public sealed class AccountWorkspaceStore(CatalogDbContext dbContext) : IAccount
 
     public async Task<WorkspaceEntitlementSnapshot?> GetLatestEntitlementAsync(Guid workspaceId, CancellationToken cancellationToken = default)
     {
-        var snapshots = await dbContext.WorkspaceEntitlementSnapshots
+        return await dbContext.WorkspaceEntitlementSnapshots
             .AsNoTracking()
             .Where(x => x.WorkspaceId == workspaceId)
-            .ToListAsync(cancellationToken);
-
-        return snapshots
             .OrderByDescending(x => x.SyncedAt)
             .ThenByDescending(x => x.CreatedAt)
-            .FirstOrDefault();
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<WorkspaceEntitlementSnapshot> SaveEntitlementAsync(WorkspaceEntitlementSnapshot entitlement, CancellationToken cancellationToken = default)
@@ -110,6 +107,16 @@ public sealed class AccountWorkspaceStore(CatalogDbContext dbContext) : IAccount
             .Select(x => new { SourceId = x.Key, Count = x.Count() })
             .ToDictionaryAsync(x => x.SourceId, x => x.Count, cancellationToken);
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
-        dbContext.SaveChangesAsync(cancellationToken);
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            dbContext.ChangeTracker.Clear();
+            throw new AccountWorkspaceConflictException("A concurrent account workspace update conflicted with this operation.", ex);
+        }
+    }
 }

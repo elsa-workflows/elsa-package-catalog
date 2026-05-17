@@ -111,8 +111,8 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
                 .ThenInclude(x => x.Features)
                 .ThenInclude(x => x.Settings)
             .Where(x => x.Source != null && x.Source.Enabled && x.Source.Browseable && x.Source.SoftDeletedAt == null)
-            .Where(x => x.Source!.Visibility == PackageSourceVisibility.Public && x.Source.OwnerWorkspaceId == null ||
-                        workspaceId.HasValue && x.Source.Visibility == PackageSourceVisibility.Workspace && x.Source.OwnerWorkspaceId == workspaceId.Value)
+            .Where(x => (x.Source!.Visibility == PackageSourceVisibility.Public && x.Source.OwnerWorkspaceId == null) ||
+                        (workspaceId.HasValue && x.Source.Visibility == PackageSourceVisibility.Workspace && x.Source.OwnerWorkspaceId == workspaceId.Value))
             .Where(x => x.Approved && x.Listed)
             .Where(x => x.Versions.Any(version =>
                 version.IsListed &&

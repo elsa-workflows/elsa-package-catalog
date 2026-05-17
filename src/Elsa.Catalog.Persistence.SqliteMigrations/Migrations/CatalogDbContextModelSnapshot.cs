@@ -125,8 +125,8 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
                     b.Property<bool>("CanCreateCustomSources")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("MaxPackagesIndexed")
                         .HasColumnType("INTEGER");
@@ -143,11 +143,11 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
                     b.Property<bool>("PrivateFeedsEnabled")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("SyncedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("SyncedAt")
+                        .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("TEXT");
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid>("WorkspaceId")
                         .HasColumnType("TEXT");

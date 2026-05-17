@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
+namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
 {
     /// <inheritdoc />
     public partial class AddAccountOwnedCustomFeeds : Migration
@@ -14,13 +14,13 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
             migrationBuilder.AddColumn<Guid>(
                 name: "OwnerWorkspaceId",
                 table: "PackageSources",
-                type: "uniqueidentifier",
+                type: "TEXT",
                 nullable: true);
 
             migrationBuilder.AddColumn<int>(
                 name: "Visibility",
                 table: "PackageSources",
-                type: "int",
+                type: "INTEGER",
                 nullable: false,
                 defaultValue: 0);
 
@@ -28,11 +28,11 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                 name: "Accounts",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    DisplayName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(320)", maxLength: 320, nullable: true),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    DisplayName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    Email = table.Column<string>(type: "TEXT", maxLength: 320, nullable: true),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -43,12 +43,12 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                 name: "Workspaces",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false),
-                    Kind = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    SoftDeletedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: true)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 256, nullable: false),
+                    Kind = table.Column<int>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    SoftDeletedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -59,15 +59,15 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                 name: "ExternalIdentities",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    AccountId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Issuer = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: false),
-                    Subject = table.Column<string>(type: "nvarchar(512)", maxLength: 512, nullable: false),
-                    DisplayName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
-                    Email = table.Column<string>(type: "nvarchar(320)", maxLength: 320, nullable: true),
-                    LastSeenAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    AccountId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Issuer = table.Column<string>(type: "TEXT", maxLength: 512, nullable: false),
+                    Subject = table.Column<string>(type: "TEXT", maxLength: 512, nullable: false),
+                    DisplayName = table.Column<string>(type: "TEXT", maxLength: 256, nullable: true),
+                    Email = table.Column<string>(type: "TEXT", maxLength: 320, nullable: true),
+                    LastSeenAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -84,17 +84,17 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                 name: "WorkspaceEntitlementSnapshots",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    WorkspaceId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    CanCreateCustomSources = table.Column<bool>(type: "bit", nullable: false),
-                    MaxSources = table.Column<int>(type: "int", nullable: false),
-                    MaxPackagesIndexed = table.Column<int>(type: "int", nullable: true),
-                    MaxVersionsPerPackage = table.Column<int>(type: "int", nullable: true),
-                    MaxSyncsPerDay = table.Column<int>(type: "int", nullable: true),
-                    PrivateFeedsEnabled = table.Column<bool>(type: "bit", nullable: false),
-                    SyncedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    WorkspaceId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    CanCreateCustomSources = table.Column<bool>(type: "INTEGER", nullable: false),
+                    MaxSources = table.Column<int>(type: "INTEGER", nullable: false),
+                    MaxPackagesIndexed = table.Column<int>(type: "INTEGER", nullable: true),
+                    MaxVersionsPerPackage = table.Column<int>(type: "INTEGER", nullable: true),
+                    MaxSyncsPerDay = table.Column<int>(type: "INTEGER", nullable: true),
+                    PrivateFeedsEnabled = table.Column<bool>(type: "INTEGER", nullable: false),
+                    SyncedAt = table.Column<long>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<long>(type: "INTEGER", nullable: false),
+                    UpdatedAt = table.Column<long>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -111,12 +111,12 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                 name: "WorkspaceMemberships",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    WorkspaceId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    AccountId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Role = table.Column<int>(type: "int", nullable: false),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "datetimeoffset", nullable: false)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    WorkspaceId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    AccountId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Role = table.Column<int>(type: "INTEGER", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {

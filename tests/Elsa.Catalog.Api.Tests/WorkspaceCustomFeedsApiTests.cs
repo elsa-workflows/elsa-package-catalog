@@ -34,6 +34,20 @@ public sealed class WorkspaceCustomFeedsApiTests
     }
 
     [Fact]
+    public async Task Me_workspaces_handles_concurrent_first_sign_in_for_same_identity()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 6)
+            .Select(_ => WorkspaceClient(app).GetCatalogJsonAsync<MeWorkspacesResponse>("/api/me/workspaces")));
+
+        responses.Count(x => x is null).Should().Be(0);
+        responses.Select(x => x!.Account.Id).Distinct().Should().ContainSingle();
+        responses.Select(x => x!.Workspaces.Single().Id).Distinct().Should().ContainSingle();
+    }
+
+    [Fact]
     public async Task Me_workspaces_rejects_missing_trusted_identity()
     {
         await using var app = new CatalogApiTestApplication();

@@ -176,6 +176,12 @@ internal sealed class WorkspaceEntitlementSnapshotConfiguration : IEntityTypeCon
     public void Configure(EntityTypeBuilder<WorkspaceEntitlementSnapshot> builder)
     {
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.SyncedAt)
+            .HasConversion(value => value.UtcTicks, value => new DateTimeOffset(value, TimeSpan.Zero));
+        builder.Property(x => x.CreatedAt)
+            .HasConversion(value => value.UtcTicks, value => new DateTimeOffset(value, TimeSpan.Zero));
+        builder.Property(x => x.UpdatedAt)
+            .HasConversion(value => value.UtcTicks, value => new DateTimeOffset(value, TimeSpan.Zero));
         builder.HasIndex(x => x.WorkspaceId);
     }
 }

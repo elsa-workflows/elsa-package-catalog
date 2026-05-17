@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
 {
     [DbContext(typeof(CatalogDbContext))]
-    [Migration("20260517222714_AddAccountOwnedCustomFeeds")]
+    [Migration("20260517224923_AddAccountOwnedCustomFeeds")]
     partial class AddAccountOwnedCustomFeeds
     {
         /// <inheritdoc />
@@ -133,8 +133,8 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                     b.Property<bool>("CanCreateCustomSources")
                         .HasColumnType("bit");
 
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("bigint");
 
                     b.Property<int?>("MaxPackagesIndexed")
                         .HasColumnType("int");
@@ -151,11 +151,11 @@ namespace Elsa.Catalog.Persistence.SqlServerMigrations.Migrations
                     b.Property<bool>("PrivateFeedsEnabled")
                         .HasColumnType("bit");
 
-                    b.Property<DateTimeOffset>("SyncedAt")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<long>("SyncedAt")
+                        .HasColumnType("bigint");
 
-                    b.Property<DateTimeOffset>("UpdatedAt")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("bigint");
 
                     b.Property<Guid>("WorkspaceId")
                         .HasColumnType("uniqueidentifier");

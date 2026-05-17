@@ -42,7 +42,20 @@ public sealed class AccountWorkspaceService(IAccountWorkspaceStore store)
         workspace.Memberships.Add(membership);
 
         await store.AddAccountAsync(account, cancellationToken);
-        await store.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await store.SaveChangesAsync(cancellationToken);
+        }
+        catch (AccountWorkspaceConflictException)
+        {
+            var concurrent = await store.FindByExternalIdentityAsync(normalized.Issuer, normalized.Subject, cancellationToken);
+            if (concurrent is null)
+                throw;
+
+            await store.UpdateExternalIdentitySeenAsync(concurrent.ExternalIdentityId, normalized.DisplayName, normalized.Email, cancellationToken);
+            return concurrent.Context;
+        }
+
         return new AccountWorkspaceContext(
             new AccountSummary(account.Id, account.DisplayName, account.Email),
             [new WorkspaceSummary(workspace.Id, workspace.Name, workspace.Kind, WorkspaceRole.Owner)]);
@@ -81,6 +94,8 @@ public sealed record TrustedWorkspaceIdentity(string Issuer, string Subject, str
 }
 
 public sealed record ExternalIdentityLookup(Guid ExternalIdentityId, AccountWorkspaceContext Context);
+
+public sealed class AccountWorkspaceConflictException(string message, Exception innerException) : Exception(message, innerException);
 
 public sealed record AccountWorkspaceContext(AccountSummary Account, IReadOnlyList<WorkspaceSummary> Workspaces);
 

@@ -17,8 +17,8 @@ public sealed class CompatibilityQueries(CatalogDbContext dbContext) : ICompatib
                     && x.Package.Source.Enabled
                     && x.Package.Source.Browseable
                     && x.Package.Source.SoftDeletedAt == null
-                    && (x.Package.Source.Visibility == PackageSourceVisibility.Public && x.Package.Source.OwnerWorkspaceId == null ||
-                        workspaceId.HasValue && x.Package.Source.Visibility == PackageSourceVisibility.Workspace && x.Package.Source.OwnerWorkspaceId == workspaceId.Value)
+                    && ((x.Package.Source.Visibility == PackageSourceVisibility.Public && x.Package.Source.OwnerWorkspaceId == null) ||
+                        (workspaceId.HasValue && x.Package.Source.Visibility == PackageSourceVisibility.Workspace && x.Package.Source.OwnerWorkspaceId == workspaceId.Value))
                     && x.Package.SourceId == sourceId
                     && x.Package.PackageId == packageId
                     && x.Version == version,
