@@ -37,9 +37,16 @@ public sealed class PublicCatalogQueryServiceTests
     public async Task Serializes_concurrent_cache_misses_for_the_same_key()
     {
         var queries = new CapturingPublicCatalogQueries();
+        var releaseQuery = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        queries.ListPackagesDelay = releaseQuery.Task;
         var service = new PublicCatalogQueryService(queries, CreateCache());
 
-        await Task.WhenAll(Enumerable.Range(0, 10).Select(_ => service.ListPackagesAsync()));
+        var requests = Enumerable.Range(0, 10).Select(_ => service.ListPackagesAsync()).ToList();
+        await WaitForAsync(() => queries.ListPackagesCallCount == 1);
+        queries.ListPackagesCallCount.Should().Be(1);
+
+        releaseQuery.SetResult();
+        await Task.WhenAll(requests);
 
         queries.ListPackagesCallCount.Should().Be(1);
     }
@@ -87,16 +94,33 @@ public sealed class PublicCatalogQueryServiceTests
     private static PublicCatalogCache CreateCache() =>
         new(new MemoryCache(new MemoryCacheOptions()));
 
+    private static async Task WaitForAsync(Func<bool> condition)
+    {
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            if (condition())
+                return;
+
+            await Task.Delay(10);
+        }
+
+        condition().Should().BeTrue();
+    }
+
     private sealed class CapturingPublicCatalogQueries : IPublicCatalogQueries
     {
         public bool ListPackagesCalled { get; private set; }
         public int ListPackagesCallCount { get; private set; }
+        public Task? ListPackagesDelay { get; set; }
 
-        public Task<IReadOnlyList<PublicPackageProjection>> ListPackagesAsync(CancellationToken cancellationToken = default)
+        public async Task<IReadOnlyList<PublicPackageProjection>> ListPackagesAsync(CancellationToken cancellationToken = default)
         {
             ListPackagesCalled = true;
             ListPackagesCallCount++;
-            return Task.FromResult<IReadOnlyList<PublicPackageProjection>>([new PublicPackageProjection("Elsa.Email", new PublicPackageSourceProjection(Guid.NewGuid(), "Test NuGet", "https://example.test/v3/index.json"), "1.0.0", [])]);
+            if (ListPackagesDelay is not null)
+                await ListPackagesDelay;
+
+            return [new PublicPackageProjection("Elsa.Email", new PublicPackageSourceProjection(Guid.NewGuid(), "Test NuGet", "https://example.test/v3/index.json"), "1.0.0", [])];
         }
 
         public Task<PublicPackageProjection?> GetPackageAsync(string packageId, CancellationToken cancellationToken = default) => Task.FromResult<PublicPackageProjection?>(null);

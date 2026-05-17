@@ -56,10 +56,7 @@ public sealed class PublicCatalogCache(IMemoryCache memoryCache) : IPublicCatalo
         finally
         {
             if (acquired)
-            {
                 keyLock.Release();
-                keyLocks.TryRemove(generationKey, out _);
-            }
         }
     }
 
@@ -74,6 +71,7 @@ public sealed class PublicCatalogCache(IMemoryCache memoryCache) : IPublicCatalo
         }
 
         expiredGeneration.Cancel();
+        keyLocks.Clear();
     }
 
     private (string Key, CancellationToken ExpirationToken) CreateGenerationKey(string key)
