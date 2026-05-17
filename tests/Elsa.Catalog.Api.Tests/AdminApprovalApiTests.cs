@@ -26,18 +26,20 @@ public sealed class AdminApprovalApiTests
         });
         var client = app.CreateClient();
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+        var packageDetails = await client.GetCatalogJsonAsync<AdminPackageResponse>("/api/admin/packages/Elsa.Email");
+        var token = packageDetails!.Versions.Single().VersionStateToken;
 
         var packageResponse = await client.PostAsync("/api/admin/packages/Elsa.Email/approve", null);
-        var versionResponse = await client.PostAsync("/api/admin/packages/Elsa.Email/versions/1.0.0/approve", null);
+        var versionResponse = await client.PostCatalogJsonAsync("/api/admin/packages/Elsa.Email/versions/1.0.0/approve", new ApprovalRequest(null, token));
 
         packageResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
         versionResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         await using var scope = app.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-        var package = await db.Packages.Include(x => x.Versions).SingleAsync();
-        package.Approved.Should().BeTrue();
-        package.Versions[0].ApprovalStatus.Should().Be(PackageApprovalStatus.Approved);
+        var storedPackage = await db.Packages.Include(x => x.Versions).SingleAsync();
+        storedPackage.Approved.Should().BeTrue();
+        storedPackage.Versions[0].ApprovalStatus.Should().Be(PackageApprovalStatus.Approved);
     }
 
     [Fact]
@@ -56,6 +58,26 @@ public sealed class AdminApprovalApiTests
         client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
 
         var response = await client.PostCatalogJsonAsync("/api/admin/packages/Elsa.Email/versions/1.0.0/reject", new ApprovalRequest(" ", null));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Version_approval_requires_state_token()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            var package = PublicCatalogSeedData.CreatePackage(source);
+            PublicCatalogSeedData.AddVersion(package, approvalStatus: PackageApprovalStatus.Pending);
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+
+        var response = await client.PostAsync("/api/admin/packages/Elsa.Email/versions/1.0.0/approve", null);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }

@@ -32,7 +32,11 @@ public sealed class ApprovalService(IApprovalStore store)
 
     public async Task<bool> SetVersionApprovalAsync(string packageId, string version, PackageApprovalStatus status, string actor, string? reason = null, CancellationToken cancellationToken = default)
     {
-        var result = await TrySetVersionApprovalAsync(packageId, version, status, actor, reason, expectedStateToken: null, cancellationToken);
+        var packageVersion = await store.GetPackageVersionAsync(packageId, version, cancellationToken);
+        if (packageVersion is null)
+            return false;
+
+        var result = await TrySetVersionApprovalAsync(packageId, version, status, actor, reason, CreateVersionStateToken(packageVersion), cancellationToken);
         return result == VersionApprovalUpdateResult.Updated;
     }
 
@@ -42,7 +46,10 @@ public sealed class ApprovalService(IApprovalStore store)
         if (packageVersion is null)
             return VersionApprovalUpdateResult.NotFound;
 
-        if (!string.IsNullOrWhiteSpace(expectedStateToken) && !string.Equals(CreateVersionStateToken(packageVersion), expectedStateToken, StringComparison.Ordinal))
+        if (string.IsNullOrWhiteSpace(expectedStateToken))
+            return VersionApprovalUpdateResult.MissingStateToken;
+
+        if (!string.Equals(CreateVersionStateToken(packageVersion), expectedStateToken, StringComparison.Ordinal))
             return VersionApprovalUpdateResult.Conflict;
 
         packageVersion.ApprovalStatus = status;
@@ -66,6 +73,7 @@ public enum VersionApprovalUpdateResult
 {
     Updated,
     NotFound,
+    MissingStateToken,
     Conflict
 }
 

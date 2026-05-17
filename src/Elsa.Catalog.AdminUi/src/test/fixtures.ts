@@ -35,7 +35,8 @@ export const packageFixture = {
       validationStatus: "Valid",
       isListed: true,
       suspiciousChangeDetected: false,
-      schemaVersion: "1.0"
+      schemaVersion: "1.0",
+      versionStateToken: "state-102-pending-valid"
     }
   ]
 };

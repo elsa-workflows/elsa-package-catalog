@@ -43,7 +43,7 @@ public static class AdminValidationEndpoints
         }
         catch (JsonException)
         {
-            return [new(severity, null, json, null, blocksPublicVisibility, validatedAt, validatorVersion)];
+            return [new(severity, null, "Validation result could not be parsed.", null, blocksPublicVisibility, validatedAt, validatorVersion)];
         }
     }
 

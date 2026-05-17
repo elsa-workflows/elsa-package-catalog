@@ -44,6 +44,28 @@ public sealed record AdminPackageVersionResponse(
     IReadOnlyList<AdminFeatureResponse> Features,
     AdminManifestResponse Manifest);
 
+public sealed record AdminPackageListResponse(
+    string PackageId,
+    bool Approved,
+    bool Listed,
+    Guid? SourceId,
+    string? LatestVersion,
+    PackageApprovalStatus ApprovalStatus,
+    ValidationStatus ValidationStatus,
+    int FeaturesCount,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt,
+    IReadOnlyList<AdminPackageListVersionResponse> Versions);
+
+public sealed record AdminPackageListVersionResponse(
+    string Version,
+    ValidationStatus ValidationStatus,
+    PackageApprovalStatus ApprovalStatus,
+    bool IsListed,
+    bool SuspiciousChangeDetected,
+    string? SchemaVersion,
+    string VersionStateToken);
+
 public sealed record AdminCompatibilityResponse(
     IReadOnlyList<string> TargetFrameworks,
     string? ElsaVersionRange,
@@ -90,6 +112,15 @@ public sealed record AdminFeatureSettingResponse(
     string ExtensionsJson);
 
 public sealed record AdminManifestResponse(
+    bool Available,
+    string? SchemaVersion,
+    string ManifestHash,
+    string? SuspiciousManifestHash,
+    string ManifestJson);
+
+public sealed record AdminVersionManifestResponse(
+    string PackageId,
+    string Version,
     bool Available,
     string? SchemaVersion,
     string ManifestHash,

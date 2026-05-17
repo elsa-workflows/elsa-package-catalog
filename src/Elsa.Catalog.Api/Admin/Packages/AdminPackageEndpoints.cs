@@ -16,7 +16,7 @@ public static class AdminPackageEndpoints
             .WithTags("Admin Packages");
 
         group.MapGet("/", async (ApprovalService approvals, CancellationToken cancellationToken) =>
-            Results.Ok((await approvals.ListPackagesAsync(cancellationToken)).Select(ToResponse)));
+            Results.Ok((await approvals.ListPackagesAsync(cancellationToken)).Select(ToListResponse)));
 
         group.MapGet("/{packageId}", async (string packageId, ApprovalService approvals, CancellationToken cancellationToken) =>
         {
@@ -24,7 +24,41 @@ public static class AdminPackageEndpoints
             return package is null ? Results.NotFound() : Results.Ok(ToResponse(package));
         });
 
+        group.MapGet("/{packageId}/versions/{version}/manifest", async (string packageId, string version, IApprovalStore store, CancellationToken cancellationToken) =>
+        {
+            var packageVersion = await store.GetPackageVersionAsync(packageId, version, cancellationToken);
+            if (packageVersion?.Package is null)
+                return Results.NotFound();
+
+            return Results.Ok(new AdminVersionManifestResponse(
+                packageVersion.Package.PackageId,
+                packageVersion.Version,
+                !string.IsNullOrWhiteSpace(packageVersion.ManifestJson),
+                packageVersion.SchemaVersion,
+                packageVersion.ManifestHash,
+                packageVersion.SuspiciousManifestHash,
+                packageVersion.ManifestJson));
+        });
+
         return endpoints;
+    }
+
+    internal static AdminPackageListResponse ToListResponse(Package package)
+    {
+        var latestVersion = package.Versions.FirstOrDefault(version => version.Version == package.LatestVersion) ?? package.Versions.FirstOrDefault();
+
+        return new(
+            package.PackageId,
+            package.Approved,
+            package.Listed,
+            package.SourceId,
+            package.LatestVersion,
+            ToApprovalStatus(package, latestVersion),
+            ToValidationStatus(latestVersion),
+            latestVersion?.Features.Count ?? 0,
+            package.CreatedAt,
+            package.UpdatedAt,
+            package.Versions.Select(ToListVersionResponse).ToList());
     }
 
     internal static AdminPackageResponse ToResponse(Package package)
@@ -50,7 +84,7 @@ public static class AdminPackageEndpoints
             latestVersion?.Features.Count ?? 0,
             package.CreatedAt,
             package.UpdatedAt,
-            package.Versions.Select(ToVersionResponse).ToList());
+            package.Versions.Select(version => ToVersionResponse(package, version)).ToList());
     }
 
     private static PackageApprovalStatus ToApprovalStatus(Package package, PackageVersion? latestVersion) =>
@@ -59,7 +93,17 @@ public static class AdminPackageEndpoints
     private static ValidationStatus ToValidationStatus(PackageVersion? latestVersion) =>
         latestVersion?.ValidationStatus ?? ValidationStatus.NotValidated;
 
-    private static AdminPackageVersionResponse ToVersionResponse(PackageVersion version)
+    private static AdminPackageListVersionResponse ToListVersionResponse(PackageVersion version) =>
+        new(
+            version.Version,
+            version.ValidationStatus,
+            version.ApprovalStatus,
+            version.IsListed,
+            version.SuspiciousChangeDetected,
+            version.SchemaVersion,
+            ApprovalService.CreateVersionStateToken(version));
+
+    private static AdminPackageVersionResponse ToVersionResponse(Package package, PackageVersion version)
     {
         var manifest = ReadManifest(version.ManifestJson);
         var compatibility = manifest?.Compatibility;
@@ -80,12 +124,12 @@ public static class AdminPackageEndpoints
             version.Features.Count,
             version.Features.Sum(x => x.Settings.Count),
             new AdminCompatibilityResponse(
-                compatibility?.DockerImageVersionRange is null ? [] : [compatibility.DockerImageVersionRange],
+                ReadTargetFrameworks(manifest),
                 compatibility?.ElsaVersionRange,
                 (compatibility?.RuntimeCapabilities ?? []).Concat(requiredCapabilities).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 compatibility?.PackageRules.Select(x => x.Reason).Where(x => !string.IsNullOrWhiteSpace(x)).Cast<string>().ToList() ?? [],
                 compatibility?.PackageRules.Select(x => $"{x.PackageId} {x.VersionRange}".Trim()).Where(x => !string.IsNullOrWhiteSpace(x)).ToList() ?? []),
-            VisibilityReasons(version),
+            VisibilityReasons(package, version),
             version.Features.Select(ToFeatureResponse).ToList(),
             new AdminManifestResponse(
                 !string.IsNullOrWhiteSpace(version.ManifestJson),
@@ -125,9 +169,13 @@ public static class AdminPackageEndpoints
                 setting.UiJson,
                 setting.ExtensionsJson)).ToList());
 
-    private static IReadOnlyList<AdminVisibilityReasonResponse> VisibilityReasons(PackageVersion version)
+    private static IReadOnlyList<AdminVisibilityReasonResponse> VisibilityReasons(Package package, PackageVersion version)
     {
         var reasons = new List<AdminVisibilityReasonResponse>();
+        if (!package.Approved)
+            reasons.Add(Block("PackagePendingApproval", "TrustDecision", "This package is not approved."));
+        if (!package.Listed)
+            reasons.Add(Block("PackageUnlisted", "Listing", "This package is unlisted."));
         if (version.ApprovalStatus == PackageApprovalStatus.Pending)
             reasons.Add(Block("VersionPendingApproval", "TrustDecision", "This package version is pending approval."));
         if (version.ApprovalStatus == PackageApprovalStatus.Rejected)
@@ -177,5 +225,32 @@ public static class AdminPackageEndpoints
         {
             return [];
         }
+    }
+
+    private static IReadOnlyList<string> ReadTargetFrameworks(ElsaPackageManifest? manifest)
+    {
+        if (manifest is null || !manifest.Extensions.TryGetValue("targetFrameworks", out var value) || value is null)
+            return [];
+
+        if (value is JsonElement element)
+            return ReadTargetFrameworks(element);
+
+        if (value is IEnumerable<string> frameworks)
+            return frameworks.ToList();
+
+        return [];
+    }
+
+    private static IReadOnlyList<string> ReadTargetFrameworks(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Array)
+            return [];
+
+        return element.EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.String)
+            .Select(item => item.GetString())
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Cast<string>()
+            .ToList();
     }
 }

@@ -13,7 +13,6 @@ public sealed class ApprovalStore(CatalogDbContext dbContext) : IApprovalStore
             .Include(x => x.Source)
             .Include(x => x.Versions)
             .ThenInclude(x => x.Features)
-            .ThenInclude(x => x.Settings)
             .OrderBy(x => x.PackageId)
             .ToListAsync(cancellationToken);
 

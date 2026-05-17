@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, RefreshCw, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Badge, Button, EmptyState, Input, SecondaryButton } from "@/components/ui";
 import { RequestStateView } from "@/components/states/RequestStateViews";
@@ -11,6 +11,7 @@ import {
   normalizeFeature,
   parsePackageDetailsSection,
   selectedPackageDetailsVersion,
+  validationFindingMatchesSearch,
   visibilityReasonGroups
 } from "@/features/packages/packageModels";
 import { ApiError } from "@/lib/api/httpClient";
@@ -21,6 +22,7 @@ import { sourceStatusTone, statusToneClass } from "@/lib/status/statusBadges";
 export function PackageDetailsPage() {
   const { packageId = "", version, section } = useParams();
   const [inspectionSearch, setInspectionSearch] = useState("");
+  const [validationSearch, setValidationSearch] = useState("");
   const [manifestSearch, setManifestSearch] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -47,6 +49,10 @@ export function PackageDetailsPage() {
     [inspectionSearch, normalizedFeatures]
   );
   const compatibilityVisible = selectedVersion ? compatibilityMatchesSearch(selectedVersion.compatibility, inspectionSearch) : false;
+  const visibleValidationFindings = useMemo(
+    () => (validation.data?.findings ?? []).filter((finding) => validationFindingMatchesSearch(finding, validationSearch)),
+    [validation.data?.findings, validationSearch]
+  );
   const formattedManifest = formatJson(selectedVersion?.manifest.manifestJson);
   const manifestVisible = !manifestSearch.trim() || formattedManifest.value.toLowerCase().includes(manifestSearch.trim().toLowerCase());
   const selectedAction = selectedVersion
@@ -66,6 +72,16 @@ export function PackageDetailsPage() {
     onError: (error) => setActionMessage(actionErrorMessage(error))
   });
 
+  useEffect(() => {
+    setActionMessage(null);
+    setRejectionReason("");
+  }, [selectedVersion?.version]);
+
+  useEffect(() => {
+    if (!activeSection || activeSection === "summary") return;
+    document.getElementById(sectionElementId(activeSection))?.scrollIntoView?.({ block: "start" });
+  }, [activeSection, selectedVersion?.version]);
+
   function handleActionSuccess(message: string) {
     setActionMessage(message);
     void queryClient.invalidateQueries({ queryKey: queryKeys.packageDetails(details!.packageId) });
@@ -80,6 +96,10 @@ export function PackageDetailsPage() {
   }
 
   if (!details) return <RequestStateView state="unexpected" title="Package details could not load" />;
+
+  if (packageDetails.isRefetchError && isAccessError(packageDetails.error)) {
+    return <RequestStateView state="unauthorized" title="Access problem" />;
+  }
 
   return (
     <section className="space-y-5">
@@ -118,7 +138,7 @@ export function PackageDetailsPage() {
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="space-y-4">
-          <section className="rounded-ui border border-border bg-surface p-4">
+          <section id={sectionElementId("summary")} className="rounded-ui border border-border bg-surface p-4">
             <div className="flex flex-wrap items-center gap-2">
               <Badge className={statusToneClass(sourceStatusTone(selectedVersion?.approvalStatus ?? (details.approved ? "Approved" : "Pending")))}>
                 {selectedVersion?.approvalStatus ?? (details.approved ? "Approved" : "Pending")}
@@ -146,7 +166,7 @@ export function PackageDetailsPage() {
             </dl>
           </section>
 
-          <section className="rounded-ui border border-border bg-surface p-4">
+          <section id={sectionElementId("validation")} className="rounded-ui border border-border bg-surface p-4">
             <h2 className="text-base font-medium">Visibility</h2>
             {selectedVersion && Object.keys(reasonGroups).length > 0 ? (
               <div className="mt-3 space-y-3">
@@ -172,8 +192,14 @@ export function PackageDetailsPage() {
             )}
           </section>
 
-          <section className="rounded-ui border border-border bg-surface p-4">
-            <h2 className="text-base font-medium">Validation Findings</h2>
+          <section id={sectionElementId("actions")} className="rounded-ui border border-border bg-surface p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <h2 className="text-base font-medium">Validation Findings</h2>
+              <label className="relative block md:w-72">
+                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input value={validationSearch} onChange={(event) => setValidationSearch(event.target.value)} className="pl-9" placeholder="Filter validation findings" />
+              </label>
+            </div>
             {validation.isError ? (
               <RequestStateView
                 state="stale"
@@ -184,9 +210,11 @@ export function PackageDetailsPage() {
               <p className="mt-2 text-sm text-muted-foreground">Loading validation findings</p>
             ) : (validation.data?.findings.length ?? 0) === 0 ? (
               <p className="mt-2 text-sm text-muted-foreground">No validation findings for this version.</p>
+            ) : visibleValidationFindings.length === 0 ? (
+              <p className="mt-2 text-sm text-muted-foreground">No validation findings match the search.</p>
             ) : (
               <ul className="mt-3 space-y-2">
-                {validation.data!.findings.map((finding, index) => (
+                {visibleValidationFindings.map((finding, index) => (
                   <li key={`${finding.severity}-${finding.code ?? index}-${finding.path ?? ""}`} className="rounded-ui border border-border bg-background p-3 text-sm">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge className={statusToneClass(sourceStatusTone(finding.severity))}>{finding.severity}</Badge>
@@ -200,7 +228,7 @@ export function PackageDetailsPage() {
             )}
           </section>
 
-          <section className="rounded-ui border border-border bg-surface p-4">
+          <section id={sectionElementId("features")} className="rounded-ui border border-border bg-surface p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <h2 className="text-base font-medium">Features, Dependencies, and Compatibility</h2>
               <label className="relative block md:w-72">
@@ -210,7 +238,7 @@ export function PackageDetailsPage() {
             </div>
 
             {selectedVersion && compatibilityVisible ? (
-              <div className="mt-3 rounded-ui border border-border bg-background p-3 text-sm">
+              <div id={sectionElementId("compatibility")} className="mt-3 rounded-ui border border-border bg-background p-3 text-sm">
                 <h3 className="font-medium">Compatibility</h3>
                 <dl className="mt-2 grid gap-3 sm:grid-cols-2">
                   <DetailItem label="Target frameworks" value={selectedVersion.compatibility.targetFrameworks.join(", ") || "None"} />
@@ -234,7 +262,7 @@ export function PackageDetailsPage() {
                       {feature.experimental ? <Badge>Experimental</Badge> : null}
                     </div>
                     <p className="mt-1 text-muted-foreground">{feature.description ?? feature.typeName}</p>
-                    <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <dl id={sectionElementId("dependencies")} className="mt-3 grid gap-3 sm:grid-cols-2">
                       <DetailItem label="Feature ID" value={feature.featureId} />
                       <DetailItem label="Category" value={feature.category ?? "Uncategorized"} />
                       <DetailItem label="Dependencies" value={feature.dependencies.map((item) => item.packageId ?? item.featureId ?? "dependency").join(", ") || "None"} />
@@ -271,7 +299,7 @@ export function PackageDetailsPage() {
             )}
           </section>
 
-          <section className="rounded-ui border border-border bg-surface p-4">
+          <section id={sectionElementId("manifest")} className="rounded-ui border border-border bg-surface p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <h2 className="text-base font-medium">Manifest</h2>
               <label className="relative block md:w-72">
@@ -305,11 +333,11 @@ export function PackageDetailsPage() {
               <div className="mt-3 space-y-3">
                 <Input value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} placeholder="Rejection reason" aria-label="Rejection reason" />
                 <div className="flex flex-col gap-2">
-                  <Button onClick={() => approveVersion.mutate()} disabled={!selectedAction || approveVersion.isPending || rejectVersion.isPending}>
+                  <Button onClick={() => confirmAction(details.packageId, selectedVersion.version, "approve") && approveVersion.mutate()} disabled={!selectedAction || approveVersion.isPending || rejectVersion.isPending}>
                     <Check className="h-4 w-4" />
                     Approve Version
                   </Button>
-                  <SecondaryButton onClick={() => rejectVersion.mutate()} disabled={!rejectionReason.trim() || approveVersion.isPending || rejectVersion.isPending}>
+                  <SecondaryButton onClick={() => confirmAction(details.packageId, selectedVersion.version, "reject") && rejectVersion.mutate()} disabled={!rejectionReason.trim() || approveVersion.isPending || rejectVersion.isPending}>
                     <X className="h-4 w-4" />
                     Reject Version
                   </SecondaryButton>
@@ -385,6 +413,10 @@ function requestState(error: Error) {
   return "unexpected";
 }
 
+function isAccessError(error: Error | null) {
+  return error instanceof ApiError && (error.kind === "Unauthorized" || error.kind === "Forbidden");
+}
+
 function actionErrorMessage(error: Error) {
   if (error instanceof ApiError) {
     if (error.kind === "Conflict") return "Version state changed. Refresh package details before retrying this action.";
@@ -398,4 +430,12 @@ function actionErrorMessage(error: Error) {
 function versionPath(packageId: string, version: string, section: string) {
   const base = `/admin/packages/${encodeURIComponent(packageId)}/versions/${encodeURIComponent(version)}`;
   return section === "summary" ? base : `${base}/${section}`;
+}
+
+function sectionElementId(section: string) {
+  return `package-details-${section}`;
+}
+
+function confirmAction(packageId: string, version: string, action: "approve" | "reject") {
+  return window.confirm(`${action === "approve" ? "Approve" : "Reject"} ${packageId} version ${version}?`);
 }

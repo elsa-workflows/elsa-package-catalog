@@ -1,8 +1,8 @@
 export type PackageApprovalStatus = "Pending" | "Approved" | "Rejected";
-export type ValidationStatus = "NotValidated" | "Valid" | "Invalid" | "UnsupportedSchema";
+export type ValidationStatus = "NotValidated" | "Valid" | "Invalid" | "UnsupportedSchema" | "Suspicious";
 export type VisibilitySeverity = "Info" | "Warning" | "Blocking";
 export type ValidationFindingSeverity = "Error" | "Warning" | "Info";
-export type PackageDetailsSection = "summary" | "validation" | "features" | "dependencies" | "manifest" | "actions";
+export type PackageDetailsSection = "summary" | "validation" | "features" | "dependencies" | "compatibility" | "manifest" | "actions";
 export type VersionAction = "approve" | "reject";
 
 export type PackageVersionSummary = {
@@ -12,6 +12,7 @@ export type PackageVersionSummary = {
   isListed: boolean;
   suspiciousChangeDetected: boolean;
   schemaVersion?: string | null;
+  versionStateToken?: string | null;
 };
 
 export type CatalogPackage = {
@@ -193,8 +194,8 @@ export type SelectablePackageVersion = {
 };
 
 const approvalOrder: PackageApprovalStatus[] = ["Pending", "Rejected", "Approved"];
-const validationOrder: ValidationStatus[] = ["Invalid", "UnsupportedSchema", "NotValidated", "Valid"];
-const packageDetailsSections: PackageDetailsSection[] = ["summary", "validation", "features", "dependencies", "manifest", "actions"];
+const validationOrder: ValidationStatus[] = ["Suspicious", "Invalid", "UnsupportedSchema", "NotValidated", "Valid"];
+const packageDetailsSections: PackageDetailsSection[] = ["summary", "validation", "features", "dependencies", "compatibility", "manifest", "actions"];
 
 export function latestVersion(packageItem: CatalogPackage) {
   return packageItem.latestVersion ?? packageItem.versions[0]?.version ?? null;
@@ -227,7 +228,7 @@ export function hasSuspiciousChange(packageItem: CatalogPackage) {
 
 export function selectableLatestVersion(packageItem: CatalogPackage): SelectablePackageVersion | null {
   const latest = latestVersionSummary(packageItem);
-  return latest ? { packageId: packageItem.packageId, version: latest.version } : null;
+  return latest ? { packageId: packageItem.packageId, version: latest.version, expectedStateToken: latest.versionStateToken ?? undefined } : null;
 }
 
 export function selectionKey(item: SelectablePackageVersion) {

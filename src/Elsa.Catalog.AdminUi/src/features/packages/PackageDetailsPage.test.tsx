@@ -19,6 +19,7 @@ export function renderPackageDetailsPage(
   });
 
   vi.stubGlobal("fetch", fetchMock);
+  vi.stubGlobal("confirm", vi.fn(() => true));
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 
   render(

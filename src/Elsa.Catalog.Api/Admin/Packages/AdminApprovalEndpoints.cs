@@ -43,6 +43,7 @@ public static class AdminApprovalEndpoints
         {
             VersionApprovalUpdateResult.Updated => Results.NoContent(),
             VersionApprovalUpdateResult.Conflict => Results.Conflict(new { title = "Version state changed", detail = "Refresh package details before retrying this action." }),
+            VersionApprovalUpdateResult.MissingStateToken => Results.ValidationProblem(new Dictionary<string, string[]> { ["expectedStateToken"] = ["Version state token is required."] }),
             _ => Results.NotFound()
         };
 }

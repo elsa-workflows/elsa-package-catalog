@@ -2,7 +2,6 @@ import { apiRequest } from "@/lib/api/httpClient";
 import type {
   CatalogPackage,
   PackageDetails,
-  PackageManifestResponse,
   SelectablePackageVersion,
   ValidationFindingsResponse
 } from "@/features/packages/packageModels";
@@ -18,12 +17,6 @@ export function getPackageDetails(packageId: string) {
 export function getPackageValidation(packageId: string, version: string) {
   return apiRequest<ValidationFindingsResponse>(
     `/api/admin/packages/${encodeURIComponent(packageId)}/versions/${encodeURIComponent(version)}/validation`
-  );
-}
-
-export function getPackageManifest(packageId: string, version: string) {
-  return apiRequest<PackageManifestResponse>(
-    `/api/admin/packages/${encodeURIComponent(packageId)}/versions/${encodeURIComponent(version)}/manifest`
   );
 }
 
