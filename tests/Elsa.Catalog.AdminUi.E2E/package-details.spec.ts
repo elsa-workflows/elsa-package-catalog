@@ -51,7 +51,7 @@ const packageDetails = {
       featuresCount: 1,
       settingsCount: 1,
       compatibility: { targetFrameworks: ["net10.0"], elsaVersionRange: "[4.0.0,5.0.0)", requiredCapabilities: [], notes: [], unsupportedCombinations: [] },
-      visibilityReasons: [{ code: "Visible", category: "TrustDecision", severity: "Info", message: "This package version is approved, valid, and listed.", blocksPublicVisibility: false }],
+      visibilityReasons: [{ code: "PackagePendingApproval", category: "TrustDecision", severity: "Blocking", message: "This package is pending approval.", blocksPublicVisibility: true }],
       features: [],
       manifest: { available: true, schemaVersion: "1.0", manifestHash: "sha256:postgres-101", suspiciousManifestHash: null, manifestJson: "{}" }
     }

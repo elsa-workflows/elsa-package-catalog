@@ -153,11 +153,11 @@ export const packageDetailsFixture = {
       },
       visibilityReasons: [
         {
-          code: "Visible",
+          code: "PackagePendingApproval",
           category: "TrustDecision",
-          severity: "Info",
-          message: "This package version is approved, valid, and listed.",
-          blocksPublicVisibility: false
+          severity: "Blocking",
+          message: "This package is pending approval.",
+          blocksPublicVisibility: true
         }
       ],
       features: [],
