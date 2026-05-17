@@ -106,8 +106,17 @@ export function PackageDetailsPage() {
 
   function handleActionSuccess(message: string) {
     setActionMessage(message);
+    void queryClient.invalidateQueries({ queryKey: queryKeys.packageDetails(packageId) });
     void queryClient.invalidateQueries({ queryKey: queryKeys.packageDetails(details!.packageId) });
     void queryClient.invalidateQueries({ queryKey: queryKeys.packages });
+  }
+
+  function refreshPackageDetails() {
+    void packageDetails.refetch();
+    if (selectedVersion) {
+      void validation.refetch();
+      void manifest.refetch();
+    }
   }
 
   if (packageDetails.isLoading) return <RequestStateView state="loading" title="Loading package details" />;
@@ -138,7 +147,7 @@ export function PackageDetailsPage() {
             </p>
           </div>
         </div>
-        <SecondaryButton onClick={() => packageDetails.refetch()} title="Refresh package details">
+        <SecondaryButton onClick={refreshPackageDetails} title="Refresh package details">
           <RefreshCw className="h-4 w-4" />
           Refresh
         </SecondaryButton>
@@ -219,7 +228,7 @@ export function PackageDetailsPage() {
               <h2 className="text-base font-medium">Validation Findings</h2>
               <label className="relative block md:w-72">
                 <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input value={validationSearch} onChange={(event) => setValidationSearch(event.target.value)} className="pl-9" placeholder="Filter validation findings" />
+                <Input value={validationSearch} onChange={(event) => setValidationSearch(event.target.value)} className="pl-9" placeholder="Filter validation findings" aria-label="Filter validation findings" />
               </label>
             </div>
             {validation.isError ? (
@@ -256,7 +265,7 @@ export function PackageDetailsPage() {
               <h2 className="text-base font-medium">Features, Dependencies, and Compatibility</h2>
               <label className="relative block md:w-72">
                 <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input value={inspectionSearch} onChange={(event) => setInspectionSearch(event.target.value)} className="pl-9" placeholder="Filter package surface" />
+                <Input value={inspectionSearch} onChange={(event) => setInspectionSearch(event.target.value)} className="pl-9" placeholder="Filter package surface" aria-label="Filter package surface" />
               </label>
             </div>
 
@@ -340,7 +349,7 @@ export function PackageDetailsPage() {
               <h2 className="text-base font-medium">Manifest</h2>
               <label className="relative block md:w-72">
                 <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input value={manifestSearch} onChange={(event) => setManifestSearch(event.target.value)} className="pl-9" placeholder="Search manifest" />
+                <Input value={manifestSearch} onChange={(event) => setManifestSearch(event.target.value)} className="pl-9" placeholder="Search manifest" aria-label="Search manifest" />
               </label>
             </div>
             {manifest.isError ? (
