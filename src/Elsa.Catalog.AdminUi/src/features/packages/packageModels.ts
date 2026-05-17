@@ -300,7 +300,32 @@ export function normalizeFeature(feature: PackageFeature): NormalizedPackageFeat
 export function featureMatchesSearch(feature: NormalizedPackageFeature, term: string) {
   const normalizedTerm = normalizeSearchTerm(term);
   if (!normalizedTerm) return true;
-  return [feature.featureId, feature.typeName, feature.displayName, feature.description ?? "", feature.category ?? "", ...feature.requiredCapabilities].some(
+  return [
+    feature.featureId,
+    feature.typeName,
+    feature.displayName,
+    feature.description ?? "",
+    feature.category ?? "",
+    ...feature.requiredCapabilities,
+    ...feature.settings.flatMap((setting) => [
+      setting.name,
+      setting.displayName,
+      setting.description ?? "",
+      setting.category ?? "",
+      setting.environmentVariable ?? "",
+      setting.jsonType
+    ]),
+    ...feature.dependencies.flatMap((dependency) => [dependency.packageId ?? "", dependency.versionRange ?? "", dependency.featureId ?? "", dependency.reason ?? ""]),
+    ...feature.conflicts.flatMap((conflict) => [conflict.packageId ?? "", conflict.versionRange ?? "", conflict.featureId ?? "", conflict.reason ?? ""]),
+    ...feature.infrastructure.flatMap((requirement) => [
+      requirement.id ?? "",
+      requirement.kind ?? "",
+      requirement.reason ?? "",
+      ...(requirement.capabilities ?? []),
+      ...(requirement.providers ?? []),
+      ...(requirement.configurationKeys ?? [])
+    ])
+  ].some(
     (value) => normalizeSearchTerm(value).includes(normalizedTerm)
   );
 }

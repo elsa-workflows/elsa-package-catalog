@@ -9,6 +9,9 @@ import {
   compatibilityMatchesSearch,
   featureMatchesSearch,
   normalizeFeature,
+  type PackageFeatureConflict,
+  type PackageFeatureDependency,
+  type PackageInfrastructureRequirement,
   parsePackageDetailsSection,
   selectedPackageDetailsVersion,
   validationFindingMatchesSearch,
@@ -26,6 +29,7 @@ export function PackageDetailsPage() {
   const [manifestSearch, setManifestSearch] = useState("");
   const [rejectionReason, setRejectionReason] = useState("");
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [reviewedTokens, setReviewedTokens] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
   const activeSection = parsePackageDetailsSection(section);
   const packageDetails = useQuery({
@@ -56,7 +60,11 @@ export function PackageDetailsPage() {
   const formattedManifest = formatJson(selectedVersion?.manifest.manifestJson);
   const manifestVisible = !manifestSearch.trim() || formattedManifest.value.toLowerCase().includes(manifestSearch.trim().toLowerCase());
   const selectedAction = selectedVersion
-    ? { packageId: details?.packageId ?? packageId, version: selectedVersion.version, expectedStateToken: selectedVersion.versionStateToken }
+    ? {
+        packageId: details?.packageId ?? packageId,
+        version: selectedVersion.version,
+        expectedStateToken: reviewedTokens[selectedVersion.version] ?? selectedVersion.versionStateToken
+      }
     : null;
   const approveVersion = useMutation({
     mutationFn: () => approvePackageVersion(selectedAction!, "Reviewed from package details."),
@@ -76,6 +84,13 @@ export function PackageDetailsPage() {
     setActionMessage(null);
     setRejectionReason("");
   }, [selectedVersion?.version]);
+
+  useEffect(() => {
+    if (!selectedVersion) return;
+    setReviewedTokens((current) =>
+      current[selectedVersion.version] ? current : { ...current, [selectedVersion.version]: selectedVersion.versionStateToken }
+    );
+  }, [selectedVersion]);
 
   useEffect(() => {
     if (!activeSection || activeSection === "summary") return;
@@ -265,9 +280,9 @@ export function PackageDetailsPage() {
                     <dl id={sectionElementId("dependencies")} className="mt-3 grid gap-3 sm:grid-cols-2">
                       <DetailItem label="Feature ID" value={feature.featureId} />
                       <DetailItem label="Category" value={feature.category ?? "Uncategorized"} />
-                      <DetailItem label="Dependencies" value={feature.dependencies.map((item) => item.packageId ?? item.featureId ?? "dependency").join(", ") || "None"} />
-                      <DetailItem label="Conflicts" value={feature.conflicts.map((item) => item.packageId ?? item.featureId ?? "conflict").join(", ") || "None"} />
-                      <DetailItem label="Infrastructure" value={feature.infrastructure.map((item) => item.kind ?? item.id ?? "requirement").join(", ") || "None"} />
+                      <DetailItem label="Dependencies" value={formatDependencies(feature.dependencies)} />
+                      <DetailItem label="Conflicts" value={formatConflicts(feature.conflicts)} />
+                      <DetailItem label="Infrastructure" value={formatInfrastructure(feature.infrastructure)} />
                     </dl>
                     {feature.settings.length > 0 ? (
                       <div className="mt-3 overflow-x-auto">
@@ -278,6 +293,10 @@ export function PackageDetailsPage() {
                               <th className="py-1 pr-3">Type</th>
                               <th className="py-1 pr-3">Required</th>
                               <th className="py-1 pr-3">Secret</th>
+                              <th className="py-1 pr-3">Restart</th>
+                              <th className="py-1 pr-3">Default</th>
+                              <th className="py-1 pr-3">Environment</th>
+                              <th className="py-1 pr-3">Notes</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -287,6 +306,10 @@ export function PackageDetailsPage() {
                                 <td className="py-1 pr-3">{setting.jsonType}</td>
                                 <td className="py-1 pr-3">{setting.required ? "Yes" : "No"}</td>
                                 <td className="py-1 pr-3">{setting.secret ? "Yes" : "No"}</td>
+                                <td className="py-1 pr-3">{setting.restartRequired ? "Yes" : "No"}</td>
+                                <td className="py-1 pr-3">{setting.defaultValueJson ?? "None"}</td>
+                                <td className="py-1 pr-3">{setting.environmentVariable ?? "None"}</td>
+                                <td className="py-1 pr-3">{[setting.category, setting.description].filter(Boolean).join(" - ") || "None"}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -438,4 +461,44 @@ function sectionElementId(section: string) {
 
 function confirmAction(packageId: string, version: string, action: "approve" | "reject") {
   return window.confirm(`${action === "approve" ? "Approve" : "Reject"} ${packageId} version ${version}?`);
+}
+
+function formatDependencies(dependencies: PackageFeatureDependency[]) {
+  return dependencies
+    .map((item) =>
+      [
+        item.packageId ?? item.featureId ?? "dependency",
+        item.versionRange,
+        item.optional ? "optional" : null,
+        item.reason
+      ].filter(Boolean).join(" ")
+    )
+    .join("; ") || "None";
+}
+
+function formatConflicts(conflicts: PackageFeatureConflict[]) {
+  return conflicts
+    .map((item) =>
+      [
+        item.packageId ?? item.featureId ?? "conflict",
+        item.versionRange,
+        item.reason
+      ].filter(Boolean).join(" ")
+    )
+    .join("; ") || "None";
+}
+
+function formatInfrastructure(requirements: PackageInfrastructureRequirement[]) {
+  return requirements
+    .map((item) =>
+      [
+        item.kind ?? item.id ?? "requirement",
+        item.optional ? "optional" : null,
+        item.reason,
+        item.capabilities?.join("/"),
+        item.providers?.join("/"),
+        item.configurationKeys?.join("/")
+      ].filter(Boolean).join(" ")
+    )
+    .join("; ") || "None";
 }
