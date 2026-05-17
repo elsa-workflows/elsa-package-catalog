@@ -75,7 +75,7 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
                 !version.SuspiciousChangeDetected))
                 .ThenInclude(x => x.Features)
                 .ThenInclude(x => x.Settings)
-            .Where(x => x.Source != null && x.Source.Enabled && x.Source.SoftDeletedAt == null)
+            .Where(x => x.Source != null && x.Source.Enabled && x.Source.Browseable && x.Source.SoftDeletedAt == null)
             .Where(x => x.Approved && x.Listed)
             .Where(x => x.Versions.Any(version =>
                 version.IsListed &&

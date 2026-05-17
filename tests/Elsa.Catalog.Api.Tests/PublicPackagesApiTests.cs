@@ -108,6 +108,29 @@ public sealed class PublicPackagesApiTests
     }
 
     [Fact]
+    public async Task Get_packages_excludes_non_browseable_sources_even_when_selected()
+    {
+        await using var app = new CatalogApiTestApplication();
+        var sourceId = Guid.Empty;
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            source.Browseable = false;
+            sourceId = source.Id;
+            PublicCatalogSeedData.AddVersion(PublicCatalogSeedData.CreatePackage(source));
+
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+
+        var packages = await app.CreateClient().GetFromJsonAsync<List<PublicPackageResponse>>($"/api/packages?sourceIds={sourceId}");
+        var details = await app.CreateClient().GetAsync($"/api/sources/{sourceId}/packages/Elsa.Email");
+
+        packages.Should().BeEmpty();
+        details.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task Get_package_resolves_duplicate_package_id_by_source()
     {
         await using var app = new CatalogApiTestApplication();
