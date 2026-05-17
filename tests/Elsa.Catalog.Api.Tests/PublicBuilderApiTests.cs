@@ -60,6 +60,25 @@ public sealed class PublicBuilderApiTests
     }
 
     [Fact]
+    public async Task Resolve_reports_invalid_package_selection_when_package_id_is_null()
+    {
+        await using var app = new CatalogApiTestApplication();
+
+        var response = await app.CreateClient().PostAsJsonAsync("/api/builder/resolve", new
+        {
+            packages = new[]
+            {
+                new { packageId = (string?)null, version = "1.0.0", selectedFeatures = Array.Empty<string>() }
+            }
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<BuilderResolveResponse>();
+        body!.Compatible.Should().BeFalse();
+        body.Findings.Should().ContainSingle(x => x.Code == "package.invalidSelection");
+    }
+
+    [Fact]
     public async Task Resolve_returns_success_for_compatible_selection()
     {
         await using var app = new CatalogApiTestApplication();

@@ -56,6 +56,18 @@ public sealed class CompatibilityCheckServiceTests
     }
 
     [Fact]
+    public async Task Reports_invalid_package_selection_without_querying_or_throwing()
+    {
+        var service = new CompatibilityCheckService(new FakeQueries([]), new VersionRangeEvaluator());
+
+        var result = await service.CheckAsync(new CompatibilityCheckRequest("1.0.0", null, [new(null!, "1.0.0"), new("Elsa.Email", "")], []));
+
+        result.Compatible.Should().BeFalse();
+        result.Findings.Should().HaveCount(2);
+        result.Findings.Should().OnlyContain(x => x.Code == "package.invalidSelection");
+    }
+
+    [Fact]
     public async Task Reports_missing_package_dependency_for_selected_feature()
     {
         var source = PublicCatalogSeedData.CreatePackageSource();
