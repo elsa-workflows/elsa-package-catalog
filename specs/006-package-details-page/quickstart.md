@@ -55,3 +55,17 @@ dotnet test tests/Elsa.Catalog.Api.Tests/Elsa.Catalog.Api.Tests.csproj --filter 
 cd src/Elsa.Catalog.AdminUi && npm test -- src/features/packages/PackageDetailsPage.test.tsx src/features/packages/packageModels.test.ts
 cd tests/Elsa.Catalog.AdminUi.E2E && npm run e2e -- package-details.spec.ts
 ```
+
+## Implementation Verification Notes
+
+Verified on 2026-05-17:
+
+- `dotnet test tests/Elsa.Catalog.Api.Tests/Elsa.Catalog.Api.Tests.csproj`
+- `cd src/Elsa.Catalog.AdminUi && npm test`
+- `cd src/Elsa.Catalog.AdminUi && npm run typecheck`
+- `cd src/Elsa.Catalog.AdminUi && npm run build`
+- `cd tests/Elsa.Catalog.AdminUi.E2E && npm run e2e -- package-details.spec.ts`
+
+The implementation uses the existing catalog database only. It adds no public
+catalog API behavior, does not change the manifest schema, reads stored manifest
+JSON as data, and does not execute package code.

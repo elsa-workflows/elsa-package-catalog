@@ -39,7 +39,9 @@ public static class PublicCatalogSeedData
         ValidationStatus validationStatus = ValidationStatus.Valid,
         PackageApprovalStatus approvalStatus = PackageApprovalStatus.Approved,
         bool listed = true,
-        bool suspicious = false)
+        bool suspicious = false,
+        string? manifestHash = null,
+        string? suspiciousManifestHash = null)
     {
         var packageVersion = new PackageVersion
         {
@@ -47,7 +49,8 @@ public static class PublicCatalogSeedData
             PackageId = package.Id,
             Version = version,
             ManifestJson = new ManifestFixtureBuilder().WithPackage(package.PackageId, version).WithFeature().BuildJson(),
-            ManifestHash = $"{package.PackageId}-{version}-hash",
+            ManifestHash = manifestHash ?? $"{package.PackageId}-{version}-hash",
+            SuspiciousManifestHash = suspiciousManifestHash,
             SchemaVersion = "1.0",
             ValidationStatus = validationStatus,
             ApprovalStatus = approvalStatus,
@@ -60,10 +63,25 @@ public static class PublicCatalogSeedData
         return packageVersion;
     }
 
+    public static Package CreatePackageWithoutVersions(PackageSource source, string packageId = "Elsa.Empty") =>
+        CreatePackage(source, packageId);
+
+    public static Package CreateMultiVersionPackage(PackageSource source, string packageId = "Elsa.Persistence.PostgreSql")
+    {
+        var package = CreatePackage(source, packageId, approved: false);
+        AddVersion(package, "1.0.1", approvalStatus: PackageApprovalStatus.Approved);
+        AddVersion(package, "1.0.2", approvalStatus: PackageApprovalStatus.Pending);
+        package.LatestVersion = "1.0.2";
+        return package;
+    }
+
     public static FeatureRecord AddFeature(
         PackageVersion version,
         string featureId = "email",
-        string displayName = "Email")
+        string displayName = "Email",
+        string dependenciesJson = "[]",
+        string conflictsJson = "[]",
+        string infrastructureJson = "[]")
     {
         var feature = new FeatureRecord
         {
@@ -73,7 +91,10 @@ public static class PublicCatalogSeedData
             TypeName = $"Elsa.Features.{featureId}.Feature",
             DisplayName = displayName,
             Description = $"{displayName} feature.",
-            Category = "Communication"
+            Category = "Communication",
+            DependenciesJson = dependenciesJson,
+            ConflictsJson = conflictsJson,
+            InfrastructureJson = infrastructureJson
         };
 
         feature.Settings.Add(new FeatureSettingRecord

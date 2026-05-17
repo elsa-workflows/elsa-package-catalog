@@ -1,4 +1,5 @@
 using System.Net;
+using Elsa.Catalog.Api.Admin.Packages;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Persistence.EntityFrameworkCore;
@@ -37,5 +38,45 @@ public sealed class AdminApprovalApiTests
         var package = await db.Packages.Include(x => x.Versions).SingleAsync();
         package.Approved.Should().BeTrue();
         package.Versions[0].ApprovalStatus.Should().Be(PackageApprovalStatus.Approved);
+    }
+
+    [Fact]
+    public async Task Version_rejection_requires_reason()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            var package = PublicCatalogSeedData.CreatePackage(source);
+            PublicCatalogSeedData.AddVersion(package, approvalStatus: PackageApprovalStatus.Pending);
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+
+        var response = await client.PostCatalogJsonAsync("/api/admin/packages/Elsa.Email/versions/1.0.0/reject", new ApprovalRequest(" ", null));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Version_approval_rejects_stale_state_tokens()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(db =>
+        {
+            var source = PublicCatalogSeedData.CreatePackageSource();
+            var package = PublicCatalogSeedData.CreatePackage(source);
+            PublicCatalogSeedData.AddVersion(package, approvalStatus: PackageApprovalStatus.Pending);
+            db.PackageSources.Add(source);
+            return Task.CompletedTask;
+        });
+        var client = app.CreateClient();
+        client.DefaultRequestHeaders.Add(ApiKeyAuthenticationDefaults.HeaderName, "local-dev-key");
+
+        var response = await client.PostCatalogJsonAsync("/api/admin/packages/Elsa.Email/versions/1.0.0/approve", new ApprovalRequest("Reviewed", "stale"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 }

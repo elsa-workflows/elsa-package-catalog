@@ -20,10 +20,15 @@ public static class AdminApprovalEndpoints
             await approvals.SetPackageApprovalAsync(packageId, PackageApprovalStatus.Rejected, GetActor(httpContext), request?.Reason, cancellationToken) ? Results.NoContent() : Results.NotFound());
 
         group.MapPost("/{packageId}/versions/{version}/approve", async (string packageId, string version, ApprovalRequest? request, HttpContext httpContext, ApprovalService approvals, CancellationToken cancellationToken) =>
-            await approvals.SetVersionApprovalAsync(packageId, version, PackageApprovalStatus.Approved, GetActor(httpContext), request?.Reason, cancellationToken) ? Results.NoContent() : Results.NotFound());
+            ToResult(await approvals.TrySetVersionApprovalAsync(packageId, version, PackageApprovalStatus.Approved, GetActor(httpContext), request?.Reason, request?.ExpectedStateToken, cancellationToken)));
 
         group.MapPost("/{packageId}/versions/{version}/reject", async (string packageId, string version, ApprovalRequest? request, HttpContext httpContext, ApprovalService approvals, CancellationToken cancellationToken) =>
-            await approvals.SetVersionApprovalAsync(packageId, version, PackageApprovalStatus.Rejected, GetActor(httpContext), request?.Reason, cancellationToken) ? Results.NoContent() : Results.NotFound());
+        {
+            if (string.IsNullOrWhiteSpace(request?.Reason))
+                return Results.ValidationProblem(new Dictionary<string, string[]> { ["reason"] = ["Rejection reason is required."] });
+
+            return ToResult(await approvals.TrySetVersionApprovalAsync(packageId, version, PackageApprovalStatus.Rejected, GetActor(httpContext), request.Reason, request.ExpectedStateToken, cancellationToken));
+        });
 
         return endpoints;
     }
@@ -32,4 +37,12 @@ public static class AdminApprovalEndpoints
         httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? httpContext.User.Identity?.Name
         ?? "unknown";
+
+    private static IResult ToResult(VersionApprovalUpdateResult result) =>
+        result switch
+        {
+            VersionApprovalUpdateResult.Updated => Results.NoContent(),
+            VersionApprovalUpdateResult.Conflict => Results.Conflict(new { title = "Version state changed", detail = "Refresh package details before retrying this action." }),
+            _ => Results.NotFound()
+        };
 }

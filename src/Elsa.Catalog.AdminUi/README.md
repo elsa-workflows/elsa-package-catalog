@@ -21,6 +21,12 @@ npm run typecheck
 npm run build
 ```
 
+Package details coverage lives in `src/features/packages/PackageDetailsPage.test.tsx`
+and the Playwright smoke test in `tests/Elsa.Catalog.AdminUi.E2E/package-details.spec.ts`.
+The page covers canonical package casing, version routes, visibility blockers,
+validation findings, feature/settings inspection, manifest review, and
+version-scoped approval/rejection actions.
+
 The MVP must expose only Overview, Sources, Packages, and Sync Runs. It must not
 include Settings, package identity approval controls, hard-delete source
 controls, realtime streaming logs, or manifest editing.
