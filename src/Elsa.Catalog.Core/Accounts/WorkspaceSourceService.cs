@@ -3,7 +3,7 @@ using Elsa.Catalog.Core.Sources;
 
 namespace Elsa.Catalog.Core.Accounts;
 
-public sealed class WorkspaceSourceService(IAccountWorkspaceStore store, PackageSourceValidator validator, IPublicCatalogCacheInvalidator? publicCatalogCache = null)
+public sealed class WorkspaceSourceService(IAccountWorkspaceStore store, PackageSourceValidator validator)
 {
     public async Task<WorkspaceSourceResult> CreateSourceAsync(WorkspaceAccess access, WorkspaceSourceCreateRequest request, CancellationToken cancellationToken = default)
     {
@@ -14,14 +14,7 @@ public sealed class WorkspaceSourceService(IAccountWorkspaceStore store, Package
         if (entitlement is null || !entitlement.CanCreateCustomSources)
             return WorkspaceSourceResult.Forbidden("Workspace is not entitled to create custom sources.");
 
-        var currentSourceCount = await store.CountActiveWorkspaceSourcesAsync(access.WorkspaceId, cancellationToken);
-        if (currentSourceCount >= entitlement.MaxSources)
-            return WorkspaceSourceResult.Forbidden("Workspace custom source limit has been reached.");
-
-        if (await store.WorkspaceSourceUrlExistsAsync(access.WorkspaceId, request.Url, cancellationToken))
-            return WorkspaceSourceResult.Invalid(["A source with this URL already exists in the workspace."]);
-
-        if (Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) && !string.IsNullOrWhiteSpace(uri.UserInfo))
+        if (Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) && HasUnsupportedCredentials(uri))
             return WorkspaceSourceResult.Invalid(["Private feed credentials in source URLs are not supported yet."]);
 
         var source = new PackageSource
@@ -43,11 +36,19 @@ public sealed class WorkspaceSourceService(IAccountWorkspaceStore store, Package
 
         source.CreatedAt = DateTimeOffset.UtcNow;
         source.UpdatedAt = source.CreatedAt;
-        await store.AddWorkspaceSourceAsync(source, cancellationToken);
-        await store.SaveChangesAsync(cancellationToken);
-        publicCatalogCache?.Invalidate();
-        return WorkspaceSourceResult.Success(source);
+        var addResult = await store.TryAddWorkspaceSourceAsync(source, entitlement.MaxSources, cancellationToken);
+        return addResult.Status switch
+        {
+            WorkspaceSourceAddStatus.Created => WorkspaceSourceResult.Success(source),
+            WorkspaceSourceAddStatus.LimitReached => WorkspaceSourceResult.Forbidden("Workspace custom source limit has been reached."),
+            WorkspaceSourceAddStatus.DuplicateUrl => WorkspaceSourceResult.Invalid(["A source with this URL already exists in the workspace."]),
+            _ => throw new InvalidOperationException($"Unsupported workspace source add status '{addResult.Status}'.")
+        };
     }
+
+    private static bool HasUnsupportedCredentials(Uri uri) =>
+        !string.IsNullOrWhiteSpace(uri.UserInfo) ||
+        !string.IsNullOrWhiteSpace(uri.Query);
 }
 
 public sealed record WorkspaceSourceCreateRequest(

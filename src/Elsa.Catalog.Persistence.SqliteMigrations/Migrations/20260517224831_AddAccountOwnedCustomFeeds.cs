@@ -154,7 +154,8 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_WorkspaceEntitlementSnapshots_WorkspaceId",
                 table: "WorkspaceEntitlementSnapshots",
-                column: "WorkspaceId");
+                column: "WorkspaceId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_WorkspaceMemberships_AccountId",

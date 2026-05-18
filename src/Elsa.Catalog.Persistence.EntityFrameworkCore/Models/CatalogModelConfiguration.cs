@@ -182,6 +182,6 @@ internal sealed class WorkspaceEntitlementSnapshotConfiguration : IEntityTypeCon
             .HasConversion(value => value.UtcTicks, value => new DateTimeOffset(value, TimeSpan.Zero));
         builder.Property(x => x.UpdatedAt)
             .HasConversion(value => value.UtcTicks, value => new DateTimeOffset(value, TimeSpan.Zero));
-        builder.HasIndex(x => x.WorkspaceId);
+        builder.HasIndex(x => x.WorkspaceId).IsUnique();
     }
 }

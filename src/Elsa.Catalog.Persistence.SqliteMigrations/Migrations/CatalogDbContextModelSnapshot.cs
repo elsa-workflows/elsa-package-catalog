@@ -154,7 +154,8 @@ namespace Elsa.Catalog.Persistence.SqliteMigrations.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("WorkspaceId");
+                    b.HasIndex("WorkspaceId")
+                        .IsUnique();
 
                     b.ToTable("WorkspaceEntitlementSnapshots");
                 });

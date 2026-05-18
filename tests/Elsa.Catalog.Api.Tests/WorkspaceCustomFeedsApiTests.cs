@@ -87,7 +87,10 @@ public sealed class WorkspaceCustomFeedsApiTests
         var entitlement = await admin.PutCatalogJsonAsync($"/api/admin/workspaces/{workspaceId}/entitlements", new WorkspaceEntitlementRequest(true, 1, 500, 20, 25, false));
         entitlement.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var created = await client.PostCatalogJsonAsync($"/api/workspaces/{workspaceId}/sources", CreateSourceRequest("Company Feed", "https://nuget.example.test/v3/index.json?token=secret"));
+        var credentialUrl = await client.PostCatalogJsonAsync($"/api/workspaces/{workspaceId}/sources", CreateSourceRequest("Company Feed", "https://nuget.example.test/v3/index.json?token=secret"));
+        credentialUrl.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+
+        var created = await client.PostCatalogJsonAsync($"/api/workspaces/{workspaceId}/sources", CreateSourceRequest("Company Feed", "https://nuget.example.test/v3/index.json"));
         created.StatusCode.Should().Be(HttpStatusCode.OK);
         var source = await created.Content.ReadCatalogJsonAsync<WorkspaceSourceResponse>();
         source!.Ownership.Should().Be(PackageSourceVisibility.Workspace);
@@ -108,6 +111,45 @@ public sealed class WorkspaceCustomFeedsApiTests
             new WorkspaceEntitlementRequest(true, 1, 500, 20, 25, false));
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Workspace_source_creation_enforces_source_limit_under_concurrent_requests()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+        var client = WorkspaceClient(app);
+        var workspaceId = (await client.GetCatalogJsonAsync<MeWorkspacesResponse>("/api/me/workspaces"))!.Workspaces.Single().Id;
+        await AdminClient(app).PutCatalogJsonAsync($"/api/admin/workspaces/{workspaceId}/entitlements", new WorkspaceEntitlementRequest(true, 1, 500, 20, 25, false));
+
+        var responses = await Task.WhenAll(
+            WorkspaceClient(app).PostCatalogJsonAsync($"/api/workspaces/{workspaceId}/sources", CreateSourceRequest("First Feed", "https://one.example.test/v3/index.json")),
+            WorkspaceClient(app).PostCatalogJsonAsync($"/api/workspaces/{workspaceId}/sources", CreateSourceRequest("Second Feed", "https://two.example.test/v3/index.json")));
+
+        responses.Count(x => x.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        responses.Count(x => x.StatusCode == HttpStatusCode.Forbidden).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Admin_entitlement_update_replaces_existing_workspace_snapshot()
+    {
+        await using var app = new CatalogApiTestApplication();
+        await app.SeedAsync(_ => Task.CompletedTask);
+        var client = WorkspaceClient(app);
+        var workspaceId = (await client.GetCatalogJsonAsync<MeWorkspacesResponse>("/api/me/workspaces"))!.Workspaces.Single().Id;
+        var admin = AdminClient(app);
+
+        (await admin.PutCatalogJsonAsync($"/api/admin/workspaces/{workspaceId}/entitlements", new WorkspaceEntitlementRequest(true, 1, 500, 20, 25, false)))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        var replacement = await admin.PutCatalogJsonAsync($"/api/admin/workspaces/{workspaceId}/entitlements", new WorkspaceEntitlementRequest(false, 3, 750, 10, 5, true));
+
+        replacement.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await replacement.Content.ReadCatalogJsonAsync<WorkspaceEntitlementResponse>();
+        body!.CanCreateCustomSources.Should().BeFalse();
+        body.MaxSources.Should().Be(3);
+        await using var scope = app.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+        db.WorkspaceEntitlementSnapshots.Count(x => x.WorkspaceId == workspaceId).Should().Be(1);
     }
 
     [Fact]

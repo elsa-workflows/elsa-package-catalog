@@ -1,3 +1,4 @@
+using System.Data;
 using Elsa.Catalog.Core.Accounts;
 using Elsa.Catalog.Core.Packages;
 using Microsoft.EntityFrameworkCore;
@@ -68,31 +69,59 @@ public sealed class AccountWorkspaceStore(CatalogDbContext dbContext) : IAccount
 
     public async Task<WorkspaceEntitlementSnapshot> SaveEntitlementAsync(WorkspaceEntitlementSnapshot entitlement, CancellationToken cancellationToken = default)
     {
-        entitlement.SyncedAt = DateTimeOffset.UtcNow;
-        entitlement.CreatedAt = entitlement.SyncedAt;
-        entitlement.UpdatedAt = entitlement.SyncedAt;
-        await dbContext.WorkspaceEntitlementSnapshots.AddAsync(entitlement, cancellationToken);
+        var now = DateTimeOffset.UtcNow;
+        var existing = await dbContext.WorkspaceEntitlementSnapshots
+            .SingleOrDefaultAsync(x => x.WorkspaceId == entitlement.WorkspaceId, cancellationToken);
+
+        if (existing is null)
+        {
+            entitlement.SyncedAt = now;
+            entitlement.CreatedAt = now;
+            entitlement.UpdatedAt = now;
+            await dbContext.WorkspaceEntitlementSnapshots.AddAsync(entitlement, cancellationToken);
+            existing = entitlement;
+        }
+        else
+        {
+            existing.CanCreateCustomSources = entitlement.CanCreateCustomSources;
+            existing.MaxSources = entitlement.MaxSources;
+            existing.MaxPackagesIndexed = entitlement.MaxPackagesIndexed;
+            existing.MaxVersionsPerPackage = entitlement.MaxVersionsPerPackage;
+            existing.MaxSyncsPerDay = entitlement.MaxSyncsPerDay;
+            existing.PrivateFeedsEnabled = entitlement.PrivateFeedsEnabled;
+            existing.SyncedAt = now;
+            existing.UpdatedAt = now;
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
-        return entitlement;
+        return existing;
     }
 
-    public Task<int> CountActiveWorkspaceSourcesAsync(Guid workspaceId, CancellationToken cancellationToken = default) =>
-        dbContext.PackageSources.CountAsync(x =>
-            x.OwnerWorkspaceId == workspaceId &&
+    public async Task<WorkspaceSourceAddResult> TryAddWorkspaceSourceAsync(PackageSource source, int maxSources, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        var currentSourceCount = await dbContext.PackageSources.CountAsync(x =>
+            x.OwnerWorkspaceId == source.OwnerWorkspaceId &&
             x.Visibility == PackageSourceVisibility.Workspace &&
             x.SoftDeletedAt == null,
             cancellationToken);
+        if (currentSourceCount >= maxSources)
+            return new WorkspaceSourceAddResult(WorkspaceSourceAddStatus.LimitReached);
 
-    public Task<bool> WorkspaceSourceUrlExistsAsync(Guid workspaceId, string url, CancellationToken cancellationToken = default) =>
-        dbContext.PackageSources.AnyAsync(x =>
-            x.OwnerWorkspaceId == workspaceId &&
+        var urlExists = await dbContext.PackageSources.AnyAsync(x =>
+            x.OwnerWorkspaceId == source.OwnerWorkspaceId &&
             x.Visibility == PackageSourceVisibility.Workspace &&
             x.SoftDeletedAt == null &&
-            x.Url == url,
+            x.Url == source.Url,
             cancellationToken);
+        if (urlExists)
+            return new WorkspaceSourceAddResult(WorkspaceSourceAddStatus.DuplicateUrl);
 
-    public async Task AddWorkspaceSourceAsync(PackageSource source, CancellationToken cancellationToken = default) =>
         await dbContext.PackageSources.AddAsync(source, cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new WorkspaceSourceAddResult(WorkspaceSourceAddStatus.Created);
+    }
 
     public async Task<IReadOnlyList<PackageSource>> ListVisibleSourcesAsync(Guid workspaceId, CancellationToken cancellationToken = default) =>
         await dbContext.PackageSources
@@ -100,7 +129,7 @@ public sealed class AccountWorkspaceStore(CatalogDbContext dbContext) : IAccount
             .Where(x => x.Enabled && x.Browseable && x.SoftDeletedAt == null)
             .Where(x =>
                 (x.Visibility == PackageSourceVisibility.Public && x.OwnerWorkspaceId == null) ||
-                (x.Visibility == PackageSourceVisibility.Workspace && x.OwnerWorkspaceId == workspaceId))
+                (x.Visibility == PackageSourceVisibility.Workspace && x.OwnerWorkspaceId == workspaceId && x.OwnerWorkspace!.SoftDeletedAt == null))
             .OrderBy(x => x.Name)
             .ToListAsync(cancellationToken);
 

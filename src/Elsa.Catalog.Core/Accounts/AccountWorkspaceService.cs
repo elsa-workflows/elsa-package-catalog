@@ -77,9 +77,7 @@ public interface IAccountWorkspaceStore
     Task<bool> WorkspaceExistsAsync(Guid workspaceId, CancellationToken cancellationToken = default);
     Task<WorkspaceEntitlementSnapshot?> GetLatestEntitlementAsync(Guid workspaceId, CancellationToken cancellationToken = default);
     Task<WorkspaceEntitlementSnapshot> SaveEntitlementAsync(WorkspaceEntitlementSnapshot entitlement, CancellationToken cancellationToken = default);
-    Task<int> CountActiveWorkspaceSourcesAsync(Guid workspaceId, CancellationToken cancellationToken = default);
-    Task<bool> WorkspaceSourceUrlExistsAsync(Guid workspaceId, string url, CancellationToken cancellationToken = default);
-    Task AddWorkspaceSourceAsync(Packages.PackageSource source, CancellationToken cancellationToken = default);
+    Task<WorkspaceSourceAddResult> TryAddWorkspaceSourceAsync(Packages.PackageSource source, int maxSources, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Packages.PackageSource>> ListVisibleSourcesAsync(Guid workspaceId, CancellationToken cancellationToken = default);
     Task<IReadOnlyDictionary<Guid, int>> GetPackageCountsAsync(IReadOnlyCollection<Guid> sourceIds, CancellationToken cancellationToken = default);
     Task SaveChangesAsync(CancellationToken cancellationToken = default);
@@ -107,4 +105,13 @@ public sealed record WorkspaceSummary(Guid Id, string Name, WorkspaceKind Kind, 
 public sealed record WorkspaceAccess(Guid AccountId, Guid WorkspaceId, WorkspaceRole Role)
 {
     public bool CanAdministerSources => Role is WorkspaceRole.Owner or WorkspaceRole.SourceAdmin;
+}
+
+public sealed record WorkspaceSourceAddResult(WorkspaceSourceAddStatus Status);
+
+public enum WorkspaceSourceAddStatus
+{
+    Created,
+    LimitReached,
+    DuplicateUrl
 }
