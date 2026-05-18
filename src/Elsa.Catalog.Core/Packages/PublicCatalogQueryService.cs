@@ -13,14 +13,29 @@ public sealed class PublicCatalogQueryService(IPublicCatalogQueries queries, Pub
         return cache.GetOrCreateAsync($"packages:list:{CreateSourceCacheKey(normalizedSourceIds)}", token => queries.ListPackagesAsync(normalizedSourceIds, token), cancellationToken);
     }
 
+    public Task<IReadOnlyList<PublicPackageProjection>> ListPackagesForWorkspaceAsync(Guid workspaceId, IReadOnlyCollection<Guid>? sourceIds = null, CancellationToken cancellationToken = default)
+    {
+        var normalizedSourceIds = NormalizeSourceIds(sourceIds);
+        return queries.ListPackagesForWorkspaceAsync(workspaceId, normalizedSourceIds, cancellationToken);
+    }
+
     public Task<PublicPackageProjection?> GetPackageAsync(Guid sourceId, string packageId, CancellationToken cancellationToken = default) =>
         cache.GetOrCreateAsync($"packages:item:{sourceId:N}:{packageId}", token => queries.GetPackageAsync(sourceId, packageId, token), cancellationToken);
+
+    public Task<PublicPackageProjection?> GetPackageForWorkspaceAsync(Guid workspaceId, Guid sourceId, string packageId, CancellationToken cancellationToken = default) =>
+        queries.GetPackageForWorkspaceAsync(workspaceId, sourceId, packageId, cancellationToken);
 
     public Task<IReadOnlyList<PublicPackageVersionProjection>> ListVersionsAsync(Guid sourceId, string packageId, CancellationToken cancellationToken = default) =>
         cache.GetOrCreateAsync($"packages:versions:{sourceId:N}:{packageId}", token => queries.ListVersionsAsync(sourceId, packageId, token), cancellationToken);
 
+    public Task<IReadOnlyList<PublicPackageVersionProjection>> ListVersionsForWorkspaceAsync(Guid workspaceId, Guid sourceId, string packageId, CancellationToken cancellationToken = default) =>
+        queries.ListVersionsForWorkspaceAsync(workspaceId, sourceId, packageId, cancellationToken);
+
     public Task<PublicPackageVersionProjection?> GetVersionAsync(Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default) =>
         cache.GetOrCreateAsync($"packages:version:{sourceId:N}:{packageId}:{version}", token => queries.GetVersionAsync(sourceId, packageId, version, token), cancellationToken);
+
+    public Task<PublicPackageVersionProjection?> GetVersionForWorkspaceAsync(Guid workspaceId, Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default) =>
+        queries.GetVersionForWorkspaceAsync(workspaceId, sourceId, packageId, version, cancellationToken);
 
     public Task<IReadOnlyList<PublicFeatureProjection>> ListFeaturesAsync(CancellationToken cancellationToken = default) =>
         cache.GetOrCreateAsync("features:list", queries.ListFeaturesAsync, cancellationToken);
@@ -111,9 +126,13 @@ public interface IPublicCatalogCacheInvalidator
 public interface IPublicCatalogQueries
 {
     Task<IReadOnlyList<PublicPackageProjection>> ListPackagesAsync(IReadOnlyList<Guid> sourceIds, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PublicPackageProjection>> ListPackagesForWorkspaceAsync(Guid workspaceId, IReadOnlyList<Guid> sourceIds, CancellationToken cancellationToken = default);
     Task<PublicPackageProjection?> GetPackageAsync(Guid sourceId, string packageId, CancellationToken cancellationToken = default);
+    Task<PublicPackageProjection?> GetPackageForWorkspaceAsync(Guid workspaceId, Guid sourceId, string packageId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PublicPackageVersionProjection>> ListVersionsAsync(Guid sourceId, string packageId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<PublicPackageVersionProjection>> ListVersionsForWorkspaceAsync(Guid workspaceId, Guid sourceId, string packageId, CancellationToken cancellationToken = default);
     Task<PublicPackageVersionProjection?> GetVersionAsync(Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default);
+    Task<PublicPackageVersionProjection?> GetVersionForWorkspaceAsync(Guid workspaceId, Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<PublicFeatureProjection>> ListFeaturesAsync(CancellationToken cancellationToken = default);
     Task<PublicFeatureProjection?> GetFeatureAsync(string featureId, CancellationToken cancellationToken = default);
 }

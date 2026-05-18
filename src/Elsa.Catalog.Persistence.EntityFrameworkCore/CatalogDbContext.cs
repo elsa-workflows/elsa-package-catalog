@@ -1,4 +1,5 @@
 using Elsa.Catalog.Core.Manifests;
+using Elsa.Catalog.Core.Accounts;
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Sync;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +17,11 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
     public DbSet<ApprovalRecord> ApprovalRecords => Set<ApprovalRecord>();
     public DbSet<SyncRun> SyncRuns => Set<SyncRun>();
     public DbSet<SyncRunItem> SyncRunItems => Set<SyncRunItem>();
+    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<ExternalIdentity> ExternalIdentities => Set<ExternalIdentity>();
+    public DbSet<Workspace> Workspaces => Set<Workspace>();
+    public DbSet<WorkspaceMembership> WorkspaceMemberships => Set<WorkspaceMembership>();
+    public DbSet<WorkspaceEntitlementSnapshot> WorkspaceEntitlementSnapshots => Set<WorkspaceEntitlementSnapshot>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,5 +34,10 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
         modelBuilder.ApplyConfiguration(new Models.ApprovalRecordConfiguration());
         modelBuilder.ApplyConfiguration(new Models.SyncRunConfiguration());
         modelBuilder.ApplyConfiguration(new Models.SyncRunItemConfiguration());
+        modelBuilder.ApplyConfiguration(new Models.AccountConfiguration());
+        modelBuilder.ApplyConfiguration(new Models.ExternalIdentityConfiguration());
+        modelBuilder.ApplyConfiguration(new Models.WorkspaceConfiguration());
+        modelBuilder.ApplyConfiguration(new Models.WorkspaceMembershipConfiguration());
+        modelBuilder.ApplyConfiguration(new Models.WorkspaceEntitlementSnapshotConfiguration());
     }
 }

@@ -1,8 +1,10 @@
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Persistence.EntityFrameworkCore;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +16,8 @@ namespace Elsa.Catalog.Api.Tests;
 
 internal sealed class CatalogApiTestApplication : WebApplicationFactory<Program>, IAsyncDisposable
 {
+    public const string TestRemoteIpHeader = "X-Test-Remote-Ip";
+
     private readonly string _databasePath = Path.Combine(Path.GetTempPath(), $"elsa-catalog-{Guid.NewGuid():N}.db");
 
     public static JsonSerializerOptions JsonOptions { get; } = CreateJsonOptions();
@@ -27,13 +31,16 @@ internal sealed class CatalogApiTestApplication : WebApplicationFactory<Program>
         {
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
-                [ApiKeyAuthenticationDefaults.ConfigurationKey] = "local-dev-key"
+                [ApiKeyAuthenticationDefaults.ConfigurationKey] = "local-dev-key",
+                [TrustedHeaderWorkspaceIdentityReader.EnabledConfigurationKey] = "true",
+                [TrustedHeaderWorkspaceIdentityReader.AllowedProxyNetworksConfigurationKey] = "127.0.0.1/32,::1/128"
             });
         });
 
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<CatalogDbContext>>();
+            services.AddSingleton<IStartupFilter, TestRemoteIpStartupFilter>();
 
             services.AddDbContext<CatalogDbContext>(options =>
                 options.UseSqlite(ConnectionString, sqlite =>
@@ -59,6 +66,23 @@ internal sealed class CatalogApiTestApplication : WebApplicationFactory<Program>
 
         if (File.Exists(_databasePath))
             File.Delete(_databasePath);
+    }
+
+    private sealed class TestRemoteIpStartupFilter : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next) =>
+            app =>
+            {
+                app.Use(async (context, nextMiddleware) =>
+                {
+                    var remoteIp = context.Request.Headers[TestRemoteIpHeader].FirstOrDefault();
+                    context.Connection.RemoteIpAddress = IPAddress.TryParse(remoteIp, out var address)
+                        ? address
+                        : IPAddress.Loopback;
+                    await nextMiddleware();
+                });
+                next(app);
+            };
     }
 
     private static JsonSerializerOptions CreateJsonOptions()

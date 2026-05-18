@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Elsa.Catalog.Core.Accounts;
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Sources;
 using Elsa.PackageManifests;
@@ -19,9 +20,26 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
         return packages.Select(ToPackageProjection).ToList();
     }
 
+    public async Task<IReadOnlyList<PublicPackageProjection>> ListPackagesForWorkspaceAsync(Guid workspaceId, IReadOnlyList<Guid> sourceIds, CancellationToken cancellationToken = default)
+    {
+        var packages = await VisiblePackages(sourceIds, workspaceId)
+            .OrderBy(x => x.PackageId)
+            .ToListAsync(cancellationToken);
+
+        return packages.Select(ToPackageProjection).ToList();
+    }
+
     public async Task<PublicPackageProjection?> GetPackageAsync(Guid sourceId, string packageId, CancellationToken cancellationToken = default)
     {
         var package = await VisiblePackages([sourceId])
+            .SingleOrDefaultAsync(x => x.SourceId == sourceId && x.PackageId == packageId, cancellationToken);
+
+        return package is null ? null : ToPackageProjection(package);
+    }
+
+    public async Task<PublicPackageProjection?> GetPackageForWorkspaceAsync(Guid workspaceId, Guid sourceId, string packageId, CancellationToken cancellationToken = default)
+    {
+        var package = await VisiblePackages([sourceId], workspaceId)
             .SingleOrDefaultAsync(x => x.SourceId == sourceId && x.PackageId == packageId, cancellationToken);
 
         return package is null ? null : ToPackageProjection(package);
@@ -35,9 +53,26 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
         return package?.Versions.Select(ToVersionProjection).ToList() ?? [];
     }
 
+    public async Task<IReadOnlyList<PublicPackageVersionProjection>> ListVersionsForWorkspaceAsync(Guid workspaceId, Guid sourceId, string packageId, CancellationToken cancellationToken = default)
+    {
+        var package = await VisiblePackages([sourceId], workspaceId)
+            .SingleOrDefaultAsync(x => x.SourceId == sourceId && x.PackageId == packageId, cancellationToken);
+
+        return package?.Versions.Select(ToVersionProjection).ToList() ?? [];
+    }
+
     public async Task<PublicPackageVersionProjection?> GetVersionAsync(Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default)
     {
         var package = await VisiblePackages([sourceId])
+            .SingleOrDefaultAsync(x => x.SourceId == sourceId && x.PackageId == packageId, cancellationToken);
+
+        var packageVersion = package?.Versions.SingleOrDefault(x => x.Version == version);
+        return packageVersion is null ? null : ToVersionProjection(packageVersion);
+    }
+
+    public async Task<PublicPackageVersionProjection?> GetVersionForWorkspaceAsync(Guid workspaceId, Guid sourceId, string packageId, string version, CancellationToken cancellationToken = default)
+    {
+        var package = await VisiblePackages([sourceId], workspaceId)
             .SingleOrDefaultAsync(x => x.SourceId == sourceId && x.PackageId == packageId, cancellationToken);
 
         var packageVersion = package?.Versions.SingleOrDefault(x => x.Version == version);
@@ -63,7 +98,7 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
             .FirstOrDefault(x => x.FeatureId == featureId);
     }
 
-    private IQueryable<Package> VisiblePackages(IReadOnlyCollection<Guid>? sourceIds = null)
+    private IQueryable<Package> VisiblePackages(IReadOnlyCollection<Guid>? sourceIds = null, Guid? workspaceId = null)
     {
         var query = dbContext.Packages
             .AsNoTracking()
@@ -76,6 +111,8 @@ public sealed class PublicCatalogQueries(CatalogDbContext dbContext) : IPublicCa
                 .ThenInclude(x => x.Features)
                 .ThenInclude(x => x.Settings)
             .Where(x => x.Source != null && x.Source.Enabled && x.Source.Browseable && x.Source.SoftDeletedAt == null)
+            .Where(x => (x.Source!.Visibility == PackageSourceVisibility.Public && x.Source.OwnerWorkspaceId == null) ||
+                        (workspaceId.HasValue && x.Source.Visibility == PackageSourceVisibility.Workspace && x.Source.OwnerWorkspaceId == workspaceId.Value))
             .Where(x => x.Approved && x.Listed)
             .Where(x => x.Versions.Any(version =>
                 version.IsListed &&

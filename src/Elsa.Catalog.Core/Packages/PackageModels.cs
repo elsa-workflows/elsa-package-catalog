@@ -1,3 +1,5 @@
+using Elsa.Catalog.Core.Accounts;
+
 namespace Elsa.Catalog.Core.Packages;
 
 public sealed class PackageSource
@@ -8,6 +10,9 @@ public sealed class PackageSource
     public string Url { get; set; } = "";
     public bool Enabled { get; set; } = true;
     public bool Browseable { get; set; } = true;
+    public PackageSourceVisibility Visibility { get; set; } = PackageSourceVisibility.Public;
+    public Guid? OwnerWorkspaceId { get; set; }
+    public Workspace? OwnerWorkspace { get; set; }
     public List<string> IncludePatterns { get; set; } = [];
     public List<string> ExcludePatterns { get; set; } = [];
     public PackageSourceApprovalPolicy ApprovalPolicy { get; set; } = PackageSourceApprovalPolicy.Manual;
