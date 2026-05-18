@@ -50,7 +50,7 @@ public sealed record PublicPackageFeatureSettingResponse(
     bool Secret,
     bool RestartRequired,
     string? EnvironmentVariable,
-    IReadOnlyDictionary<string, JsonElement> Ui,
+    IReadOnlyDictionary<string, JsonElement> UI,
     IReadOnlyDictionary<string, JsonElement> Extensions);
 
 public sealed record PublicPackageDependencyResponse(

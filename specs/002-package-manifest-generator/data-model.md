@@ -137,7 +137,9 @@ Fields:
 - `Secret`
 - `Sensitive`
 - `RestartRequired`
-- `UiHint`
+- `UIHint`
+- `UIOptions`
+- `UIOptionsProvider`
 - `Advanced`
 - `Experimental`
 - `ExtensionMetadata`
@@ -154,6 +156,42 @@ Validation:
   unless explicit default or required metadata overrides that inference.
 - Complex object settings are unsupported in the MVP unless represented as a
   supported primitive, enum, nullable, array, list, or dictionary shape.
+- Enum settings publish enum values as validation metadata and default to a
+  `select-list` UI hint with static option items.
+- Dynamic UI option values are represented by provider IDs and parameters only;
+  package code must not be executed to resolve them.
+
+### ManifestUIOptionReference
+
+Static UI option metadata for a setting.
+
+Fields:
+
+- `Value`
+- `Label`
+- `Description`
+
+Validation:
+
+- `Value` is required.
+- Options are ordered deterministically.
+
+### ManifestUIOptionsProviderReference
+
+Dynamic UI option metadata resolved by a trusted Runtime Builder client or
+runtime service.
+
+Fields:
+
+- `Provider`: stable provider ID
+- `DependsOn`: setting names whose values influence option resolution
+- `Parameters`: simple provider parameters
+
+Validation:
+
+- `Provider` is required when dynamic options are declared.
+- Provider references are data only; generation and catalog ingestion must not
+  execute package assemblies to resolve option values.
 
 ### XmlDocumentationEntry
 

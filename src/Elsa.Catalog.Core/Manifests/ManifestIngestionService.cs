@@ -52,7 +52,7 @@ public sealed class ManifestIngestionService
                     Secret = setting.Secret,
                     RestartRequired = setting.RestartRequired,
                     EnvironmentVariable = setting.EnvironmentVariable,
-                    UiJson = JsonSerializer.Serialize(setting.Ui, ManifestJsonSerializerOptions.Default),
+                    UiJson = JsonSerializer.Serialize(setting.UI, ManifestJsonSerializerOptions.Default),
                     ExtensionsJson = SerializeExtensions(setting.Extensions, setting.ExtensionData)
                 });
             }
