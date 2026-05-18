@@ -6,13 +6,13 @@
 
 ## Summary
 
-Add a protected Runtime Builder bundle-generation capability to the existing Catalog API modular monolith. The first slice accepts normalized builder intent from trusted frontend/proxy clients, validates package/source/runtime selections using existing catalog visibility and compatibility services, renders the required deployment files server-side as ephemeral response data, and returns structured findings when generation cannot proceed. The backend bundle output becomes a new platform contract; existing browser output is used only for migration comparison fixtures.
+Add a protected Runtime Builder bundle-generation capability to the existing Catalog API modular monolith. The first slice accepts normalized builder intent from trusted frontend/proxy clients using dedicated builder-client credentials, validates package/source/runtime selections using existing catalog visibility and compatibility services, renders the required deployment files server-side as ephemeral response data, and returns structured findings when generation cannot proceed. The backend bundle output becomes a new platform contract; existing browser output is used only for migration comparison fixtures.
 
 ## Technical Context
 
 **Language/Version**: C# on .NET 10 LTS for API/Core; existing TypeScript/React admin UI remains out of scope.
 
-**Primary Dependencies**: ASP.NET Core minimal APIs and authorization, existing custom API-key/trusted-client authentication, existing workspace identity adapter, existing compatibility checks, System.Text.Json, existing catalog query services, xUnit, FluentAssertions.
+**Primary Dependencies**: ASP.NET Core minimal APIs and authorization, dedicated builder-client API-key authentication/authorization, existing workspace identity adapter, existing compatibility checks, System.Text.Json, existing catalog query services, xUnit, FluentAssertions.
 
 **Storage**: No new durable storage for generated files. Existing relational catalog database remains the source for package/source/version visibility. Optional non-secret generation diagnostics are logged or emitted through existing diagnostics patterns only.
 
@@ -20,11 +20,11 @@ Add a protected Runtime Builder bundle-generation capability to the existing Cat
 
 **Target Platform**: Existing ASP.NET Core Catalog API deployed as the modular monolith.
 
-**Project Type**: Modular monolith web service with public/trusted builder APIs, workspace builder APIs, core domain services, and existing EF Core persistence adapters.
+**Project Type**: Modular monolith web service with public/trusted builder APIs protected by a dedicated builder-client policy, workspace builder APIs, core domain services, and existing EF Core persistence adapters.
 
 **Performance Goals**: Generate required text bundle files for representative builder requests in under 1 second in local integration tests, excluding any external package indexing. Generation must be CPU/local-data only and must not fetch packages or call external registries.
 
-**Constraints**: Generated files are ephemeral and not retrievable after the response completes. Direct browser calls to bundle generation are protected; anonymous builder users reach generation through trusted frontend/proxy clients. Blocking errors return structured findings and no files. `Program.Generated.cs` is optional reference output only. Backend output is validated against the new bundle contract rather than exact browser parity.
+**Constraints**: Generated files are ephemeral and not retrievable after the response completes. Direct browser calls to bundle generation are protected; anonymous builder users reach generation through trusted frontend/proxy clients using dedicated builder-client credentials rather than broad admin credentials. Blocking errors return structured findings and no files. `Program.Generated.cs` is optional reference output only. Backend output is validated against the new bundle contract rather than exact browser parity.
 
 **Scale/Scope**: First slice supports Docker Compose bundle output with `config.json`, `packages.lock.json`, `docker-compose.yml`, `.env.example`, `README.md`, and optional `Program.Generated.cs`. Saved configurations, server-side planning, stored ZIP downloads, signed locks, live deployment, Kubernetes/Helm/Azure templates, and managed hosting are deferred.
 
@@ -39,7 +39,7 @@ Add a protected Runtime Builder bundle-generation capability to the existing Cat
 - **Immutable versions**: Pass. Selected package versions are read from existing immutable catalog records; no package content mutation occurs.
 - **Approval separation**: Pass. Existing valid/approved/listed visibility and compatibility checks remain separate from bundle rendering.
 - **Explicit sources**: Pass. Package selections remain source-qualified and package sources are explicitly supplied or resolved from visible catalog sources.
-- **Safe public API**: Pass. Direct bundle generation is protected from untrusted browser callers; public package visibility remains valid/approved/listed.
+- **Safe public API**: Pass. Direct bundle generation is protected from untrusted browser callers through a dedicated builder-client policy; public package visibility remains valid/approved/listed.
 - **Debuggability**: Pass. Bundle findings and non-secret generation diagnostics are explicit and inspectable through logs/tests.
 - **Modular monolith**: Pass. The design stays within existing API/Core projects and does not add services.
 - **Runtime Builder readiness**: Pass. The feature makes Runtime Builder deployment output backend-owned and reusable by Lovable and future clients.

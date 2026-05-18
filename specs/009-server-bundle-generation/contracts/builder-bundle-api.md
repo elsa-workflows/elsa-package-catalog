@@ -6,14 +6,15 @@ Bundle generation is protected from direct untrusted browser callers.
 
 Initial trusted clients:
 
-- Lovable/Supabase Edge Function or equivalent frontend proxy using configured platform credentials.
-- Future CLI or automation clients using configured platform credentials.
+- Lovable/Supabase Edge Function or equivalent frontend proxy using dedicated builder-client credentials.
+- Future CLI or automation clients using dedicated builder-client credentials.
 - Workspace routes additionally require the existing trusted workspace identity context and workspace membership.
 
 Rules:
 
 - Anonymous Runtime Builder users may generate bundles only through a trusted frontend/proxy client.
 - The platform does not accept arbitrary browser-provided trusted-client headers.
+- Builder-client credentials are least-privilege credentials for builder bundle generation and must not grant broad admin API access.
 - Generated ad hoc files are returned in the response only and are not retrievable later.
 - Secret values and private feed credentials are never returned, logged, or persisted.
 
@@ -23,7 +24,7 @@ Generates an ephemeral bundle for packages and sources visible through the publi
 
 Authentication:
 
-- Requires trusted frontend/proxy or API client credentials.
+- Requires dedicated trusted frontend/proxy or API builder-client credentials.
 - Does not require an authenticated end-user account or saved configuration.
 
 Request:
@@ -153,7 +154,7 @@ Optional first-release files:
 Errors:
 
 - `400 Bad Request`: request JSON is malformed or missing the top-level required shape.
-- `401 Unauthorized`: trusted client credentials are missing or invalid.
+- `401 Unauthorized`: dedicated builder-client credentials are missing or invalid.
 - `200 OK` with error findings and no files: request is syntactically valid but generation is blocked by domain validation.
 
 ## POST /api/workspaces/{workspaceId}/builder/bundle

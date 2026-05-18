@@ -38,7 +38,7 @@
 - [ ] T009 Define bundle file safety validation for relative paths and required/optional file metadata in `src/Elsa.Catalog.Core/Builder/BundleFilePolicy.cs`
 - [ ] T010 Create renderer interface and ordered renderer registration model in `src/Elsa.Catalog.Core/Builder/Renderers/BundleFileRenderer.cs`
 - [ ] T011 Add builder bundle API request/response records to `src/Elsa.Catalog.Api/Public/Builder/BuilderContracts.cs`
-- [ ] T012 Add a trusted builder client authorization policy using API-key authentication in `src/Elsa.Catalog.Api/Authentication/BuilderClientAuthorization.cs`
+- [ ] T012 Add a dedicated builder-client API-key authentication and authorization policy that does not grant admin access in `src/Elsa.Catalog.Api/Authentication/BuilderClientAuthorization.cs`
 - [ ] T013 Register runtime image catalog, bundle generation service, renderers, and related policies in `src/Elsa.Catalog.Api/Program.cs`
 
 **Checkpoint**: Foundation ready; story work can proceed.
@@ -57,19 +57,20 @@
 - [ ] T015 [US1] Add core test for deterministic file ordering and byte-equivalent output for the same intent in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
 - [ ] T016 [P] [US1] Add API integration test for trusted `POST /api/builder/bundle` success in `tests/Elsa.Catalog.Api.Tests/PublicBuilderBundleApiTests.cs`
 - [ ] T017 [US1] Add API integration test rejecting direct untrusted `POST /api/builder/bundle` calls in `tests/Elsa.Catalog.Api.Tests/PublicBuilderBundleApiTests.cs`
+- [ ] T018 [US1] Add API integration test proving admin credentials are not required and dedicated builder-client credentials do not authorize admin APIs in `tests/Elsa.Catalog.Api.Tests/PublicBuilderBundleApiTests.cs`
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Implement `BundleGenerationService` orchestration for valid public builder intent in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
-- [ ] T019 [P] [US1] Implement `config.json` renderer in `src/Elsa.Catalog.Core/Builder/Renderers/AppSettingsBundleRenderer.cs`
-- [ ] T020 [P] [US1] Implement `packages.lock.json` renderer in `src/Elsa.Catalog.Core/Builder/Renderers/PackageLockBundleRenderer.cs`
-- [ ] T021 [P] [US1] Implement `docker-compose.yml` renderer in `src/Elsa.Catalog.Core/Builder/Renderers/DockerComposeBundleRenderer.cs`
-- [ ] T022 [P] [US1] Implement `.env.example` renderer in `src/Elsa.Catalog.Core/Builder/Renderers/EnvExampleBundleRenderer.cs`
-- [ ] T023 [P] [US1] Implement `README.md` renderer in `src/Elsa.Catalog.Core/Builder/Renderers/ReadmeBundleRenderer.cs`
-- [ ] T024 [P] [US1] Implement optional `Program.Generated.cs` reference renderer in `src/Elsa.Catalog.Core/Builder/Renderers/ProgramReferenceBundleRenderer.cs`
-- [ ] T025 [US1] Implement public package/source normalization using existing public catalog visibility in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
-- [ ] T026 [US1] Map core bundle results to API response DTOs in `src/Elsa.Catalog.Api/Public/Builder/BuilderEndpoints.cs`
-- [ ] T027 [US1] Add protected `POST /api/builder/bundle` route in `src/Elsa.Catalog.Api/Public/Builder/BuilderEndpoints.cs`
+- [ ] T019 [US1] Implement `BundleGenerationService` orchestration for valid public builder intent in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
+- [ ] T020 [P] [US1] Implement `config.json` renderer in `src/Elsa.Catalog.Core/Builder/Renderers/AppSettingsBundleRenderer.cs`
+- [ ] T021 [P] [US1] Implement `packages.lock.json` renderer in `src/Elsa.Catalog.Core/Builder/Renderers/PackageLockBundleRenderer.cs`
+- [ ] T022 [P] [US1] Implement `docker-compose.yml` renderer in `src/Elsa.Catalog.Core/Builder/Renderers/DockerComposeBundleRenderer.cs`
+- [ ] T023 [P] [US1] Implement `.env.example` renderer in `src/Elsa.Catalog.Core/Builder/Renderers/EnvExampleBundleRenderer.cs`
+- [ ] T024 [P] [US1] Implement `README.md` renderer in `src/Elsa.Catalog.Core/Builder/Renderers/ReadmeBundleRenderer.cs`
+- [ ] T025 [P] [US1] Implement optional `Program.Generated.cs` reference renderer in `src/Elsa.Catalog.Core/Builder/Renderers/ProgramReferenceBundleRenderer.cs`
+- [ ] T026 [US1] Implement public package/source normalization using existing public catalog visibility in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
+- [ ] T027 [US1] Map core bundle results to API response DTOs in `src/Elsa.Catalog.Api/Public/Builder/BuilderEndpoints.cs`
+- [ ] T028 [US1] Add protected `POST /api/builder/bundle` route in `src/Elsa.Catalog.Api/Public/Builder/BuilderEndpoints.cs`
 
 **Checkpoint**: User Story 1 is independently functional for successful trusted public bundle generation.
 
@@ -83,20 +84,21 @@
 
 ### Tests for User Story 2
 
-- [ ] T028 [P] [US2] Add core test for unknown runtime image returning error findings and no files in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
-- [ ] T029 [US2] Add core test for missing package or invisible package returning error findings and no files in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
-- [ ] T030 [US2] Add core test for placeholder warnings returning files with warning findings in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
-- [ ] T031 [US2] Add core test proving secret values do not appear in files, findings, or diagnostics in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
-- [ ] T032 [P] [US2] Add API integration test for blocked response shape with empty `files` in `tests/Elsa.Catalog.Api.Tests/PublicBuilderBundleApiTests.cs`
+- [ ] T029 [P] [US2] Add core test for unknown runtime image returning error findings and no files in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
+- [ ] T030 [US2] Add core test for missing package or invisible package returning error findings and no files in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
+- [ ] T031 [US2] Add core test for placeholder warnings returning files with warning findings in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
+- [ ] T032 [US2] Add core test proving secret values do not appear in files, findings, or diagnostics in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
+- [ ] T033 [P] [US2] Add API integration test for blocked response shape with empty `files` in `tests/Elsa.Catalog.Api.Tests/PublicBuilderBundleApiTests.cs`
+- [ ] T034 [US2] Add core test proving generation uses local catalog data only and does not call external package registries in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
 
 ### Implementation for User Story 2
 
-- [ ] T033 [US2] Add validation for runtime image, package selection, package visibility, selected features, infrastructure providers, local package paths, and required settings in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
-- [ ] T034 [US2] Integrate existing `CompatibilityCheckService` findings into bundle finding output in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
-- [ ] T035 [US2] Enforce blocking-error behavior that skips rendering and returns no files in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
-- [ ] T036 [US2] Add secret redaction and placeholder materialization rules in `src/Elsa.Catalog.Core/Builder/BundleFindingPolicy.cs`
-- [ ] T037 [US2] Add non-secret generation diagnostic logging around bundle generation in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
-- [ ] T038 [US2] Map finding `level`, `code`, `message`, and `scope` fields consistently in `src/Elsa.Catalog.Api/Public/Builder/BuilderContracts.cs`
+- [ ] T035 [US2] Add validation for runtime image, package selection, package visibility, selected features, infrastructure providers, local package paths, and required settings in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
+- [ ] T036 [US2] Integrate existing `CompatibilityCheckService` findings into bundle finding output in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
+- [ ] T037 [US2] Enforce blocking-error behavior that skips rendering and returns no files in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
+- [ ] T038 [US2] Add secret redaction and placeholder materialization rules in `src/Elsa.Catalog.Core/Builder/BundleFindingPolicy.cs`
+- [ ] T039 [US2] Add non-secret generation diagnostic logging around bundle generation in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
+- [ ] T040 [US2] Map finding `level`, `code`, `message`, and `scope` fields consistently in `src/Elsa.Catalog.Api/Public/Builder/BuilderContracts.cs`
 
 **Checkpoint**: User Story 2 is independently functional for safe warning/error behavior.
 
@@ -110,17 +112,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T039 [P] [US3] Add migration fixture JSON for minimal combined runtime in `tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/minimal-combined.json`
-- [ ] T040 [P] [US3] Add migration fixture JSON for PostgreSQL and RabbitMQ sidecars in `tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/postgres-rabbitmq.json`
-- [ ] T041 [P] [US3] Add migration fixture JSON for local packages and custom source selections in `tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/local-packages-custom-source.json`
-- [ ] T042 [P] [US3] Add migration fixture JSON for secret setting placeholders in `tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/secret-placeholders.json`
-- [ ] T043 [US3] Add migration fixture contract tests that validate required backend files and surface notable differences in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
+- [ ] T041 [P] [US3] Add migration fixture JSON for minimal combined runtime in `tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/minimal-combined.json`
+- [ ] T042 [P] [US3] Add migration fixture JSON for PostgreSQL and RabbitMQ sidecars in `tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/postgres-rabbitmq.json`
+- [ ] T043 [P] [US3] Add migration fixture JSON for local packages and custom source selections in `tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/local-packages-custom-source.json`
+- [ ] T044 [P] [US3] Add migration fixture JSON for secret setting placeholders in `tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/secret-placeholders.json`
+- [ ] T045 [US3] Add migration fixture contract tests that validate required backend files and surface notable differences in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
 
 ### Implementation for User Story 3
 
-- [ ] T044 [US3] Implement fixture loader for builder bundle migration states in `tests/Elsa.Catalog.Testing/BuilderBundleFixtureBuilder.cs`
-- [ ] T045 [US3] Add normalized output summary helper for migration comparison in `tests/Elsa.Catalog.Testing/BuilderBundleFixtureBuilder.cs`
-- [ ] T046 [US3] Document accepted browser-vs-backend migration difference categories in `specs/009-server-bundle-generation/quickstart.md`
+- [ ] T046 [US3] Implement fixture loader for builder bundle migration states in `tests/Elsa.Catalog.Testing/BuilderBundleFixtureBuilder.cs`
+- [ ] T047 [US3] Add normalized output summary helper for migration comparison in `tests/Elsa.Catalog.Testing/BuilderBundleFixtureBuilder.cs`
+- [ ] T048 [US3] Document accepted browser-vs-backend migration difference categories in `specs/009-server-bundle-generation/quickstart.md`
 
 **Checkpoint**: User Story 3 is independently functional for migration fixture review.
 
@@ -134,17 +136,17 @@
 
 ### Tests for User Story 4
 
-- [ ] T047 [P] [US4] Add workspace member success test for `POST /api/workspaces/{workspaceId}/builder/bundle` in `tests/Elsa.Catalog.Api.Tests/WorkspaceBuilderBundleApiTests.cs`
-- [ ] T048 [US4] Add workspace anonymous and non-member rejection tests for `POST /api/workspaces/{workspaceId}/builder/bundle` in `tests/Elsa.Catalog.Api.Tests/WorkspaceBuilderBundleApiTests.cs`
-- [ ] T049 [US4] Add workspace private source non-leakage test for known foreign source IDs in `tests/Elsa.Catalog.Api.Tests/WorkspaceBuilderBundleApiTests.cs`
-- [ ] T050 [P] [US4] Add core test proving equivalent normalized intent returns equivalent files across public and workspace visibility contexts in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
+- [ ] T049 [P] [US4] Add workspace member success test for `POST /api/workspaces/{workspaceId}/builder/bundle` in `tests/Elsa.Catalog.Api.Tests/WorkspaceBuilderBundleApiTests.cs`
+- [ ] T050 [US4] Add workspace anonymous and non-member rejection tests for `POST /api/workspaces/{workspaceId}/builder/bundle` in `tests/Elsa.Catalog.Api.Tests/WorkspaceBuilderBundleApiTests.cs`
+- [ ] T051 [US4] Add workspace private source non-leakage test for known foreign source IDs in `tests/Elsa.Catalog.Api.Tests/WorkspaceBuilderBundleApiTests.cs`
+- [ ] T052 [P] [US4] Add core test proving equivalent normalized intent returns equivalent files across public and workspace visibility contexts in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
 
 ### Implementation for User Story 4
 
-- [ ] T051 [US4] Extend `BundleGenerationService` to accept optional workspace visibility context in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
-- [ ] T052 [US4] Add workspace-visible package/source normalization using existing workspace catalog queries in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
-- [ ] T053 [US4] Add `POST /api/workspaces/{workspaceId}/builder/bundle` route using existing workspace access checks in `src/Elsa.Catalog.Api/Workspace/WorkspaceBuilderEndpoints.cs`
-- [ ] T054 [US4] Reuse public builder bundle DTO response mapping for workspace route in `src/Elsa.Catalog.Api/Workspace/WorkspaceBuilderEndpoints.cs`
+- [ ] T053 [US4] Extend `BundleGenerationService` to accept optional workspace visibility context in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
+- [ ] T054 [US4] Add workspace-visible package/source normalization using existing workspace catalog queries in `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
+- [ ] T055 [US4] Add `POST /api/workspaces/{workspaceId}/builder/bundle` route using existing workspace access checks in `src/Elsa.Catalog.Api/Workspace/WorkspaceBuilderEndpoints.cs`
+- [ ] T056 [US4] Reuse public builder bundle DTO response mapping for workspace route in `src/Elsa.Catalog.Api/Workspace/WorkspaceBuilderEndpoints.cs`
 
 **Checkpoint**: User Story 4 is independently functional for shared multi-client bundle contract behavior.
 
@@ -154,12 +156,13 @@
 
 **Purpose**: Validate safety, docs, and repo quality after desired stories are complete.
 
-- [ ] T055 [P] Update API examples for bundle generation in `src/Elsa.Catalog.Api/Elsa.Catalog.Api.http`
-- [ ] T056 [P] Update quickstart validation notes after implementation in `specs/009-server-bundle-generation/quickstart.md`
-- [ ] T057 Review bundle renderer abstractions for unnecessary indirection and simplify files under `src/Elsa.Catalog.Core/Builder/Renderers/`
-- [ ] T058 Run `dotnet build Elsa.PackageCatalog.sln --no-restore` against `Elsa.PackageCatalog.sln`
-- [ ] T059 Run `dotnet test Elsa.PackageCatalog.sln --no-build` against `Elsa.PackageCatalog.sln`
-- [ ] T060 Confirm no generated file contents, secret values, or unsanitized private source URLs are persisted by reviewing `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
+- [ ] T057 [P] Update API examples for bundle generation in `src/Elsa.Catalog.Api/Elsa.Catalog.Api.http`
+- [ ] T058 [P] Update quickstart validation notes after implementation in `specs/009-server-bundle-generation/quickstart.md`
+- [ ] T059 Review bundle renderer abstractions for unnecessary indirection and simplify files under `src/Elsa.Catalog.Core/Builder/Renderers/`
+- [ ] T060 Run `dotnet build Elsa.PackageCatalog.sln --no-restore` against `Elsa.PackageCatalog.sln`
+- [ ] T061 Run `dotnet test Elsa.PackageCatalog.sln --no-build` against `Elsa.PackageCatalog.sln`
+- [ ] T062 Confirm no generated file contents, secret values, or unsanitized private source URLs are persisted by reviewing `src/Elsa.Catalog.Core/Builder/BundleGenerationService.cs`
+- [ ] T063 Add performance test or timed integration assertion for representative bundle generation under 1 second in `tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs`
 
 ---
 
@@ -185,10 +188,10 @@
 ### Parallel Opportunities
 
 - T002, T003, T004, and T005 can run in parallel.
-- Renderer tasks T019 through T024 can run in parallel after T010 and T018 define shared inputs.
-- Migration fixture tasks T039 through T042 can run in parallel.
-- US2 test tasks T028 and T032 can run in parallel because they edit different test files.
-- US4 test tasks T047 and T050 can run in parallel because they edit different test files.
+- Renderer tasks T020 through T025 can run in parallel after T010 and T019 define shared inputs.
+- Migration fixture tasks T041 through T044 can run in parallel.
+- US2 test tasks T029 and T033 can run in parallel because they edit different test files.
+- US4 test tasks T049 and T052 can run in parallel because they edit different test files.
 
 ---
 
@@ -197,32 +200,32 @@
 ```text
 Task: "T014 [P] [US1] Add core test for minimal valid bundle returning required files in tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs"
 Task: "T016 [P] [US1] Add API integration test for trusted POST /api/builder/bundle success in tests/Elsa.Catalog.Api.Tests/PublicBuilderBundleApiTests.cs"
-Task: "T019 [P] [US1] Implement config.json renderer in src/Elsa.Catalog.Core/Builder/Renderers/AppSettingsBundleRenderer.cs"
-Task: "T020 [P] [US1] Implement packages.lock.json renderer in src/Elsa.Catalog.Core/Builder/Renderers/PackageLockBundleRenderer.cs"
-Task: "T021 [P] [US1] Implement docker-compose.yml renderer in src/Elsa.Catalog.Core/Builder/Renderers/DockerComposeBundleRenderer.cs"
+Task: "T020 [P] [US1] Implement config.json renderer in src/Elsa.Catalog.Core/Builder/Renderers/AppSettingsBundleRenderer.cs"
+Task: "T021 [P] [US1] Implement packages.lock.json renderer in src/Elsa.Catalog.Core/Builder/Renderers/PackageLockBundleRenderer.cs"
+Task: "T022 [P] [US1] Implement docker-compose.yml renderer in src/Elsa.Catalog.Core/Builder/Renderers/DockerComposeBundleRenderer.cs"
 ```
 
 ## Parallel Example: User Story 2
 
 ```text
-Task: "T028 [P] [US2] Add core test for unknown runtime image returning error findings and no files in tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs"
-Task: "T032 [P] [US2] Add API integration test for blocked response shape with empty files in tests/Elsa.Catalog.Api.Tests/PublicBuilderBundleApiTests.cs"
+Task: "T029 [P] [US2] Add core test for unknown runtime image returning error findings and no files in tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs"
+Task: "T033 [P] [US2] Add API integration test for blocked response shape with empty files in tests/Elsa.Catalog.Api.Tests/PublicBuilderBundleApiTests.cs"
 ```
 
 ## Parallel Example: User Story 3
 
 ```text
-Task: "T039 [P] [US3] Add migration fixture JSON for minimal combined runtime in tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/minimal-combined.json"
-Task: "T040 [P] [US3] Add migration fixture JSON for PostgreSQL and RabbitMQ sidecars in tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/postgres-rabbitmq.json"
-Task: "T041 [P] [US3] Add migration fixture JSON for local packages and custom source selections in tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/local-packages-custom-source.json"
-Task: "T042 [P] [US3] Add migration fixture JSON for secret setting placeholders in tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/secret-placeholders.json"
+Task: "T041 [P] [US3] Add migration fixture JSON for minimal combined runtime in tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/minimal-combined.json"
+Task: "T042 [P] [US3] Add migration fixture JSON for PostgreSQL and RabbitMQ sidecars in tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/postgres-rabbitmq.json"
+Task: "T043 [P] [US3] Add migration fixture JSON for local packages and custom source selections in tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/local-packages-custom-source.json"
+Task: "T044 [P] [US3] Add migration fixture JSON for secret setting placeholders in tests/Elsa.Catalog.Testing/Fixtures/BuilderBundles/secret-placeholders.json"
 ```
 
 ## Parallel Example: User Story 4
 
 ```text
-Task: "T047 [P] [US4] Add workspace member success test for POST /api/workspaces/{workspaceId}/builder/bundle in tests/Elsa.Catalog.Api.Tests/WorkspaceBuilderBundleApiTests.cs"
-Task: "T050 [P] [US4] Add core test proving equivalent normalized intent returns equivalent files across public and workspace visibility contexts in tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs"
+Task: "T049 [P] [US4] Add workspace member success test for POST /api/workspaces/{workspaceId}/builder/bundle in tests/Elsa.Catalog.Api.Tests/WorkspaceBuilderBundleApiTests.cs"
+Task: "T052 [P] [US4] Add core test proving equivalent normalized intent returns equivalent files across public and workspace visibility contexts in tests/Elsa.Catalog.Core.Tests/BuilderBundleGenerationTests.cs"
 ```
 
 ---
@@ -257,5 +260,6 @@ Task: "T050 [P] [US4] Add core test proving equivalent normalized intent returns
 - Tasks marked `[P]` avoid same-file conflicts or can run before dependent implementation tasks.
 - Every story has explicit independent tests and a checkpoint.
 - Generated files remain ephemeral; do not add database tables or retrieval endpoints in this feature.
+- Bundle endpoints use dedicated builder-client credentials, not broad admin credentials.
 - `Program.Generated.cs` is optional reference output only.
 - Backend output is validated against the new platform bundle contract, not exact browser parity.
