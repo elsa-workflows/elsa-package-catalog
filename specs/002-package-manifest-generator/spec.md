@@ -350,6 +350,7 @@ Default inclusion rules:
 Default required and nullable behavior:
 
 - Non-nullable value types are required unless a default value or explicit optional metadata is supplied.
+- Non-nullable Boolean settings are optional by default and emit `false` as their default value unless explicit default or required metadata says otherwise.
 - Nullable value types are optional and nullable.
 - Nullable reference type metadata is used when available.
 - When reference nullability cannot be determined, settings are treated as optional unless explicit metadata says otherwise.
