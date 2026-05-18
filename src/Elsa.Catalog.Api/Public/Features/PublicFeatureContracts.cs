@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Elsa.Catalog.Api.Public.Features;
 
@@ -38,7 +39,7 @@ public sealed record PublicFeatureSettingResponse(
     bool Secret,
     bool RestartRequired,
     string? EnvironmentVariable,
-    IReadOnlyDictionary<string, JsonElement> UI,
+    [property: JsonPropertyName("ui")] IReadOnlyDictionary<string, JsonElement> UI,
     IReadOnlyDictionary<string, JsonElement> Extensions);
 
 public sealed record PublicFeatureDependencyResponse(
