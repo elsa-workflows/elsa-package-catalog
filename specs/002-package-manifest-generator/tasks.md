@@ -230,6 +230,16 @@
 - [X] T108 Confirm no generator path executes package constructors or property getters by reviewing safety tests in `tests/Elsa.PackageManifest.Generator.Core.Tests/MetadataInspectionSafetyTests.cs`
 - [ ] T109 Run a performance smoke test proving generation adds no more than 2 seconds for a warm sample project with fewer than 50 feature types and 500 settings
 
+## Phase 9: Follow-up - Setting UI Hints And Options
+
+**Purpose**: Add recommended UI hint metadata for Runtime Builder clients while keeping validation authoritative and generation metadata-only.
+
+- [X] T110 [US2] Amend `specs/002-package-manifest-generator/spec.md`, `data-model.md`, and contracts for setting UI hints, static options, dynamic option providers, and `UI` capitalization.
+- [X] T111 [US2] Add source-only `ManifestUIOptionAttribute` and `ManifestUIOptionsProviderAttribute` in `src/Elsa.PackageManifest.Generator/src/Elsa.PackageManifest.Generator.Hints/`.
+- [X] T112 [US2] Emit enum values as setting validation metadata and default enum settings to `select-list` UI options in `src/Elsa.PackageManifest.Generator.Core/Generation/SettingDiscoveryService.cs` and `ManifestGenerator.cs`.
+- [X] T113 [US3] Extend override model/schema support for structured setting `ui` metadata in `src/Elsa.PackageManifest.Generator.Core/Overrides/` and `specs/002-package-manifest-generator/contracts/override-file.schema.json`.
+- [X] T114 [US2] Add generator tests for enum-derived UI options and code-first static/dynamic UI option hints in `tests/Elsa.PackageManifest.Generator.Core.Tests/FeatureDiscoveryTests.cs`.
+
 ---
 
 ## Dependencies & Execution Order

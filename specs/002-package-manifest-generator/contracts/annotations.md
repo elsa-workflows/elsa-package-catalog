@@ -61,7 +61,7 @@ Supported metadata:
 - `Group`
 - `Required`
 - `DefaultValue`
-- `UiHint`
+- `UIHint`
 - `Secret`
 - `Sensitive`
 - `RestartRequired`
@@ -72,6 +72,39 @@ Purpose:
 
 - Enrich configurable feature settings with metadata CShells does not own.
 - Keep small setting hints close to the setting property.
+- `UiHint` remains a compatibility alias for packages that adopted the earlier
+  casing; new code should use `UIHint`.
+
+## ManifestUIOptionAttribute
+
+Applies to public feature setting properties. May be used multiple times.
+
+Supported metadata:
+
+- Constructor `value`
+- `Label`
+- `Description`
+
+Purpose:
+
+- Supply static option values for setting UI hints such as `select-list`.
+- Keep option values declarative and safe for metadata-only generation.
+
+## ManifestUIOptionsProviderAttribute
+
+Applies to public feature setting properties.
+
+Supported metadata:
+
+- Constructor `provider`
+- `DependsOn`
+- `Parameters`
+
+Purpose:
+
+- Reference a trusted Runtime Builder or elsaworkflows.io option provider for
+  dynamic list values.
+- Declare dependencies and simple parameters without executing package code.
 
 ## ManifestIgnoreAttribute
 

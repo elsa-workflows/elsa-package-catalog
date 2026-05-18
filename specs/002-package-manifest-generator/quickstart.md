@@ -226,7 +226,10 @@ Add `elsa-package.overrides.json`:
         {
           "name": "SmtpHost",
           "required": true,
-          "uiHint": "text"
+          "uiHint": "text",
+          "ui": {
+            "hint": "text"
+          }
         }
       ]
     }

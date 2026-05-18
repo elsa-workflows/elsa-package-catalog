@@ -27,6 +27,12 @@ The first version uses an MSBuild-integrated generator because the output is an 
 - Q: What extension metadata shape should attributes support? → A: Attributes support simple string key/value extension metadata only; rich extension data belongs in the override file.
 - Q: Should the manifest store environment variable mappings for settings? → A: No. CShells binds feature properties from `IConfiguration`, and environment variables are already just one configuration provider. The manifest should document the CShells configuration path, such as `FeatureName:PropertyName`, not invent dedicated environment variable mappings.
 
+### Session 2026-05-18
+
+- Q: How should package manifests represent UI guidance for Runtime Builder clients? → A: Settings keep validation as the authoritative data contract and expose advisory UI metadata under `ui`, with UI terminology capitalized as "UI" in source, docs, and code identifiers.
+- Q: How should enum settings be rendered by default? → A: Enum settings map to string enum validation and default to a `select-list` UI hint with static options derived from deterministic enum names.
+- Q: How should dynamic list values be represented? → A: Manifests may reference a runtime-owned options provider ID and parameters, but the generator and catalog must not execute package code to obtain dynamic UI option values.
+
 ## Goals
 
 - Automatically generate `elsa-package.json` during build or pack for participating package projects.
@@ -233,6 +239,8 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-055**: Integral numeric settings MUST map to JSON integer schema.
 - **FR-056**: Floating point and decimal settings MUST map to JSON number schema.
 - **FR-057**: Enum settings MUST map to string enum schema with deterministic enum value ordering.
+- **FR-057a**: Enum settings MUST emit enum values as authoritative validation metadata, not only as extension metadata.
+- **FR-057b**: Enum settings SHOULD default to a `select-list` UI hint with static option items derived from the enum values unless explicit UI metadata overrides that behavior.
 - **FR-058**: Time duration settings MUST map to string schema with duration metadata.
 - **FR-059**: Date and time settings MUST map to string schema with date-time metadata.
 - **FR-060**: URI settings MUST map to string schema with URI metadata.
@@ -250,6 +258,8 @@ A package author multi-targets frameworks and still receives one canonical packa
 - **FR-071a**: Optional generator-owned hint attributes SHOULD be provided as source-only compile assets from `Elsa.PackageManifest.Generator` so consuming packages can use hints without emitting a runtime dependency for them.
 - **FR-071b**: Attribute-based extension metadata MUST be limited to simple string key/value pairs; rich extension payloads MUST be supplied through the override file.
 - **FR-071c**: Source-only manifest hint attributes SHOULD use the namespace `Elsa.PackageManifest.Generator.Hints`.
+- **FR-071d**: Source-only manifest hint attributes SHOULD use `UI` capitalization for UI-related members, while preserving compatibility aliases where existing consumers already used `Ui`.
+- **FR-071e**: The UI hint model MUST allow static option lists and runtime-owned dynamic options providers without executing package code during generation, catalog ingestion, or anonymous package browsing.
 - **FR-072**: The generator MUST produce clear diagnostics for discovered feature count, generated manifest path, missing XML documentation, invalid settings, unsupported property types, schema validation errors, and package inclusion.
 - **FR-073**: Default diagnostics MUST avoid noisy per-property success logs.
 - **FR-074**: The generator MUST support multi-targeted projects.
@@ -387,10 +397,34 @@ Generator-owned source-only hints MAY be added for manifest-only concerns that C
 Potential first-version manifest hints:
 
 - `ManifestSettingAttribute`: Supplies setting display name, description, group, category, required flag, default value metadata, UI hint, secret or sensitive flags, restart-required flag, advanced flag, experimental flag, and simple extension metadata where supported.
+- `ManifestUIOptionAttribute`: Supplies one static option for setting UI hints such as `select-list`.
+- `ManifestUIOptionsProviderAttribute`: References a runtime-owned dynamic options provider and optional dependency/parameter metadata.
 - `ManifestIgnoreAttribute`: Excludes a type or property from manifest generation.
 - `ManifestExtensionAttribute`: Supplies small extension metadata values where the contract allows extension data.
 
 Rich metadata such as long documentation, complex compatibility matrices, icon metadata, feature conflicts, required capabilities, and broad extension payloads should live in the override file unless the `Elsa.PackageManifests` contract later defines a stronger hint need.
+
+## Setting UI Hint Model
+
+Setting validation metadata is the authoritative contract for accepted values. UI metadata is advisory and exists to help Runtime Builder clients choose controls, labels, grouping, and option-loading behavior. Clients that do not understand a UI hint must still be able to render a safe fallback from `jsonType` and `validation`.
+
+The first recommended UI hint vocabulary is:
+
+- `text`
+- `textarea`
+- `password`
+- `checkbox`
+- `number`
+- `select-list`
+- `multi-select-list`
+- `radio-list`
+- `duration`
+- `date-time`
+- `uri`
+- `json`
+- `key-value-list`
+
+Static option lists use `ui.options.source = "static"` and deterministic `items` with `value`, optional `label`, and optional `description`. Dynamic option lists use `ui.options.source = "provider"` plus a provider ID, optional `dependsOn` setting names, and optional parameters. Provider IDs are resolved by trusted Runtime Builder or elsaworkflows.io code; the manifest generator, catalog, and ingestion path must not execute package assemblies to resolve them.
 
 ## Override File Model
 
