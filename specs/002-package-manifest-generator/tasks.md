@@ -114,6 +114,7 @@
 - [X] T053 [US2] Implement common validation annotation mapping in `src/Elsa.PackageManifest.Generator.Core/Generation/ValidationAnnotationMapper.cs`
 - [ ] T053a [P] [US2] Add unit tests for non-executing default value discovery from supported metadata in `tests/Elsa.PackageManifest.Generator.Core.Tests/SettingDefaultValueTests.cs`
 - [X] T053b [US2] Implement default value metadata extraction without constructors, property getters, or runtime feature activation in `src/Elsa.PackageManifest.Generator.Core/Generation/SettingDefaultValueResolver.cs`
+- [X] T053c [US2] Treat non-nullable Boolean settings as optional with a safe `false` default unless explicit required/default metadata is present in `src/Elsa.PackageManifest.Generator.Core/Generation/SettingDefaultValueResolver.cs` and `tests/Elsa.PackageManifest.Generator.Core.Tests/SettingDiscoveryTests.cs`
 - [X] T054 [US2] Implement JSON Schema Draft 2020-12 setting schema generator for primitives, enums, nullable values, arrays/lists, and dictionaries in `src/Elsa.PackageManifest.Generator.Core/SchemaGeneration/SettingSchemaGenerator.cs`
 - [X] T055 [US2] Implement unsupported complex object omission diagnostics in `src/Elsa.PackageManifest.Generator.Core/SchemaGeneration/UnsupportedTypeDiagnosticFactory.cs`
 - [X] T056 [US2] Integrate discovered features and settings into manifest generation in `src/Elsa.PackageManifest.Generator.Core/Generation/ManifestGenerator.cs`

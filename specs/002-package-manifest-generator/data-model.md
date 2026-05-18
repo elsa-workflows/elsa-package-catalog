@@ -150,6 +150,8 @@ Validation:
   unless explicitly included by supported metadata.
 - `ConfigurationPath` is derived from the CShells binding convention:
   `{CShellsFeatureName}:{ClrPropertyName}`.
+- Non-nullable Boolean settings default to optional with `DefaultValue = false`
+  unless explicit default or required metadata overrides that inference.
 - Complex object settings are unsupported in the MVP unless represented as a
   supported primitive, enum, nullable, array, list, or dictionary shape.
 
