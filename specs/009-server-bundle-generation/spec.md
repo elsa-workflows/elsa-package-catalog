@@ -8,6 +8,16 @@
 
 **Input**: User description: "Move Runtime Builder deployment artifact generation out of the Lovable/browser frontend and into the Elsa Platform backend so the same bundle output can be used by Lovable, future CLI clients, Weaver/agent automation, saved configurations, and later deployment workflows."
 
+## Clarifications
+
+### Session 2026-05-18
+
+- Q: How should the bundle response behave when blocking validation errors exist? -> A: Blocking errors return no bundle files, only structured findings.
+- Q: Who may call bundle generation for anonymous builder users? -> A: Anonymous users use bundle generation through a trusted frontend/proxy client; direct platform calls remain protected.
+- Q: Should generated bundle files be stored by the platform in the first release? -> A: Do not store generated bundle files; return them in the response and keep only non-secret diagnostics.
+- Q: Should backend bundle output be required to match the existing browser output? -> A: Treat backend generation as a new contract and do not require browser parity.
+- Q: Should `Program.Generated.cs` be part of the backend bundle contract? -> A: Include `Program.Generated.cs` only as optional/reference output when available.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Generate A Deployment Bundle From Builder Intent (Priority: P1)
@@ -20,9 +30,9 @@ A Runtime Builder user can submit their selected runtime image, package/features
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid builder configuration, **When** bundle generation is requested, **Then** the response includes `config.json`, `packages.lock.json`, `docker-compose.yml`, `.env.example`, `README.md`, and the generated program file when that output remains supported.
+1. **Given** a valid builder configuration, **When** bundle generation is requested, **Then** the response includes `config.json`, `packages.lock.json`, `docker-compose.yml`, `.env.example`, `README.md`, and may include `Program.Generated.cs` as optional reference output when available.
 2. **Given** the builder configuration selects packages, features, settings, and infrastructure, **When** the bundle is generated, **Then** each generated file reflects the same selected runtime shape.
-3. **Given** an anonymous or frontend-proxied builder session, **When** bundle generation is requested, **Then** no signed-in saved configuration is required.
+3. **Given** an anonymous builder user is using a trusted frontend or proxy client, **When** bundle generation is requested, **Then** no signed-in saved configuration is required.
 
 ---
 
@@ -37,24 +47,24 @@ A Runtime Builder user can see generation findings alongside generated files so 
 **Acceptance Scenarios**:
 
 1. **Given** a configuration with non-blocking warnings, **When** bundle generation is requested, **Then** files are returned together with warning findings.
-2. **Given** a configuration with a blocking deployment error, **When** bundle generation is requested, **Then** the response clearly identifies the blocking finding and does not silently return misleading deployable output.
+2. **Given** a configuration with a blocking deployment error, **When** bundle generation is requested, **Then** the response returns no bundle files and clearly identifies the blocking finding.
 3. **Given** generated files include placeholder secret values, **When** findings are returned, **Then** no server-held secret values are exposed.
 
 ---
 
-### User Story 3 - Verify Parity With Existing Browser Output (Priority: P2)
+### User Story 3 - Review Existing Browser Output During Migration (Priority: P2)
 
-Product and engineering contributors can compare backend-generated bundles against the current browser-generated output using representative fixtures before removing the frontend fallback.
+Product and engineering contributors can compare backend-generated bundles against the current browser-generated output using representative fixtures, but the backend contract is authoritative and is not required to match browser output exactly.
 
-**Why this priority**: Parity testing reduces rollout risk and makes intentional output differences explicit.
+**Why this priority**: Migration comparisons reduce rollout risk while allowing the platform to correct browser-owned deployment behavior instead of freezing it as the long-term contract.
 
-**Independent Test**: Can be tested by running saved builder-state fixtures through both generators and comparing normalized file paths and contents.
+**Independent Test**: Can be tested by running saved builder-state fixtures through both generators and verifying that backend output satisfies the new bundle contract, with notable differences reviewed for migration impact.
 
 **Acceptance Scenarios**:
 
-1. **Given** a fixture for each common runtime shape, **When** backend and browser bundle outputs are compared, **Then** differences are either absent or recorded as intentional.
-2. **Given** a fixture with local packages and custom package sources, **When** parity is checked, **Then** package feed and lock output differences are visible to reviewers.
-3. **Given** a fixture containing secrets or secret-like settings, **When** parity output is reviewed, **Then** comparisons do not leak actual secret values.
+1. **Given** a fixture for each common runtime shape, **When** backend output is reviewed against browser output, **Then** backend output is accepted based on the new bundle contract rather than exact browser parity.
+2. **Given** a fixture with local packages and custom package sources, **When** migration comparison is performed, **Then** package feed and lock output differences are visible to reviewers.
+3. **Given** a fixture containing secrets or secret-like settings, **When** migration comparison output is reviewed, **Then** comparisons do not leak actual secret values.
 
 ---
 
@@ -75,6 +85,7 @@ Future clients such as a CLI, agent workflow, saved configuration flow, or deplo
 
 - The selected runtime image is unknown, unsupported, or lacks deployment metadata.
 - The selected image requires a companion runtime image but the input does not mention one.
+- A browser attempts to call bundle generation directly without trusted client credentials.
 - A selected package version no longer exists, is not approved, is invalid, or is not visible to the caller.
 - A feature has required settings with no provided value or default.
 - Infrastructure selections are missing, duplicated, incompatible, or use unsupported provider strategies.
@@ -82,49 +93,57 @@ Future clients such as a CLI, agent workflow, saved configuration flow, or deplo
 - Multiple package sources contain the same package ID and version.
 - Secret settings are present and must be represented as placeholders rather than leaked values.
 - Bundle generation succeeds with warnings but generated deployment files may still require user edits.
+- A user requests a previously generated ad hoc bundle after the response has completed; the platform does not retrieve prior file contents because first-release generated files are ephemeral.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
 - **FR-001**: System MUST accept a complete runtime builder intent containing image selection, package selections, feature selections, feature settings, package sources, infrastructure selections, and local package options.
-- **FR-002**: System MUST generate the current deployment bundle file set needed by the Runtime Builder download experience.
+- **FR-002**: System MUST generate the required deployment bundle file set needed by the Runtime Builder download experience: `config.json`, `packages.lock.json`, `docker-compose.yml`, `.env.example`, and `README.md`.
+- **FR-002a**: System MAY include `Program.Generated.cs` as optional reference output when available, but clients MUST NOT depend on it as a required deployable artifact.
 - **FR-003**: Generated files MUST include stable relative paths, language hints, content types, and text contents suitable for frontend preview and download.
 - **FR-004**: Generated deployment configuration MUST reflect selected feature settings, environment overrides, package sources, selected packages, selected features, and infrastructure selections.
 - **FR-005**: System MUST return generation findings with level, code, message, and scope so clients can render errors, warnings, and informational recommendations consistently.
 - **FR-006**: System MUST distinguish blocking errors from non-blocking warnings and SHOULD allow preview output when only warnings are present.
+- **FR-006a**: System MUST return no bundle files when blocking errors are present, and MUST return structured findings that explain what blocks generation.
 - **FR-007**: System MUST avoid exposing server secrets, private feed credentials, or raw secret setting values in generated files, findings, logs, or test fixtures.
-- **FR-008**: System MUST support the current anonymous builder flow; saved configurations and authenticated accounts are not required for ad hoc bundle generation.
+- **FR-008**: System MUST support the current anonymous builder flow through trusted frontend or proxy clients; saved configurations and authenticated end-user accounts are not required for ad hoc bundle generation.
+- **FR-008a**: System MUST keep direct platform bundle-generation calls protected from untrusted browser callers.
 - **FR-009**: System MUST provide deterministic output for the same normalized request and catalog state.
-- **FR-010**: System MUST support parity tests between existing browser-generated bundles and backend-generated bundles using representative saved builder states.
-- **FR-011**: Intentional differences from the existing browser output MUST be documented during parity review.
+- **FR-010**: System MUST support migration comparison tests between existing browser-generated bundles and backend-generated bundles using representative saved builder states.
+- **FR-011**: Backend bundle output MUST be validated against the new platform bundle contract and is not required to match existing browser output exactly.
 - **FR-012**: System MUST keep bundle generation reusable by Lovable, future CLI clients, future agent automation, saved runtime configurations, and future deployment workflows.
 - **FR-013**: System MUST record operational diagnostics for bundle generation failures and durations without storing secret values.
-- **FR-014**: The frontend MAY keep a temporary local-generation fallback during rollout, but backend output MUST be the authoritative bundle source once parity is accepted.
+- **FR-014**: The frontend MAY keep a temporary local-generation fallback during rollout, but backend output MUST be the authoritative bundle source once the new platform bundle contract is accepted.
+- **FR-015**: System MUST treat first-release generated bundle file contents as ephemeral response data and MUST NOT store ad hoc generated bundle files for later retrieval.
+- **FR-016**: System MAY retain non-secret operational diagnostics for ad hoc bundle generation.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Runtime Builder Intent**: The user-selected desired runtime shape submitted for generation, including image, packages, features, settings, sources, infrastructure, and local package options.
-- **Bundle File**: A generated text artifact with relative path, language, content type, and contents.
+- **Bundle File**: A generated text artifact with relative path, language, content type, contents, and required or optional status.
 - **Bundle Finding**: A structured warning, error, or informational message scoped to a runtime image, package, feature, infrastructure provider, or generated file.
-- **Parity Fixture**: A saved builder state used to compare existing browser-generated output against backend-generated output.
+- **Migration Fixture**: A saved builder state used to compare existing browser-generated output against backend-generated output during rollout.
 - **Deployment Bundle**: The complete generated artifact set for a runtime configuration preview or download.
+- **Generation Diagnostic**: Non-secret operational metadata about a bundle-generation attempt, such as outcome, duration, selected image, file count, and finding counts.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: For representative fixtures covering minimal server, Studio companion, combined runtime, PostgreSQL, RabbitMQ, external infrastructure, local packages, custom sources, and secret settings, the backend returns every expected bundle file.
-- **SC-002**: At least 95% of normalized bundle file comparisons match the existing browser output across the parity fixture corpus, with all remaining differences documented as intentional.
-- **SC-003**: A user can request and preview a generated bundle from an anonymous builder session without creating a saved configuration.
-- **SC-004**: No generated file, finding, log assertion, or parity fixture exposes an actual server-held secret or private feed credential.
-- **SC-005**: Non-blocking warning scenarios return files and warnings in the same response, while blocking error scenarios are clearly identified.
+- **SC-001**: For representative fixtures covering minimal server, Studio companion, combined runtime, PostgreSQL, RabbitMQ, external infrastructure, local packages, custom sources, and secret settings, the backend returns every required bundle file and marks any generated program file as optional reference output.
+- **SC-002**: Every migration fixture produces backend output that satisfies the new platform bundle contract, with notable differences from browser output visible for rollout review.
+- **SC-003**: A user can request and preview a generated bundle from an anonymous builder session through a trusted frontend or proxy without creating a saved configuration.
+- **SC-004**: No generated file, finding, log assertion, or migration fixture exposes an actual server-held secret or private feed credential.
+- **SC-005**: Non-blocking warning scenarios return files and warnings in the same response, while blocking error scenarios return no files and clearly identify the blocking findings.
 - **SC-006**: The same normalized request produces byte-for-byte equivalent generated file contents when catalog state has not changed.
+- **SC-007**: Ad hoc generated bundle files are not retrievable from platform storage after the response completes, while non-secret diagnostic records remain available for operational review.
 
 ## Assumptions
 
-- Raw text files are the initial output format; downloadable archives may be added later without changing the core file-generation behavior.
-- The current generated program file remains in scope for the first parity slice unless explicitly removed by a later product decision.
+- Raw text files are the initial output format; downloadable archives or stored bundle versions may be added later without changing the core first-release file-generation behavior.
+- The current generated program file remains in scope only as optional reference output for the first bundle-generation slice.
 - Bundle generation may rely on existing catalog and resolve data, but full server-side planning is a later feature.
 - Runtime image metadata may be seeded or partially duplicated for this feature until the dedicated runtime image metadata feature becomes authoritative.
-- Lovable remains the first frontend client and may proxy requests while holding platform API credentials server-side.
+- Lovable remains the first frontend client and may proxy requests while holding platform API credentials server-side; browsers do not call protected platform bundle generation directly.
