@@ -24,3 +24,7 @@ Expected: bundle findings and infrastructure match planner output.
 dotnet build Elsa.PackageCatalog.sln --no-restore
 dotnet test Elsa.PackageCatalog.sln --no-build
 ```
+
+## Frontend Migration Notes
+
+The frontend should treat `/api/builder/plan` and `/api/workspaces/{workspaceId}/builder/plan` as authoritative for dependency closure, feature auto-adds, infrastructure auto-fill, and planner findings. Local logic may remain temporarily for optimistic display, but saved configuration, resolve, and bundle flows should prefer the server-resolved state.

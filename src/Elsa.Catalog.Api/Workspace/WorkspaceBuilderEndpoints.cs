@@ -4,6 +4,7 @@ using Elsa.Catalog.Api.Public.Compatibility;
 using Elsa.Catalog.Api.Public.Packages;
 using Elsa.Catalog.Core.Accounts;
 using Elsa.Catalog.Core.Builder;
+using Elsa.Catalog.Core.Builder.Planner;
 using Elsa.Catalog.Core.Compatibility;
 using Elsa.Catalog.Core.Packages;
 using Microsoft.AspNetCore.Mvc;
@@ -70,6 +71,25 @@ public static class WorkspaceBuilderEndpoints
             return Results.Ok(new BuilderResolveResponse(
                 result.Compatible,
                 result.Findings.Select(x => new CompatibilityFindingApiResponse(x.Severity, x.Code, x.Message)).ToList()));
+        });
+
+        builder.MapPost("/plan", async (
+            Guid workspaceId,
+            BuilderPlanApiRequest request,
+            HttpContext context,
+            IWorkspaceIdentityReader identityReader,
+            AccountWorkspaceService accounts,
+            BuilderPlannerService planner,
+            CancellationToken cancellationToken) =>
+        {
+            var access = await WorkspaceSourceEndpoints.GetAccessAsync(context, workspaceId, identityReader, accounts, cancellationToken);
+            if (access.Result is not null)
+                return access.Result;
+            if (request.Intent is null)
+                return Results.BadRequest(new { error = "intent is required." });
+
+            var result = await planner.PlanAsync(new BuilderPlanRequest(request.Intent), workspaceId, cancellationToken);
+            return Results.Ok(BuilderEndpoints.ToResponse(result));
         });
 
         builder.MapPost("/bundle", async (

@@ -14,6 +14,7 @@ using Elsa.Catalog.Api.Workspace;
 using Elsa.Catalog.Core.Accounts;
 using Elsa.Catalog.Core.Approvals;
 using Elsa.Catalog.Core.Builder;
+using Elsa.Catalog.Core.Builder.Planner;
 using Elsa.Catalog.Core.Compatibility;
 using Elsa.Catalog.Core.Manifests;
 using Elsa.Catalog.Core.Packaging;
@@ -120,6 +121,7 @@ builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRender
 builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.ReadmeBundleRenderer>();
 builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.ProgramReferenceBundleRenderer>();
 builder.Services.AddScoped<BundleGenerationService>();
+builder.Services.AddScoped<BuilderPlannerService>();
 builder.Services.AddSingleton<SyncConcurrencyGuard>();
 builder.Services.AddSingleton<SourceSyncActivityTracker>();
 builder.Services.AddSingleton<SyncRunCancellationRegistry>();

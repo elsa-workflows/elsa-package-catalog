@@ -57,6 +57,28 @@ Content-Type: application/json
 ### Runtime Builder: catalog with runtime images
 GET {{baseUrl}}/api/builder/catalog
 
+### Runtime Builder: plan intent
+POST {{baseUrl}}/api/builder/plan
+Content-Type: application/json
+
+{
+  "intent": {
+    "image": {
+      "slug": "elsa-pro-combined",
+      "tag": "latest",
+      "hostPort": 8080,
+      "envOverrides": {}
+    },
+    "packages": [],
+    "packageSources": [],
+    "infrastructure": [],
+    "localPackages": {
+      "enabled": false,
+      "directoryPath": "packages"
+    }
+  }
+}
+
 ### Runtime Builder: generate deployment bundle
 POST {{baseUrl}}/api/builder/bundle
 X-Api-Key: {{builderClientApiKey}}
@@ -75,6 +97,30 @@ Content-Type: application/json
   "localPackages": {
     "enabled": false,
     "directoryPath": "packages"
+  }
+}
+
+### Workspace: plan runtime builder intent
+POST {{baseUrl}}/api/workspaces/{{workspaceId}}/builder/plan
+X-Catalog-Identity-Issuer: https://elsaworkflows.io
+X-Catalog-Identity-Subject: user-123
+Content-Type: application/json
+
+{
+  "intent": {
+    "image": {
+      "slug": "elsa-pro-combined",
+      "tag": "latest",
+      "hostPort": 8080,
+      "envOverrides": {}
+    },
+    "packages": [],
+    "packageSources": [],
+    "infrastructure": [],
+    "localPackages": {
+      "enabled": false,
+      "directoryPath": "packages"
+    }
   }
 }
 

@@ -1,5 +1,6 @@
 using Elsa.Catalog.Api.Public.Packages;
 using Elsa.Catalog.Api.Public.Compatibility;
+using Elsa.Catalog.Core.Builder;
 using System.Text.Json;
 
 namespace Elsa.Catalog.Api.Public.Builder;
@@ -127,3 +128,15 @@ public sealed record BuilderBundleFindingResponse(
     string Code,
     string Message,
     string? Scope);
+
+public sealed record BuilderPlanApiRequest(RuntimeBuilderIntent? Intent);
+
+public sealed record BuilderPlanApiResponse(
+    RuntimeBuilderIntent Resolved,
+    BuilderPlanAutoAddedApiResponse AutoAdded,
+    IReadOnlyList<BuilderBundleFindingResponse> Findings);
+
+public sealed record BuilderPlanAutoAddedApiResponse(
+    IReadOnlyList<BundlePackageSelection> Packages,
+    IReadOnlyList<string> Features,
+    IReadOnlyList<InfrastructureSelection> Infrastructure);

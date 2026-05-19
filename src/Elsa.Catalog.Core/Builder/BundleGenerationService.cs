@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Elsa.Catalog.Core.Builder.Planner;
 using Elsa.Catalog.Core.Builder.Renderers;
 using Elsa.Catalog.Core.Compatibility;
 using Elsa.Catalog.Core.Packages;
@@ -11,6 +12,7 @@ public sealed class BundleGenerationService(
     CompatibilityCheckService compatibility,
     RuntimeImageCatalog runtimeImages,
     InfrastructureProviderCatalog infrastructureProviders,
+    BuilderPlannerService planner,
     IEnumerable<IBundleFileRenderer> renderers,
     BundleFindingPolicy findingPolicy,
     BundleFilePolicy filePolicy,
@@ -19,6 +21,8 @@ public sealed class BundleGenerationService(
     public async Task<BundleGenerationResult> GenerateAsync(RuntimeBuilderIntent intent, Guid? workspaceId = null, CancellationToken cancellationToken = default)
     {
         var stopwatch = Stopwatch.StartNew();
+        var plan = await planner.PlanAsync(new BuilderPlanRequest(intent), workspaceId, cancellationToken);
+        intent = plan.Resolved;
         var findings = new List<BundleFinding>();
         var resolved = await TryResolveAsync(intent, workspaceId, findings, cancellationToken);
 

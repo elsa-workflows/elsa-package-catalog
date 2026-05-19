@@ -2,6 +2,7 @@ using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Api.Public.Compatibility;
 using Elsa.Catalog.Api.Public.Packages;
 using Elsa.Catalog.Core.Builder;
+using Elsa.Catalog.Core.Builder.Planner;
 using Elsa.Catalog.Core.Compatibility;
 using Elsa.Catalog.Core.Packages;
 using Microsoft.AspNetCore.Mvc;
@@ -45,6 +46,15 @@ public static class BuilderEndpoints
             return Results.Ok(new BuilderResolveResponse(
                 result.Compatible,
                 result.Findings.Select(x => new CompatibilityFindingApiResponse(x.Severity, x.Code, x.Message)).ToList()));
+        });
+
+        group.MapPost("/plan", async (BuilderPlanApiRequest request, BuilderPlannerService planner, CancellationToken cancellationToken) =>
+        {
+            if (request.Intent is null)
+                return Results.BadRequest(new { error = "intent is required." });
+
+            var result = await planner.PlanAsync(new BuilderPlanRequest(request.Intent), cancellationToken: cancellationToken);
+            return Results.Ok(ToResponse(result));
         });
 
         group.MapPost("/bundle", async (BuilderBundleRequest request, BundleGenerationService bundles, CancellationToken cancellationToken) =>
@@ -101,6 +111,12 @@ public static class BuilderEndpoints
         new(
             result.BundleId,
             result.Files.Select(file => new BuilderBundleFileResponse(file.Path, file.Language, file.ContentType, file.Required, file.Contents)).ToList(),
+            result.Findings.Select(finding => new BuilderBundleFindingResponse(finding.Level, finding.Code, finding.Message, finding.Scope)).ToList());
+
+    internal static BuilderPlanApiResponse ToResponse(BuilderPlanResult result) =>
+        new(
+            result.Resolved,
+            new BuilderPlanAutoAddedApiResponse(result.AutoAdded.Packages, result.AutoAdded.Features, result.AutoAdded.Infrastructure),
             result.Findings.Select(finding => new BuilderBundleFindingResponse(finding.Level, finding.Code, finding.Message, finding.Scope)).ToList());
 
     private static BuilderInfrastructureProviderResponse ToResponse(InfrastructureProvider provider) =>

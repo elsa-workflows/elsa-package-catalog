@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Elsa.Catalog.Core.Builder;
+using Elsa.Catalog.Core.Builder.Planner;
 using Elsa.Catalog.Core.Builder.Renderers;
 using Elsa.Catalog.Core.Compatibility;
 using Elsa.Catalog.Core.Packages;
@@ -188,11 +189,18 @@ public sealed class BuilderBundleGenerationTests
     }
 
     private static BundleGenerationService CreateService(FakePublicCatalogQueries queries, IReadOnlyList<PackageVersion> compatibilityVersions, Guid? workspaceId) =>
-        new(
-            new PublicCatalogQueryService(queries, new PublicCatalogCache(new MemoryCache(new MemoryCacheOptions()))),
-            new CompatibilityCheckService(new FakeCompatibilityQueries(compatibilityVersions), new VersionRangeEvaluator()),
+        CreateService(new PublicCatalogQueryService(queries, new PublicCatalogCache(new MemoryCache(new MemoryCacheOptions()))), compatibilityVersions);
+
+    private static BundleGenerationService CreateService(PublicCatalogQueryService catalog, IReadOnlyList<PackageVersion> compatibilityVersions)
+    {
+        var compatibility = new CompatibilityCheckService(new FakeCompatibilityQueries(compatibilityVersions), new VersionRangeEvaluator());
+        var infrastructure = new InfrastructureProviderCatalog();
+        return new BundleGenerationService(
+            catalog,
+            compatibility,
             new RuntimeImageCatalog(),
-            new InfrastructureProviderCatalog(),
+            infrastructure,
+            new BuilderPlannerService(catalog, compatibility, infrastructure),
             [
                 new AppSettingsBundleRenderer(new BundleFindingPolicy()),
                 new PackageLockBundleRenderer(),
@@ -204,6 +212,7 @@ public sealed class BuilderBundleGenerationTests
             new BundleFindingPolicy(),
             new BundleFilePolicy(),
             NullLogger<BundleGenerationService>.Instance);
+    }
 
     private static PublicPackageProjection CreatePackageProjection(PackageSource source, bool secretSetting = false)
     {
