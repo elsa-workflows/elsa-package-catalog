@@ -1,7 +1,7 @@
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
-specs/008-account-custom-feeds/plan.md
+specs/009-server-bundle-generation/plan.md
 <!-- SPECKIT END -->
 
 ## Spec Kit Workflow
@@ -30,6 +30,8 @@ specs/008-account-custom-feeds/plan.md
 - Existing relational catalog database. No new durable entity is required; the feature reads existing `Packages`, `PackageVersions`, `PackageSources`, validation result records, feature records, and feature setting records. (006-package-details-page)
 - C# on .NET 10 LTS for API/Core/Persistence. + ASP.NET Core minimal APIs, existing admin API-key authorization, trusted workspace identity adapter, Entity Framework Core, SQLite/SQL Server EF migrations, xUnit, FluentAssertions. (008-account-custom-feeds)
 - Existing relational catalog database extended with account, external identity, workspace, workspace membership, entitlement snapshot, and package source ownership records. (008-account-custom-feeds)
+- C# on .NET 10 LTS for API/Core; existing TypeScript/React admin UI remains out of scope. + ASP.NET Core minimal APIs and authorization, existing custom API-key/trusted-client authentication, existing workspace identity adapter, existing compatibility checks, System.Text.Json, existing catalog query services, xUnit, FluentAssertions. (009-server-bundle-generation)
+- No new durable storage for generated files. Existing relational catalog database remains the source for package/source/version visibility. Optional non-secret generation diagnostics are logged or emitted through existing diagnostics patterns only. (009-server-bundle-generation)
 
 ## Recent Changes
 - 001-package-catalog: Added implementation plan, research, data model, OpenAPI contract, quickstart, and current plan reference.
@@ -42,3 +44,4 @@ specs/008-account-custom-feeds/plan.md
 - 007-source-scoped-catalog: Added specification, roadmap, plan, research, data model, public source-scoped API contract, account/workspace roadmap contract, quickstart, and tasks for source-qualified package identity and future paid custom feed indexing.
 - 006-package-details-page: Added plan, research, data model, admin package details contract, and quickstart for the admin package details page.
 - 008-account-custom-feeds: Added Spec Kit artifacts and implemented the first backend slice for trusted identity provisioning, personal workspaces, entitlement-gated workspace sources, and workspace-private package visibility.
+- 009-server-bundle-generation: Added plan, research, data model, builder bundle API contract, and quickstart for protected server-side Runtime Builder bundle generation.

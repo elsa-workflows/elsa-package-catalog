@@ -14,11 +14,14 @@ using Elsa.Catalog.Api.Workspace;
 using Elsa.Catalog.Core.Accounts;
 using Elsa.Catalog.Core.Approvals;
 using Elsa.Catalog.Core.Builder;
+using Elsa.Catalog.Core.Builder.Planner;
+using Elsa.Catalog.Core.DeploymentTemplates;
 using Elsa.Catalog.Core.Compatibility;
 using Elsa.Catalog.Core.Manifests;
 using Elsa.Catalog.Core.Packaging;
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Core.Persistence;
+using Elsa.Catalog.Core.RuntimeConfigurations;
 using Elsa.Catalog.Core.Sources;
 using Elsa.Catalog.Core.Sync;
 using Elsa.Catalog.Packaging.NuGet;
@@ -42,6 +45,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.Scheme, _ => { })
+    .AddScheme<AuthenticationSchemeOptions, BuilderClientApiKeyAuthenticationHandler>(BuilderClientApiKeyAuthenticationDefaults.Scheme, _ => { })
     .AddCookie(AdminDashboardAuthenticationDefaults.Scheme, options =>
     {
         options.Cookie.Name = AdminDashboardAuthenticationDefaults.CookieName;
@@ -68,8 +72,10 @@ builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
         };
     });
 builder.Services.AddCatalogAuthorization();
+builder.Services.AddBuilderClientAuthorization();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<AdminApiKeyValidator>();
+builder.Services.AddSingleton<BuilderClientApiKeyValidator>();
 builder.Services.AddSingleton<AdminDashboardLoginThrottle>();
 builder.Services.AddCatalogDbContext(builder.Configuration);
 builder.Services.AddScoped<ICatalogStore, EfCoreCatalogStore>();
@@ -80,6 +86,7 @@ builder.Services.AddScoped<PublicSourceQueryService>();
 builder.Services.AddScoped<IAccountWorkspaceStore, AccountWorkspaceStore>();
 builder.Services.AddScoped<AccountWorkspaceService>();
 builder.Services.AddScoped<WorkspaceSourceService>();
+builder.Services.AddScoped<RuntimeConfigurationService>();
 builder.Services.AddScoped<IWorkspaceIdentityReader, TrustedHeaderWorkspaceIdentityReader>();
 builder.Services.AddSingleton<PublicCatalogCache>();
 builder.Services.AddSingleton<IPublicCatalogCacheInvalidator>(services => services.GetRequiredService<PublicCatalogCache>());
@@ -89,6 +96,7 @@ builder.Services.AddScoped<ISyncCatalogStore, SyncCatalogStore>();
 builder.Services.AddScoped<ISyncRunStore, SyncRunStore>();
 builder.Services.AddScoped<IApprovalStore, ApprovalStore>();
 builder.Services.AddScoped<ICompatibilityQueries, CompatibilityQueries>();
+builder.Services.AddScoped<IRuntimeConfigurationStore, RuntimeConfigurationStore>();
 builder.Services.AddScoped<ApprovalService>();
 builder.Services.AddScoped<CompatibilityCheckService>();
 builder.Services.AddScoped<IPackageVersionDiscoveryClient, NuGetPackageSourceClient>();
@@ -103,6 +111,21 @@ builder.Services.AddSingleton<ManifestValidator>();
 builder.Services.AddSingleton<ApprovalPolicy>();
 builder.Services.AddSingleton<VersionRangeEvaluator>();
 builder.Services.AddSingleton<InfrastructureProviderCatalog>();
+builder.Services.AddSingleton<RuntimeImageCatalog>();
+builder.Services.AddSingleton<RuntimeImageValidator>();
+builder.Services.AddSingleton<BundleFindingPolicy>();
+builder.Services.AddSingleton<BundleFilePolicy>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.AppSettingsBundleRenderer>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.PackageLockBundleRenderer>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.EnvExampleBundleRenderer>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.ReadmeBundleRenderer>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.ProgramReferenceBundleRenderer>();
+builder.Services.AddScoped<IDeploymentTemplateRenderer, Elsa.Catalog.Core.Builder.Renderers.DockerComposeBundleRenderer>();
+builder.Services.AddScoped<IDeploymentTemplateRenderer, AzureContainerAppsTemplateRenderer>();
+builder.Services.AddScoped<IDeploymentTemplateRenderer, KubernetesHelmTemplateRenderer>();
+builder.Services.AddScoped<DeploymentTemplateRegistry>();
+builder.Services.AddScoped<BundleGenerationService>();
+builder.Services.AddScoped<BuilderPlannerService>();
 builder.Services.AddSingleton<SyncConcurrencyGuard>();
 builder.Services.AddSingleton<SourceSyncActivityTracker>();
 builder.Services.AddSingleton<SyncRunCancellationRegistry>();
@@ -114,6 +137,11 @@ builder.Services.AddHostedService<ManualSyncHostedService>();
 builder.Services.AddHostedService<ScheduledSyncHostedService>();
 
 var app = builder.Build();
+
+var runtimeImageFindings = app.Services.GetRequiredService<RuntimeImageValidator>()
+    .Validate(app.Services.GetRequiredService<RuntimeImageCatalog>().ListImages());
+if (runtimeImageFindings.Count > 0)
+    throw new InvalidOperationException($"Runtime image catalog is invalid: {string.Join(" ", runtimeImageFindings.Select(x => $"{x.Code} {x.Scope}"))}");
 
 if (!app.Environment.IsEnvironment("Testing"))
 {
@@ -143,6 +171,7 @@ app.MapWorkspaceMeEndpoints();
 app.MapWorkspaceSourceEndpoints();
 app.MapWorkspacePackageEndpoints();
 app.MapWorkspaceBuilderEndpoints();
+app.MapWorkspaceRuntimeConfigurationEndpoints();
 app.MapAdminApplicationEndpoints();
 app.MapAdminSourceEndpoints();
 app.MapAdminSyncEndpoints();

@@ -1,6 +1,7 @@
 using Elsa.Catalog.Core.Manifests;
 using Elsa.Catalog.Core.Accounts;
 using Elsa.Catalog.Core.Packages;
+using Elsa.Catalog.Core.RuntimeConfigurations;
 using Elsa.Catalog.Core.Sync;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,6 +23,8 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
     public DbSet<Workspace> Workspaces => Set<Workspace>();
     public DbSet<WorkspaceMembership> WorkspaceMemberships => Set<WorkspaceMembership>();
     public DbSet<WorkspaceEntitlementSnapshot> WorkspaceEntitlementSnapshots => Set<WorkspaceEntitlementSnapshot>();
+    public DbSet<RuntimeConfiguration> RuntimeConfigurations => Set<RuntimeConfiguration>();
+    public DbSet<RuntimeConfigurationVersion> RuntimeConfigurationVersions => Set<RuntimeConfigurationVersion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -39,5 +42,7 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
         modelBuilder.ApplyConfiguration(new Models.WorkspaceConfiguration());
         modelBuilder.ApplyConfiguration(new Models.WorkspaceMembershipConfiguration());
         modelBuilder.ApplyConfiguration(new Models.WorkspaceEntitlementSnapshotConfiguration());
+        modelBuilder.ApplyConfiguration(new Models.RuntimeConfigurationConfiguration());
+        modelBuilder.ApplyConfiguration(new Models.RuntimeConfigurationVersionConfiguration());
     }
 }

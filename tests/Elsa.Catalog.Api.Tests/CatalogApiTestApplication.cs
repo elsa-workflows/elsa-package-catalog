@@ -32,6 +32,7 @@ internal sealed class CatalogApiTestApplication : WebApplicationFactory<Program>
             configuration.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 [ApiKeyAuthenticationDefaults.ConfigurationKey] = "local-dev-key",
+                [BuilderClientApiKeyAuthenticationDefaults.ConfigurationKey] = "builder-dev-key",
                 [TrustedHeaderWorkspaceIdentityReader.EnabledConfigurationKey] = "true",
                 [TrustedHeaderWorkspaceIdentityReader.AllowedProxyNetworksConfigurationKey] = "127.0.0.1/32,::1/128"
             });
