@@ -2,6 +2,7 @@ using System.Text.Json;
 using Elsa.Catalog.Core.Accounts;
 using Elsa.Catalog.Core.Manifests;
 using Elsa.Catalog.Core.Packages;
+using Elsa.Catalog.Core.RuntimeConfigurations;
 using Elsa.Catalog.Core.Sync;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -183,5 +184,39 @@ internal sealed class WorkspaceEntitlementSnapshotConfiguration : IEntityTypeCon
         builder.Property(x => x.UpdatedAt)
             .HasConversion(value => value.UtcTicks, value => new DateTimeOffset(value, TimeSpan.Zero));
         builder.HasIndex(x => x.WorkspaceId).IsUnique();
+    }
+}
+
+internal sealed class RuntimeConfigurationConfiguration : IEntityTypeConfiguration<RuntimeConfiguration>
+{
+    public void Configure(EntityTypeBuilder<RuntimeConfiguration> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(1000);
+        builder.Property(x => x.IntentJson).IsRequired();
+        builder.Property(x => x.CreatedAt)
+            .HasConversion(value => value.UtcTicks, value => new DateTimeOffset(value, TimeSpan.Zero));
+        builder.Property(x => x.UpdatedAt)
+            .HasConversion(value => value.UtcTicks, value => new DateTimeOffset(value, TimeSpan.Zero));
+        builder.Property(x => x.SoftDeletedAt)
+            .HasConversion(value => value.HasValue ? value.Value.UtcTicks : (long?)null, value => value.HasValue ? new DateTimeOffset(value.Value, TimeSpan.Zero) : null);
+        builder.HasIndex(x => new { x.WorkspaceId, x.SoftDeletedAt });
+        builder.HasOne<Workspace>().WithMany().HasForeignKey(x => x.WorkspaceId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(x => x.Versions).WithOne(x => x.RuntimeConfiguration).HasForeignKey(x => x.RuntimeConfigurationId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class RuntimeConfigurationVersionConfiguration : IEntityTypeConfiguration<RuntimeConfigurationVersion>
+{
+    public void Configure(EntityTypeBuilder<RuntimeConfigurationVersion> builder)
+    {
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Description).HasMaxLength(1000);
+        builder.Property(x => x.IntentJson).IsRequired();
+        builder.Property(x => x.CreatedAt)
+            .HasConversion(value => value.UtcTicks, value => new DateTimeOffset(value, TimeSpan.Zero));
+        builder.HasIndex(x => new { x.RuntimeConfigurationId, x.VersionNumber }).IsUnique();
     }
 }
