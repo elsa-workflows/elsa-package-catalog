@@ -3,7 +3,7 @@
 ## Local Setup
 
 1. Run the API using the normal local development configuration.
-2. Configure the trusted client credential used by the Lovable/Supabase proxy or local test client.
+2. Configure `Authentication:BuilderClientApiKey` for the trusted Lovable/Supabase proxy or local test client.
 3. Seed at least one public browseable source with valid, approved, listed package versions and feature manifests.
 4. Ensure runtime image metadata is available for the requested image slug.
 
@@ -11,7 +11,7 @@
 
 ```http
 POST /api/builder/bundle
-X-API-Key: local-dev-key
+X-API-Key: builder-dev-key
 Content-Type: application/json
 
 {
@@ -37,6 +37,8 @@ Expected:
 - Response includes required files: `config.json`, `packages.lock.json`, `docker-compose.yml`, `.env.example`, and `README.md`.
 - `Program.Generated.cs` may appear with `required: false`.
 - Findings are empty or warning-only.
+
+Use the builder-client key, not the admin API key. In local test configuration this is `builder-dev-key`; production deployments should set a distinct least-privilege value.
 
 ## Scenario 2: Direct Browser Caller Is Rejected
 
@@ -120,6 +122,16 @@ Expected:
 
 - There is no retrieval endpoint for ad hoc bundle files in this feature.
 - Operational logs may contain non-secret generation diagnostics only.
+
+## Migration Difference Notes
+
+The backend output is the platform contract. Browser parity fixtures should flag rollout-relevant differences, but these categories are accepted:
+
+- deterministic formatting differences in JSON, YAML, Markdown, or C# reference output,
+- safer placeholder output for secret or missing values,
+- sanitized package source URLs,
+- simplified Docker Compose snippets where the backend contract remains deployable,
+- optional omission or inclusion of `Program.Generated.cs` as reference-only output.
 
 ## Validation Commands
 

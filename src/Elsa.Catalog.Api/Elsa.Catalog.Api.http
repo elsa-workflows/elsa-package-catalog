@@ -1,5 +1,6 @@
 @baseUrl = http://localhost:5220
 @apiKey = local-dev-key
+@builderClientApiKey = builder-dev-key
 @sourceId = 00000000-0000-0000-0000-000000000000
 @syncRunId = 00000000-0000-0000-0000-000000000000
 @packageId = Elsa.Email
@@ -49,6 +50,27 @@ Content-Type: application/json
   "features": [
     "{{featureId}}"
   ]
+}
+
+### Runtime Builder: generate deployment bundle
+POST {{baseUrl}}/api/builder/bundle
+X-Api-Key: {{builderClientApiKey}}
+Content-Type: application/json
+
+{
+  "image": {
+    "slug": "elsa-pro-combined",
+    "tag": "latest",
+    "hostPort": 8080,
+    "envOverrides": {}
+  },
+  "packages": [],
+  "packageSources": [],
+  "infrastructure": [],
+  "localPackages": {
+    "enabled": false,
+    "directoryPath": "packages"
+  }
 }
 
 ### Admin: list package sources

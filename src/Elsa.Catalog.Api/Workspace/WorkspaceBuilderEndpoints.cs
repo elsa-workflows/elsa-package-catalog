@@ -70,6 +70,26 @@ public static class WorkspaceBuilderEndpoints
                 result.Findings.Select(x => new CompatibilityFindingApiResponse(x.Severity, x.Code, x.Message)).ToList()));
         });
 
+        builder.MapPost("/bundle", async (
+            Guid workspaceId,
+            BuilderBundleRequest request,
+            HttpContext context,
+            IWorkspaceIdentityReader identityReader,
+            AccountWorkspaceService accounts,
+            BundleGenerationService bundles,
+            CancellationToken cancellationToken) =>
+        {
+            var access = await WorkspaceSourceEndpoints.GetAccessAsync(context, workspaceId, identityReader, accounts, cancellationToken);
+            if (access.Result is not null)
+                return access.Result;
+
+            if (!BuilderEndpoints.TryMapIntent(request, out var intent, out var error))
+                return Results.BadRequest(new { error });
+
+            var result = await bundles.GenerateAsync(intent, workspaceId, cancellationToken);
+            return Results.Ok(BuilderEndpoints.ToResponse(result));
+        });
+
         endpoints.MapPost("/api/workspaces/{workspaceId:guid}/compatibility/check", async (
             Guid workspaceId,
             CompatibilityCheckApiRequest request,

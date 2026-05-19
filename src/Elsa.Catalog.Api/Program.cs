@@ -42,6 +42,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationDefaults.Scheme, _ => { })
+    .AddScheme<AuthenticationSchemeOptions, BuilderClientApiKeyAuthenticationHandler>(BuilderClientApiKeyAuthenticationDefaults.Scheme, _ => { })
     .AddCookie(AdminDashboardAuthenticationDefaults.Scheme, options =>
     {
         options.Cookie.Name = AdminDashboardAuthenticationDefaults.CookieName;
@@ -68,8 +69,10 @@ builder.Services.AddAuthentication(ApiKeyAuthenticationDefaults.Scheme)
         };
     });
 builder.Services.AddCatalogAuthorization();
+builder.Services.AddBuilderClientAuthorization();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<AdminApiKeyValidator>();
+builder.Services.AddSingleton<BuilderClientApiKeyValidator>();
 builder.Services.AddSingleton<AdminDashboardLoginThrottle>();
 builder.Services.AddCatalogDbContext(builder.Configuration);
 builder.Services.AddScoped<ICatalogStore, EfCoreCatalogStore>();
@@ -103,6 +106,16 @@ builder.Services.AddSingleton<ManifestValidator>();
 builder.Services.AddSingleton<ApprovalPolicy>();
 builder.Services.AddSingleton<VersionRangeEvaluator>();
 builder.Services.AddSingleton<InfrastructureProviderCatalog>();
+builder.Services.AddSingleton<RuntimeImageCatalog>();
+builder.Services.AddSingleton<BundleFindingPolicy>();
+builder.Services.AddSingleton<BundleFilePolicy>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.AppSettingsBundleRenderer>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.PackageLockBundleRenderer>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.DockerComposeBundleRenderer>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.EnvExampleBundleRenderer>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.ReadmeBundleRenderer>();
+builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.ProgramReferenceBundleRenderer>();
+builder.Services.AddScoped<BundleGenerationService>();
 builder.Services.AddSingleton<SyncConcurrencyGuard>();
 builder.Services.AddSingleton<SourceSyncActivityTracker>();
 builder.Services.AddSingleton<SyncRunCancellationRegistry>();

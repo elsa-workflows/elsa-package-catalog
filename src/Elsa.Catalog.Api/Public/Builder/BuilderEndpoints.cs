@@ -1,3 +1,4 @@
+using Elsa.Catalog.Api.Authentication;
 using Elsa.Catalog.Api.Public.Compatibility;
 using Elsa.Catalog.Api.Public.Packages;
 using Elsa.Catalog.Core.Builder;
@@ -45,8 +46,61 @@ public static class BuilderEndpoints
                 result.Findings.Select(x => new CompatibilityFindingApiResponse(x.Severity, x.Code, x.Message)).ToList()));
         });
 
+        group.MapPost("/bundle", async (BuilderBundleRequest request, BundleGenerationService bundles, CancellationToken cancellationToken) =>
+        {
+            if (!TryMapIntent(request, out var intent, out var error))
+                return Results.BadRequest(new { error });
+
+            var result = await bundles.GenerateAsync(intent, cancellationToken: cancellationToken);
+            return Results.Ok(ToResponse(result));
+        }).RequireAuthorization(BuilderClientAuthorization.Policy);
+
         return endpoints;
     }
+
+    internal static bool TryMapIntent(BuilderBundleRequest request, out RuntimeBuilderIntent intent, out string error)
+    {
+        intent = null!;
+        error = "";
+        if (request.Image is null || string.IsNullOrWhiteSpace(request.Image.Slug))
+        {
+            error = "image.slug is required.";
+            return false;
+        }
+
+        if (request.Packages is null)
+        {
+            error = "packages is required.";
+            return false;
+        }
+
+        intent = new RuntimeBuilderIntent(
+            new RuntimeImageSelection(
+                request.Image.Slug,
+                request.Image.Tag,
+                request.Image.HostPort,
+                request.Image.EnvOverrides),
+            request.Packages.Select(package => new BundlePackageSelection(
+                package.SourceId,
+                package.PackageId ?? "",
+                package.Version ?? "",
+                package.SelectedFeatures,
+                package.Settings)).ToList(),
+            (request.PackageSources ?? []).Select(source => new PackageSourceSelection(source.SourceId, source.Name, source.Url, source.Kind)).ToList(),
+            (request.Infrastructure ?? []).Select(provider => new InfrastructureSelection(
+                provider.Kind ?? "",
+                provider.ProviderId ?? "",
+                provider.Strategy ?? "",
+                provider.Settings)).ToList(),
+            request.LocalPackages is null ? null : new LocalPackagesOptions(request.LocalPackages.Enabled, request.LocalPackages.DirectoryPath));
+        return true;
+    }
+
+    internal static BuilderBundleResponse ToResponse(BundleGenerationResult result) =>
+        new(
+            result.BundleId,
+            result.Files.Select(file => new BuilderBundleFileResponse(file.Path, file.Language, file.ContentType, file.Required, file.Contents)).ToList(),
+            result.Findings.Select(finding => new BuilderBundleFindingResponse(finding.Level, finding.Code, finding.Message, finding.Scope)).ToList());
 
     private static BuilderInfrastructureProviderResponse ToResponse(InfrastructureProvider provider) =>
         new(provider.Id, provider.DisplayName, provider.Kind, provider.Strategy, provider.Provider, provider.Capabilities, provider.Outputs);
