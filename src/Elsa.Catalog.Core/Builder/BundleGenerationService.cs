@@ -99,7 +99,7 @@ public sealed class BundleGenerationService(
         var image = runtimeImages.Find(selection.Slug);
         if (image is null)
         {
-            findings.Add(BundleFinding.Error("image.unknown", $"Runtime image {selection.Slug} is not known.", $"image:{selection.Slug}"));
+            findings.Add(BundleFinding.Error("runtimeImage.unknown", $"Runtime image {selection.Slug} is not supported.", $"image:{selection.Slug}"));
             return null;
         }
 

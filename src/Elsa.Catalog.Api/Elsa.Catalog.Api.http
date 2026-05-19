@@ -52,6 +52,9 @@ Content-Type: application/json
   ]
 }
 
+### Runtime Builder: catalog with runtime images
+GET {{baseUrl}}/api/builder/catalog
+
 ### Runtime Builder: generate deployment bundle
 POST {{baseUrl}}/api/builder/bundle
 X-Api-Key: {{builderClientApiKey}}

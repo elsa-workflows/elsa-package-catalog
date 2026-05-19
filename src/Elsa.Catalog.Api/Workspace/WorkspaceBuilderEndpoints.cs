@@ -24,6 +24,7 @@ public static class WorkspaceBuilderEndpoints
             IWorkspaceIdentityReader identityReader,
             AccountWorkspaceService accounts,
             PublicCatalogQueryService catalog,
+            RuntimeImageCatalog runtimeImages,
             InfrastructureProviderCatalog infrastructure,
             CancellationToken cancellationToken) =>
         {
@@ -33,6 +34,7 @@ public static class WorkspaceBuilderEndpoints
 
             var packages = await catalog.ListPackagesForWorkspaceAsync(workspaceId, sourceIds, cancellationToken);
             return Results.Ok(new BuilderCatalogResponse(
+                runtimeImages.ListImages().Select(BuilderEndpoints.ToRuntimeImageResponse).ToList(),
                 packages.Select(PublicPackageEndpoints.ToResponse).ToList(),
                 infrastructure.ListProviders().Select(ToResponse).ToList()));
         });

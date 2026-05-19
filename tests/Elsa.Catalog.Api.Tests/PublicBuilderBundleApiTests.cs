@@ -71,7 +71,7 @@ public sealed class PublicBuilderBundleApiTests
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadCatalogJsonAsync<BuilderBundleResponse>();
         body!.Files.Should().BeEmpty();
-        body.Findings.Should().Contain(x => x.Level == "error" && x.Code == "image.unknown");
+        body.Findings.Should().Contain(x => x.Level == "error" && x.Code == "runtimeImage.unknown");
     }
 
     private static BuilderBundleRequest MinimalRequest(string imageSlug = "elsa-pro-combined") =>

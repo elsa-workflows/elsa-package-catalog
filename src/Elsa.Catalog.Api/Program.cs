@@ -107,6 +107,7 @@ builder.Services.AddSingleton<ApprovalPolicy>();
 builder.Services.AddSingleton<VersionRangeEvaluator>();
 builder.Services.AddSingleton<InfrastructureProviderCatalog>();
 builder.Services.AddSingleton<RuntimeImageCatalog>();
+builder.Services.AddSingleton<RuntimeImageValidator>();
 builder.Services.AddSingleton<BundleFindingPolicy>();
 builder.Services.AddSingleton<BundleFilePolicy>();
 builder.Services.AddScoped<Elsa.Catalog.Core.Builder.Renderers.IBundleFileRenderer, Elsa.Catalog.Core.Builder.Renderers.AppSettingsBundleRenderer>();
@@ -127,6 +128,11 @@ builder.Services.AddHostedService<ManualSyncHostedService>();
 builder.Services.AddHostedService<ScheduledSyncHostedService>();
 
 var app = builder.Build();
+
+var runtimeImageFindings = app.Services.GetRequiredService<RuntimeImageValidator>()
+    .Validate(app.Services.GetRequiredService<RuntimeImageCatalog>().ListImages());
+if (runtimeImageFindings.Count > 0)
+    throw new InvalidOperationException($"Runtime image catalog is invalid: {string.Join(" ", runtimeImageFindings.Select(x => $"{x.Code} {x.Scope}"))}");
 
 if (!app.Environment.IsEnvironment("Testing"))
 {

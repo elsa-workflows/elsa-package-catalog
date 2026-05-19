@@ -5,8 +5,49 @@ using System.Text.Json;
 namespace Elsa.Catalog.Api.Public.Builder;
 
 public sealed record BuilderCatalogResponse(
+    IReadOnlyList<RuntimeImageResponse> Images,
     IReadOnlyList<PublicPackageResponse> Packages,
     IReadOnlyList<BuilderInfrastructureProviderResponse> InfrastructureProviders);
+
+public sealed record RuntimeImageResponse(
+    string Slug,
+    string DisplayName,
+    string Description,
+    string Image,
+    IReadOnlyList<string> AvailableTags,
+    string DefaultTag,
+    int DefaultPort,
+    int HostPort,
+    string ContainerName,
+    string LicenseTier,
+    string Stability,
+    IReadOnlyList<string> Capabilities,
+    IReadOnlyList<RuntimeImageEnvironmentVariableResponse> EnvVars,
+    RuntimeImageDeploymentHintsResponse DeploymentHints,
+    RuntimeImageDocsResponse Docs);
+
+public sealed record RuntimeImageEnvironmentVariableResponse(
+    string Name,
+    string DisplayName,
+    string Description,
+    bool Required,
+    bool Secret,
+    string? DefaultValue,
+    string Group,
+    bool Advanced);
+
+public sealed record RuntimeImageDeploymentHintsResponse(
+    bool SupportsDockerCompose,
+    bool SupportsKubernetes,
+    bool RequiresCompanionServer,
+    bool NeedsSharedNetwork,
+    string? CompanionImageSlug);
+
+public sealed record RuntimeImageDocsResponse(
+    string? DockerHubUrl,
+    IReadOnlyList<string> ContainerPaths,
+    bool ShowPerShellAdmin,
+    bool ShowNuplane);
 
 public sealed record BuilderInfrastructureProviderResponse(
     string Id,

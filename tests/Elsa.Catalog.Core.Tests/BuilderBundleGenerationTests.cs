@@ -40,6 +40,20 @@ public sealed class BuilderBundleGenerationTests
     }
 
     [Fact]
+    public async Task Bundle_generation_uses_runtime_image_metadata()
+    {
+        var service = CreateService(PublicCatalogSeedData.CreatePackageSource());
+
+        var result = await service.GenerateAsync(new BuilderBundleFixtureBuilder().WithImage("elsa-pro-studio", hostPort: 8081).Build());
+
+        var compose = result.Files.Single(x => x.Path == "docker-compose.yml").Contents;
+        compose.Should().Contain("image: elsaworkflows/elsa-pro-studio:latest");
+        compose.Should().Contain("container_name: elsa-pro-studio");
+        compose.Should().Contain("\"8081:8080\"");
+        compose.Should().Contain("Backend__Url");
+    }
+
+    [Fact]
     public async Task Unknown_runtime_image_returns_error_findings_and_no_files()
     {
         var service = CreateService(PublicCatalogSeedData.CreatePackageSource());
@@ -47,7 +61,7 @@ public sealed class BuilderBundleGenerationTests
         var result = await service.GenerateAsync(new BuilderBundleFixtureBuilder().WithImage("missing").Build());
 
         result.Files.Should().BeEmpty();
-        result.Findings.Should().ContainSingle(x => x.Code == "image.unknown" && x.Level == "error");
+        result.Findings.Should().ContainSingle(x => x.Code == "runtimeImage.unknown" && x.Level == "error");
     }
 
     [Fact]

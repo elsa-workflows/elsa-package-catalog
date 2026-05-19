@@ -14,10 +14,11 @@ public static class BuilderEndpoints
     {
         var group = endpoints.MapGroup("/api/builder").WithTags("Runtime Builder");
 
-        group.MapGet("/catalog", async ([FromQuery] Guid[] sourceIds, PublicCatalogQueryService catalog, InfrastructureProviderCatalog infrastructure, CancellationToken cancellationToken) =>
+        group.MapGet("/catalog", async ([FromQuery] Guid[] sourceIds, PublicCatalogQueryService catalog, RuntimeImageCatalog runtimeImages, InfrastructureProviderCatalog infrastructure, CancellationToken cancellationToken) =>
         {
             var packages = await catalog.ListPackagesAsync(sourceIds, cancellationToken);
             return Results.Ok(new BuilderCatalogResponse(
+                runtimeImages.ListImages().Select(ToRuntimeImageResponse).ToList(),
                 packages.Select(PublicPackageEndpoints.ToResponse).ToList(),
                 infrastructure.ListProviders().Select(ToResponse).ToList()));
         });
@@ -104,4 +105,27 @@ public static class BuilderEndpoints
 
     private static BuilderInfrastructureProviderResponse ToResponse(InfrastructureProvider provider) =>
         new(provider.Id, provider.DisplayName, provider.Kind, provider.Strategy, provider.Provider, provider.Capabilities, provider.Outputs);
+
+    internal static RuntimeImageResponse ToRuntimeImageResponse(RuntimeImage image) =>
+        new(
+            image.Slug,
+            image.DisplayName,
+            image.Description,
+            image.Image,
+            image.AvailableTags,
+            image.DefaultTag,
+            image.DefaultPort,
+            image.HostPort,
+            image.ContainerName,
+            image.LicenseTier,
+            image.Stability,
+            image.Capabilities,
+            image.EnvVars.Select(x => new RuntimeImageEnvironmentVariableResponse(x.Name, x.DisplayName, x.Description, x.Required, x.Secret, x.DefaultValue, x.Group, x.Advanced)).ToList(),
+            new RuntimeImageDeploymentHintsResponse(
+                image.DeploymentHints.SupportsDockerCompose,
+                image.DeploymentHints.SupportsKubernetes,
+                image.DeploymentHints.RequiresCompanionServer,
+                image.DeploymentHints.NeedsSharedNetwork,
+                image.DeploymentHints.CompanionImageSlug),
+            new RuntimeImageDocsResponse(image.Docs.DockerHubUrl, image.Docs.ContainerPaths, image.Docs.ShowPerShellAdmin, image.Docs.ShowNuplane));
 }

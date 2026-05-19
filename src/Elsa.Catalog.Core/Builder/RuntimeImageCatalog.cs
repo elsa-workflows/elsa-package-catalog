@@ -14,13 +14,14 @@ public sealed class RuntimeImageCatalog
             8080,
             8080,
             "elsa-pro-server",
-            false,
-            false,
+            "Professional",
+            "Stable",
             ["server"],
             [
-                new("ASPNETCORE_ENVIRONMENT", "Environment", false, false, "Development", "Runtime", false)
+                new("ASPNETCORE_ENVIRONMENT", "Environment", "ASP.NET Core environment.", false, false, "Development", "Runtime", false)
             ],
-            new(true, true, false, null)),
+            new(true, true, false, false, null),
+            new("https://hub.docker.com/", [], false, true)),
         new(
             "elsa-pro-studio",
             "Elsa Professional Studio",
@@ -31,13 +32,14 @@ public sealed class RuntimeImageCatalog
             8080,
             8081,
             "elsa-pro-studio",
-            true,
-            true,
+            "Professional",
+            "Stable",
             ["studio"],
             [
-                new("Backend__Url", "Backend URL", false, false, "http://elsa-pro-server:8080", "Runtime", false)
+                new("Backend__Url", "Backend URL", "URL used by Studio to reach the Elsa Server backend.", false, false, "http://elsa-pro-server:8080", "Runtime", false)
             ],
-            new(true, true, true, "elsa-pro-server")),
+            new(true, true, true, true, "elsa-pro-server"),
+            new("https://hub.docker.com/", [], false, true)),
         new(
             "elsa-pro-combined",
             "Elsa Professional Combined",
@@ -48,14 +50,15 @@ public sealed class RuntimeImageCatalog
             8080,
             8080,
             "elsa-pro-combined",
-            false,
-            false,
+            "Professional",
+            "Stable",
             ["server", "studio"],
             [
-                new("ASPNETCORE_ENVIRONMENT", "Environment", false, false, "Development", "Runtime", false),
-                new("Backend__Url", "Backend URL", false, false, "http://localhost:8080", "Runtime", false)
+                new("ASPNETCORE_ENVIRONMENT", "Environment", "ASP.NET Core environment.", false, false, "Development", "Runtime", false),
+                new("Backend__Url", "Backend URL", "URL used by Studio to reach the Elsa Server backend.", false, false, "http://localhost:8080", "Runtime", false)
             ],
-            new(true, true, false, null))
+            new(true, true, false, false, null),
+            new("https://hub.docker.com/", [], false, true))
     ];
 
     public IReadOnlyList<RuntimeImage> ListImages() => Images;
@@ -63,34 +66,3 @@ public sealed class RuntimeImageCatalog
     public RuntimeImage? Find(string slug) =>
         Images.FirstOrDefault(x => string.Equals(x.Slug, slug, StringComparison.OrdinalIgnoreCase));
 }
-
-public sealed record RuntimeImage(
-    string Slug,
-    string DisplayName,
-    string Description,
-    string Image,
-    IReadOnlyList<string> AvailableTags,
-    string DefaultTag,
-    int DefaultPort,
-    int HostPort,
-    string ContainerName,
-    bool NeedsSharedNetwork,
-    bool RequiresServer,
-    IReadOnlyList<string> Capabilities,
-    IReadOnlyList<RuntimeImageEnvironmentVariable> EnvVars,
-    RuntimeImageDeploymentHints DeploymentHints);
-
-public sealed record RuntimeImageEnvironmentVariable(
-    string Name,
-    string DisplayName,
-    bool Required,
-    bool Secret,
-    string? DefaultValue,
-    string Group,
-    bool Advanced);
-
-public sealed record RuntimeImageDeploymentHints(
-    bool SupportsDockerCompose,
-    bool SupportsKubernetes,
-    bool RequiresCompanionServer,
-    string? CompanionImageSlug);
