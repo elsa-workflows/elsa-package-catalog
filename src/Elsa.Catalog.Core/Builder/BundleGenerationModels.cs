@@ -7,7 +7,8 @@ public sealed record RuntimeBuilderIntent(
     IReadOnlyList<BundlePackageSelection> Packages,
     IReadOnlyList<PackageSourceSelection> PackageSources,
     IReadOnlyList<InfrastructureSelection> Infrastructure,
-    LocalPackagesOptions? LocalPackages);
+    LocalPackagesOptions? LocalPackages,
+    string? Target = null);
 
 public sealed record RuntimeImageSelection(
     string Slug,

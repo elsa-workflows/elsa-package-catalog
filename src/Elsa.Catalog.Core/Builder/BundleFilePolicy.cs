@@ -1,3 +1,5 @@
+using Elsa.Catalog.Core.DeploymentTemplates;
+
 namespace Elsa.Catalog.Core.Builder;
 
 public sealed class BundleFilePolicy
@@ -11,7 +13,7 @@ public sealed class BundleFilePolicy
         "README.md"
     ];
 
-    public IReadOnlyList<BundleFinding> Validate(IReadOnlyList<BundleFile> files)
+    public IReadOnlyList<BundleFinding> Validate(IReadOnlyList<BundleFile> files, string? target = null)
     {
         var findings = new List<BundleFinding>();
         foreach (var file in files)
@@ -23,7 +25,7 @@ public sealed class BundleFilePolicy
                 findings.Add(BundleFinding.Error("file.empty", $"{file.Path} was generated empty.", $"file:{file.Path}"));
         }
 
-        foreach (var requiredPath in RequiredFilePaths)
+        foreach (var requiredPath in RequiredPathsFor(target))
         {
             if (files.All(x => !string.Equals(x.Path, requiredPath, StringComparison.Ordinal)))
                 findings.Add(BundleFinding.Error("file.requiredMissing", $"{requiredPath} was not generated.", $"file:{requiredPath}"));
@@ -31,6 +33,14 @@ public sealed class BundleFilePolicy
 
         return findings;
     }
+
+    public static IReadOnlyList<string> RequiredPathsFor(string? target) =>
+        target switch
+        {
+            DeploymentTemplateTargets.AzureContainerApps => ["config.json", "packages.lock.json", "azure-container-app.bicep", ".env.example", "README.md"],
+            DeploymentTemplateTargets.KubernetesHelm => ["config.json", "packages.lock.json", "helm/Chart.yaml", "helm/values.yaml", "helm/templates/deployment.yaml", "README.md"],
+            _ => RequiredFilePaths
+        };
 
     private static bool IsSafeRelativePath(string path)
     {

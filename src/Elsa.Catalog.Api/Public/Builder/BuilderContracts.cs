@@ -80,7 +80,8 @@ public sealed record BuilderBundleRequest(
     IReadOnlyList<BuilderBundlePackageRequest>? Packages,
     IReadOnlyList<BuilderBundlePackageSourceRequest>? PackageSources,
     IReadOnlyList<BuilderBundleInfrastructureRequest>? Infrastructure,
-    BuilderBundleLocalPackagesRequest? LocalPackages);
+    BuilderBundleLocalPackagesRequest? LocalPackages,
+    string? Target = null);
 
 public sealed record BuilderBundleImageRequest(
     string? Slug,

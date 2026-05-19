@@ -4,6 +4,7 @@ using Elsa.Catalog.Core.Builder;
 using Elsa.Catalog.Core.Builder.Planner;
 using Elsa.Catalog.Core.Builder.Renderers;
 using Elsa.Catalog.Core.Compatibility;
+using Elsa.Catalog.Core.DeploymentTemplates;
 using Elsa.Catalog.Core.Packages;
 using Elsa.Catalog.Testing;
 using FluentAssertions;
@@ -201,10 +202,15 @@ public sealed class BuilderBundleGenerationTests
             new RuntimeImageCatalog(),
             infrastructure,
             new BuilderPlannerService(catalog, compatibility, infrastructure),
+            new DeploymentTemplateRegistry(
+            [
+                new DockerComposeBundleRenderer(),
+                new AzureContainerAppsTemplateRenderer(),
+                new KubernetesHelmTemplateRenderer()
+            ]),
             [
                 new AppSettingsBundleRenderer(new BundleFindingPolicy()),
                 new PackageLockBundleRenderer(),
-                new DockerComposeBundleRenderer(),
                 new EnvExampleBundleRenderer(),
                 new ReadmeBundleRenderer(),
                 new ProgramReferenceBundleRenderer()

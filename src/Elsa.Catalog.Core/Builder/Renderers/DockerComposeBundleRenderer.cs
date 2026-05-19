@@ -1,12 +1,13 @@
 using System.Text;
+using Elsa.Catalog.Core.DeploymentTemplates;
 
 namespace Elsa.Catalog.Core.Builder.Renderers;
 
-public sealed class DockerComposeBundleRenderer : IBundleFileRenderer
+public sealed class DockerComposeBundleRenderer : IDeploymentTemplateRenderer
 {
-    public int Order => 30;
+    public string Target => DeploymentTemplateTargets.DockerCompose;
 
-    public BundleFile Render(BundleGenerationContext context, List<BundleFinding> findings)
+    public IReadOnlyList<BundleFile> Render(BundleGenerationContext context, List<BundleFinding> findings)
     {
         var builder = new StringBuilder();
         builder.AppendLine("services:");
@@ -15,7 +16,7 @@ public sealed class DockerComposeBundleRenderer : IBundleFileRenderer
         foreach (var provider in context.Infrastructure.Where(x => x.Strategy == "compose-sidecar").OrderBy(x => x.Id, StringComparer.OrdinalIgnoreCase))
             AppendProvider(builder, provider);
 
-        return new BundleFile("docker-compose.yml", "yaml", "application/x-yaml", true, builder.ToString());
+        return [new BundleFile("docker-compose.yml", "yaml", "application/x-yaml", true, builder.ToString())];
     }
 
     private static void AppendAppService(StringBuilder builder, BundleGenerationContext context)

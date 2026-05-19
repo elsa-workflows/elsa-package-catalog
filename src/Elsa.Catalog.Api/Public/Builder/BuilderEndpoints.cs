@@ -103,7 +103,8 @@ public static class BuilderEndpoints
                 provider.ProviderId ?? "",
                 provider.Strategy ?? "",
                 provider.Settings)).ToList(),
-            request.LocalPackages is null ? null : new LocalPackagesOptions(request.LocalPackages.Enabled, request.LocalPackages.DirectoryPath));
+            request.LocalPackages is null ? null : new LocalPackagesOptions(request.LocalPackages.Enabled, request.LocalPackages.DirectoryPath),
+            request.Target);
         return true;
     }
 

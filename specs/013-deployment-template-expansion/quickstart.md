@@ -24,3 +24,13 @@ Expected: Helm/Kubernetes files and README are returned.
 dotnet build Elsa.PackageCatalog.sln --no-restore
 dotnet test Elsa.PackageCatalog.sln --no-build
 ```
+
+## Supported Targets
+
+Pass `target` to bundle generation:
+
+- `docker-compose` returns the default Compose bundle.
+- `azure-container-apps` adds `azure-container-app.bicep`.
+- `kubernetes-helm` adds `helm/Chart.yaml`, `helm/values.yaml`, and `helm/templates/deployment.yaml`.
+
+Unsupported targets return `deploymentTarget.unsupported` and no files.

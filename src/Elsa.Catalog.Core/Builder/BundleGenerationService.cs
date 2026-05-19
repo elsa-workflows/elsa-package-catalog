@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Elsa.Catalog.Core.Builder.Planner;
 using Elsa.Catalog.Core.Builder.Renderers;
 using Elsa.Catalog.Core.Compatibility;
+using Elsa.Catalog.Core.DeploymentTemplates;
 using Elsa.Catalog.Core.Packages;
 using Microsoft.Extensions.Logging;
 
@@ -13,6 +14,7 @@ public sealed class BundleGenerationService(
     RuntimeImageCatalog runtimeImages,
     InfrastructureProviderCatalog infrastructureProviders,
     BuilderPlannerService planner,
+    DeploymentTemplateRegistry deploymentTemplates,
     IEnumerable<IBundleFileRenderer> renderers,
     BundleFindingPolicy findingPolicy,
     BundleFilePolicy filePolicy,
@@ -23,6 +25,7 @@ public sealed class BundleGenerationService(
         var stopwatch = Stopwatch.StartNew();
         var plan = await planner.PlanAsync(new BuilderPlanRequest(intent), workspaceId, cancellationToken);
         intent = plan.Resolved;
+        var target = deploymentTemplates.NormalizeTarget(intent.Target);
         var findings = new List<BundleFinding>();
         var resolved = await TryResolveAsync(intent, workspaceId, findings, cancellationToken);
 
@@ -32,11 +35,12 @@ public sealed class BundleGenerationService(
             files = renderers
                 .OrderBy(x => x.Order)
                 .Select(renderer => renderer.Render(resolved, findings))
+                .Concat(deploymentTemplates.Render(target, resolved, findings))
                 .OrderBy(x => RequiredFileSortIndex(x.Path))
                 .ThenBy(x => x.Path, StringComparer.Ordinal)
                 .ToList();
 
-            findings.AddRange(filePolicy.Validate(files));
+            findings.AddRange(filePolicy.Validate(files, target));
             if (findingPolicy.HasBlockingErrors(findings))
                 files = [];
         }
