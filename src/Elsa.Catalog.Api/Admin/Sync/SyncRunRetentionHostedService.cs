@@ -32,6 +32,12 @@ public sealed class SyncRunRetentionHostedService(
             return;
         }
 
+        logger.LogInformation(
+            "Sync run retention started: retentionDays={RetentionDays}, interval={Interval}, runOnStartup={RunOnStartup}",
+            retentionDays,
+            interval,
+            runOnStartup);
+
         if (runOnStartup)
             await RunCleanupAsync(retentionDays, stoppingToken);
 

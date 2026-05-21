@@ -90,7 +90,7 @@ public sealed class SyncRunCleanupServiceTests
     }
 
     private static SyncRunCleanupService CreateService(InMemorySyncRunStore store) =>
-        new(store, NullLogger<SyncRunCleanupService>.Instance);
+        new(store, TimeProvider.System, NullLogger<SyncRunCleanupService>.Instance);
 
     private static SyncRun CompletedRun(SyncRunStatus status = SyncRunStatus.Completed, DateTimeOffset? completedAt = null, int items = 0)
     {

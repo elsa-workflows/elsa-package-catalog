@@ -29,6 +29,7 @@ public sealed class SyncRunRetentionHostedServiceTests
             .Build();
         using var services = new ServiceCollection()
             .AddLogging()
+            .AddSingleton<TimeProvider>(new FixedTimeProvider(now))
             .AddScoped<ISyncRunStore>(_ => store)
             .AddScoped<SyncRunCleanupService>()
             .BuildServiceProvider();
@@ -39,7 +40,7 @@ public sealed class SyncRunRetentionHostedServiceTests
             NullLogger<SyncRunRetentionHostedService>.Instance);
 
         await service.StartAsync(CancellationToken.None);
-        await WaitForAsync(() => !store.Runs.Any(x => x.Id == oldCanceled.Id));
+        await store.CleanupCompleted.Task.WaitAsync(TimeSpan.FromSeconds(5));
         await service.StopAsync(CancellationToken.None);
 
         store.Runs.Select(x => x.Id).Should().BeEquivalentTo([recentCompleted.Id, oldRunning.Id]);
@@ -62,13 +63,6 @@ public sealed class SyncRunRetentionHostedServiceTests
         return run;
     }
 
-    private static async Task WaitForAsync(Func<bool> condition)
-    {
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        while (!condition())
-            await Task.Delay(25, timeout.Token);
-    }
-
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => utcNow;
@@ -77,6 +71,7 @@ public sealed class SyncRunRetentionHostedServiceTests
     private sealed class InMemorySyncRunStore(IReadOnlyList<SyncRun>? initialRuns = null) : ISyncRunStore
     {
         public List<SyncRun> Runs { get; } = initialRuns?.ToList() ?? [];
+        public TaskCompletionSource CleanupCompleted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int LastDeletedItemCount { get; private set; }
 
         public Task<IReadOnlyList<SyncRun>> ListAsync(CancellationToken cancellationToken = default) =>
@@ -108,6 +103,7 @@ public sealed class SyncRunRetentionHostedServiceTests
 
             Runs.Remove(run);
             LastDeletedItemCount = run.Items.Count;
+            CleanupCompleted.TrySetResult();
             return Task.FromResult(new SyncRunCleanupResult(1, run.Items.Count, 0, 0, null, [id]));
         }
 
@@ -118,6 +114,7 @@ public sealed class SyncRunRetentionHostedServiceTests
                 Runs.Remove(run);
 
             LastDeletedItemCount = eligible.Sum(x => x.Items.Count);
+            CleanupCompleted.TrySetResult();
             return Task.FromResult(new SyncRunCleanupResult(
                 eligible.Count,
                 LastDeletedItemCount,
