@@ -22,7 +22,7 @@ Rules:
 State classification:
 
 - Non-terminal: `Running`.
-- Terminal: `Completed`, `CompletedWithErrors`, `Failed`.
+- Terminal: `Completed`, `CompletedWithErrors`, `Failed`, `Canceled`.
 - Future statuses must be explicitly classified before becoming cleanup-eligible.
 
 ## Sync Run Item
@@ -72,11 +72,13 @@ Variants:
 
 - Single-run cleanup by `syncRunId`.
 - Bulk cleanup by `completedBefore` cutoff.
+- Retention cleanup by configured `retentionDays` and computed `completedBefore`.
 
 Rules:
 
 - Requires admin authorization.
 - Bulk cleanup requires an explicit cutoff.
+- Retention cleanup requires explicit configuration enablement.
 - Cutoff comparisons use UTC.
 - Bulk cleanup cutoffs later than the current server time are rejected before any deletion occurs.
 

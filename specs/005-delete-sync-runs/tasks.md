@@ -124,6 +124,19 @@
 
 ---
 
+## Phase 7: Follow-Up - Automatic Retention
+
+**Purpose**: Apply the existing cleanup rules automatically in production so sync history does not grow without bound.
+
+- [X] T038 Update cleanup eligibility so canceled sync runs are treated as terminal in `src/Elsa.Catalog.Core/Sync/SyncRunCleanupService.cs`
+- [X] T039 [P] Add core, persistence, API, and admin UI regression coverage for canceled-run cleanup eligibility in `tests/Elsa.Catalog.Core.Tests/SyncRunCleanupServiceTests.cs`, `tests/Elsa.Catalog.Persistence.EntityFrameworkCore.Tests/SyncPersistenceTests.cs`, `tests/Elsa.Catalog.Api.Tests/AdminSyncApiTests.cs`, and `src/Elsa.Catalog.AdminUi/src/features/sync-runs/syncRunModels.test.ts`
+- [X] T040 Add a configurable retention hosted service that calls the existing cleanup service in `src/Elsa.Catalog.Api/Admin/Sync/SyncRunRetentionHostedService.cs`
+- [X] T041 Register the retention hosted service and add default/production settings in `src/Elsa.Catalog.Api/Program.cs`, `src/Elsa.Catalog.Api/appsettings.json`, and `src/Elsa.Catalog.Api/appsettings.Production.json`
+- [X] T042 Add hosted service coverage for startup retention cleanup in `tests/Elsa.Catalog.Api.Tests/SyncRunRetentionHostedServiceTests.cs`
+- [X] T043 Update deployment guidance for paid Azure SQL Basic and production retention configuration in `docs/deployment/azure-app-service.md`
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies
@@ -212,4 +225,4 @@ With multiple developers:
 - [P] tasks touch different files or test layers and can run in parallel after their phase dependencies are met.
 - [Story] labels map tasks to user stories in [spec.md](./spec.md).
 - No database migration is planned because existing `SyncRuns` and `SyncRunItems` tables support deletion and already model cascade behavior.
-- Do not add automatic scheduled retention in this feature; keep cleanup administrator-initiated.
+- Automatic retention must call the same cleanup service used by administrator-initiated cleanup.

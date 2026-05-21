@@ -97,7 +97,7 @@ export function isActiveSyncRun(run: SyncRun) {
 }
 
 export function isTerminalSyncRun(run: SyncRun) {
-  return run.status === "Completed" || run.status === "CompletedWithErrors" || run.status === "Failed";
+  return run.status === "Completed" || run.status === "CompletedWithErrors" || run.status === "Failed" || run.status === "Canceled";
 }
 
 export function syncRunHasAttention(run: SyncRun) {

@@ -3,7 +3,7 @@
 ## Recommendation
 
 Use Aspire and Azure Developer CLI (`azd`) as the deployment path. The AppHost
-declares the API, Azure App Service environment, and Azure SQL database;
+declares the API, Azure App Service environment, and an Azure SQL Basic database;
 Aspire/azd provisions the resources, builds the app container image, pushes it
 to ACR, and deploys the Web App.
 
@@ -181,6 +181,9 @@ The API supports two EF Core providers:
 
 Local development defaults to SQLite. Aspire publish mode provisions Azure SQL,
 injects `ConnectionStrings__Catalog`, and sets `Database__Provider=SqlServer`.
+The AppHost declares the database as the paid Azure SQL Basic tier with a 2 GB
+max size so production does not pause when the Azure SQL free monthly allowance
+is exhausted.
 
 Each provider has its own EF Core migration assembly:
 
@@ -202,3 +205,23 @@ production and App Service scale-out, use Azure SQL. SQLite on shared App
 Service storage or Azure Files is not a good production target because SQLite
 depends on filesystem locking, and WAL mode does not support clients on
 different machines through a network filesystem.
+
+## Sync Run Retention
+
+Production enables automatic sync run retention by default:
+
+```json
+"Sync": {
+  "Retention": {
+    "Enabled": true,
+    "RetentionDays": 30,
+    "Interval": "24:00:00",
+    "RunOnStartup": true
+  }
+}
+```
+
+The retention worker deletes only terminal sync runs completed before
+`now - RetentionDays`, including canceled runs. It preserves package sources,
+packages, package versions, manifests, validation results, approvals, and any
+running sync run.

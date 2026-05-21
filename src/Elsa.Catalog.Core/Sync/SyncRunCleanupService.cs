@@ -11,7 +11,8 @@ public sealed class SyncRunCleanupService(
     [
         SyncRunStatus.Completed,
         SyncRunStatus.CompletedWithErrors,
-        SyncRunStatus.Failed
+        SyncRunStatus.Failed,
+        SyncRunStatus.Canceled
     ];
 
     public async Task<SyncRunCleanupPreviewResult> PreviewDeleteBeforeAsync(DateTimeOffset completedBefore, CancellationToken cancellationToken = default)

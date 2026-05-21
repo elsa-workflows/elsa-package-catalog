@@ -209,11 +209,12 @@ public sealed class AdminSyncApiTests
         var cutoff = DateTimeOffset.UtcNow.AddDays(-7);
         var oldCompleted = CompletedRun(cutoff.AddDays(-1), SyncRunStatus.Completed, 2);
         var oldFailed = CompletedRun(cutoff.AddDays(-2), SyncRunStatus.Failed, 1);
+        var oldCanceled = CompletedRun(cutoff.AddDays(-3), SyncRunStatus.Canceled, 1);
         var recent = CompletedRun(cutoff.AddDays(1), SyncRunStatus.Completed, 1);
         var running = new SyncRun { Trigger = SyncRunTrigger.ManualAll, Status = SyncRunStatus.Running, StartedAt = cutoff.AddDays(-3) };
         await app.SeedAsync(db =>
         {
-            db.SyncRuns.AddRange(oldCompleted, oldFailed, recent, running);
+            db.SyncRuns.AddRange(oldCompleted, oldFailed, oldCanceled, recent, running);
             return Task.CompletedTask;
         });
         var client = AuthenticatedClient(app);
@@ -222,12 +223,12 @@ public sealed class AdminSyncApiTests
         var response = await client.DeleteAsync($"/api/admin/sync-runs?completedBefore={Cutoff(cutoff)}");
         var result = await response.Content.ReadCatalogJsonAsync<AdminSyncRunCleanupResultResponse>();
 
-        preview!.EligibleRunCount.Should().Be(2);
-        preview.EligibleItemCount.Should().Be(3);
+        preview!.EligibleRunCount.Should().Be(3);
+        preview.EligibleItemCount.Should().Be(4);
         preview.ExcludedRunCount.Should().Be(1);
         response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
-        result!.DeletedRunCount.Should().Be(2);
-        result.DeletedItemCount.Should().Be(3);
+        result!.DeletedRunCount.Should().Be(3);
+        result.DeletedItemCount.Should().Be(4);
         result.ExcludedRunCount.Should().Be(1);
 
         var runs = await client.GetCatalogJsonAsync<List<AdminSyncRunResponse>>("/api/admin/sync-runs");
