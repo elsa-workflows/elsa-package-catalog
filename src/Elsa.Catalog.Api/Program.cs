@@ -135,6 +135,7 @@ builder.Services.AddSingleton<PackageVersionPolicy>();
 builder.Services.AddSingleton<ISyncDiagnostics, NoopSyncDiagnostics>();
 builder.Services.AddHostedService<ManualSyncHostedService>();
 builder.Services.AddHostedService<ScheduledSyncHostedService>();
+builder.Services.AddHostedService<SyncRunRetentionHostedService>();
 
 var app = builder.Build();
 

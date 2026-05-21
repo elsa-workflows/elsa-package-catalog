@@ -5,19 +5,21 @@ namespace Elsa.Catalog.Core.Sync;
 
 public sealed class SyncRunCleanupService(
     ISyncRunStore syncRuns,
+    TimeProvider timeProvider,
     ILogger<SyncRunCleanupService> logger)
 {
     private static readonly SyncRunStatus[] TerminalStatuses =
     [
         SyncRunStatus.Completed,
         SyncRunStatus.CompletedWithErrors,
-        SyncRunStatus.Failed
+        SyncRunStatus.Failed,
+        SyncRunStatus.Canceled
     ];
 
     public async Task<SyncRunCleanupPreviewResult> PreviewDeleteBeforeAsync(DateTimeOffset completedBefore, CancellationToken cancellationToken = default)
     {
         var cutoff = completedBefore.ToUniversalTime();
-        if (cutoff > DateTimeOffset.UtcNow)
+        if (cutoff > timeProvider.GetUtcNow())
             return SyncRunCleanupPreviewResult.InvalidFutureCutoff(cutoff);
 
         var preview = await syncRuns.PreviewDeleteBeforeAsync(cutoff, TerminalStatuses, cancellationToken);
@@ -45,7 +47,7 @@ public sealed class SyncRunCleanupService(
     public async Task<SyncRunBulkDeleteResult> DeleteBeforeAsync(DateTimeOffset completedBefore, string? actor = null, CancellationToken cancellationToken = default)
     {
         var cutoff = completedBefore.ToUniversalTime();
-        if (cutoff > DateTimeOffset.UtcNow)
+        if (cutoff > timeProvider.GetUtcNow())
             return SyncRunBulkDeleteResult.InvalidFutureCutoff(cutoff);
 
         var result = await syncRuns.DeleteBeforeAsync(cutoff, TerminalStatuses, cancellationToken);

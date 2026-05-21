@@ -8,7 +8,7 @@
 
 ## Summary
 
-Add an administrator-only sync run cleanup capability that can delete a single terminal sync run or all terminal sync runs completed before an explicit UTC cutoff. The implementation stays in the existing ASP.NET Core admin API, `Elsa.Catalog.Core` sync domain, EF Core persistence adapter, and admin UI sync-runs feature. Cleanup preserves package sources, packages, package versions, manifests, validation results, approvals, and public catalog state while removing only sync run history and dependent item diagnostics.
+Add an administrator-only sync run cleanup capability that can delete a single terminal sync run or all terminal sync runs completed before an explicit UTC cutoff, plus a configurable production retention worker that applies the same cleanup rules automatically. The implementation stays in the existing ASP.NET Core admin API, `Elsa.Catalog.Core` sync domain, EF Core persistence adapter, and admin UI sync-runs feature. Cleanup preserves package sources, packages, package versions, manifests, validation results, approvals, and public catalog state while removing only sync run history and dependent item diagnostics.
 
 ## Technical Context
 
@@ -26,7 +26,7 @@ Add an administrator-only sync run cleanup capability that can delete a single t
 
 **Performance Goals**: Bulk cleanup can delete at least 1,000 eligible sync runs in one administrator request and return a count summary within 30 seconds in normal local/test database conditions.
 
-**Constraints**: Cleanup must be explicit, administrator-only, UTC-based, idempotent, and must not delete non-terminal runs or any package catalog state. No background retention job, external archive, new storage service, or package-processing behavior change is in scope.
+**Constraints**: Cleanup must be UTC-based, idempotent, and must not delete non-terminal runs or any package catalog state. Manual cleanup remains administrator-only and explicit. Automatic cleanup is allowed only through an opt-in retention configuration that uses the same terminal-state rules. No external archive, new storage service, or package-processing behavior change is in scope.
 
 **Scale/Scope**: Internal admin surface for small operator teams; sync history list currently shows the latest 100 runs, while cleanup must handle accumulated history beyond that list.
 
@@ -53,7 +53,7 @@ The plan MUST answer these gates:
 - **Safe public API**: Are public responses limited to valid, approved, listed versions?
   - Preserved. Public endpoints remain unchanged and catalog state is unaffected.
 - **Debuggability**: Are sync runs, validation errors, indexing decisions, and suspicious changes persisted and inspectable?
-  - Pass with scoped tradeoff. Recent and non-deleted sync runs remain inspectable; administrators explicitly delete obsolete history only after previewing scope. Cleanup activity is logged with counts.
+  - Pass with scoped tradeoff. Recent and non-deleted sync runs remain inspectable; administrators explicitly delete obsolete history after previewing scope, and production retention removes only history older than the configured retention period. Cleanup activity is logged with counts.
 - **Modular monolith**: Does the design avoid distributed infrastructure unless justified?
   - Pass. The design remains in the existing API/Core/Persistence/Admin UI modules.
 - **Runtime Builder readiness**: Do APIs and manifests support package discovery, feature selection, settings schemas, and compatibility checks?
@@ -91,7 +91,8 @@ src/
 │   └── Admin/
 │       └── Sync/
 │           ├── AdminSyncContracts.cs
-│           └── AdminSyncEndpoints.cs
+│           ├── AdminSyncEndpoints.cs
+│           └── SyncRunRetentionHostedService.cs
 └── Elsa.Catalog.AdminUi/
     └── src/
         └── features/
@@ -103,7 +104,8 @@ tests/
 ├── Elsa.Catalog.Persistence.EntityFrameworkCore.Tests/
 │   └── SyncPersistenceTests.cs
 ├── Elsa.Catalog.Api.Tests/
-│   └── AdminSyncApiTests.cs
+│   ├── AdminSyncApiTests.cs
+│   └── SyncRunRetentionHostedServiceTests.cs
 └── Elsa.Catalog.AdminUi/
     └── src/
         └── features/
@@ -111,7 +113,7 @@ tests/
                 └── SyncRunsPage.test.tsx
 ```
 
-**Structure Decision**: Keep cleanup rules in `Elsa.Catalog.Core` because terminal-state protection and result counting are domain behavior. Implement deletion in the EF Core sync run store because it owns `SyncRuns` and `SyncRunItems`. Expose the capability through the existing admin sync endpoint group and add focused UI controls to the existing Sync Runs screen rather than creating a new admin destination.
+**Structure Decision**: Keep cleanup rules in `Elsa.Catalog.Core` because terminal-state protection and result counting are domain behavior. Implement deletion in the EF Core sync run store because it owns `SyncRuns` and `SyncRunItems`. Expose the manual capability through the existing admin sync endpoint group and add focused UI controls to the existing Sync Runs screen rather than creating a new admin destination. Implement automatic retention as an API-hosted background service that calls the same core cleanup service so manual and scheduled cleanup cannot drift.
 
 ## Complexity Tracking
 

@@ -55,21 +55,22 @@ public sealed class SyncRunCleanupServiceTests
         var cutoff = DateTimeOffset.UtcNow.AddDays(-7);
         var oldCompleted = CompletedRun(completedAt: cutoff.AddDays(-1), items: 2);
         var oldFailed = CompletedRun(SyncRunStatus.Failed, cutoff.AddDays(-2), items: 1);
+        var oldCanceled = CompletedRun(SyncRunStatus.Canceled, cutoff.AddDays(-3), items: 1);
         var recent = CompletedRun(completedAt: cutoff.AddDays(1));
         var running = new SyncRun { Status = SyncRunStatus.Running, Trigger = SyncRunTrigger.ManualAll, StartedAt = cutoff.AddDays(-3) };
-        var store = new InMemorySyncRunStore([oldCompleted, oldFailed, recent, running]);
+        var store = new InMemorySyncRunStore([oldCompleted, oldFailed, oldCanceled, recent, running]);
         var service = CreateService(store);
 
         var preview = await service.PreviewDeleteBeforeAsync(cutoff);
         var result = await service.DeleteBeforeAsync(cutoff, "tester");
 
         preview.IsValid.Should().BeTrue();
-        preview.Preview!.EligibleRunCount.Should().Be(2);
-        preview.Preview.EligibleItemCount.Should().Be(3);
+        preview.Preview!.EligibleRunCount.Should().Be(3);
+        preview.Preview.EligibleItemCount.Should().Be(4);
         preview.Preview.ExcludedRunCount.Should().Be(1);
         result.IsValid.Should().BeTrue();
-        result.Cleanup!.DeletedRunCount.Should().Be(2);
-        result.Cleanup.DeletedItemCount.Should().Be(3);
+        result.Cleanup!.DeletedRunCount.Should().Be(3);
+        result.Cleanup.DeletedItemCount.Should().Be(4);
         result.Cleanup.ExcludedRunCount.Should().Be(1);
         store.Runs.Select(x => x.Id).Should().BeEquivalentTo([recent.Id, running.Id]);
     }
@@ -89,7 +90,7 @@ public sealed class SyncRunCleanupServiceTests
     }
 
     private static SyncRunCleanupService CreateService(InMemorySyncRunStore store) =>
-        new(store, NullLogger<SyncRunCleanupService>.Instance);
+        new(store, TimeProvider.System, NullLogger<SyncRunCleanupService>.Instance);
 
     private static SyncRun CompletedRun(SyncRunStatus status = SyncRunStatus.Completed, DateTimeOffset? completedAt = null, int items = 0)
     {

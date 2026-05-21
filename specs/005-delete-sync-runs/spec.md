@@ -20,6 +20,11 @@ Catalog administrators need a safe way to remove obsolete synchronization run hi
 - Q: How should future bulk cleanup cutoffs be handled? → A: Reject future bulk cleanup cutoffs with a validation error.
 - Q: Should direct single-run deletion have an age cutoff? → A: Direct single-run deletion may delete any terminal run by ID, regardless of age.
 
+### Session 2026-05-21
+
+- Q: Should operator-canceled sync runs be retained forever? → A: No. `Canceled` is a terminal status and is eligible for direct cleanup and age-based retention.
+- Q: Should old sync run history require manual administrator action forever? → A: No. Production should run a configurable background retention worker that deletes terminal sync runs older than the retention period.
+
 ## Goals
 
 - Reduce long-term database growth caused by obsolete sync run history.
@@ -33,7 +38,7 @@ Catalog administrators need a safe way to remove obsolete synchronization run hi
 - Deleting packages, package versions, manifests, validation results, approvals, or source configuration.
 - Changing how sync runs are created, scheduled, or processed.
 - Adding a legal or compliance-grade audit archive.
-- Automatically deleting all sync history without administrator intent.
+- Automatically deleting all sync history without a configured retention policy.
 - Compressing or moving sync history to external storage.
 
 ## Personas
@@ -110,7 +115,7 @@ The system prevents deletion of sync runs that are still active, and it clearly 
 - **FR-002**: The system MUST allow authorized administrators to delete sync runs older than a selected cutoff.
 - **FR-003**: Sync run deletion MUST remove the selected sync run records and their item-level sync history details.
 - **FR-004**: Sync run deletion MUST NOT remove or modify package sources, packages, package versions, manifests, validation results, approval records, public catalog visibility, or source configuration.
-- **FR-005**: The system MUST allow deletion of terminal sync runs with status `Completed`, `CompletedWithErrors`, or `Failed`, and MUST refuse deletion of active, queued, or otherwise non-terminal sync runs.
+- **FR-005**: The system MUST allow deletion of terminal sync runs with status `Completed`, `CompletedWithErrors`, `Failed`, or `Canceled`, and MUST refuse deletion of active, queued, or otherwise non-terminal sync runs.
 - **FR-006**: Bulk deletion MUST exclude ineligible sync runs and report how many runs were eligible, excluded, and deleted.
 - **FR-007**: Before bulk deletion proceeds, administrators MUST be able to see the deletion scope, including the cutoff and the number of eligible sync runs.
 - **FR-008**: The system MUST report the result of each deletion request, including deleted sync run count and deleted item detail count.
@@ -122,6 +127,9 @@ The system prevents deletion of sync runs that are still active, and it clearly 
 - **FR-013**: Deletion MUST preserve enough recent sync history by default by requiring an explicit administrator-selected cutoff for bulk cleanup.
 - **FR-014**: Cleanup operations MUST be safe to run while other administrators are viewing sync history.
 - **FR-015**: Cleanup operations MUST avoid partial deletion results where sync run headers are removed but their item-level details remain visible as ordinary sync history.
+- **FR-016**: The system MUST provide a configurable background retention worker that deletes terminal sync runs completed before `now - retentionDays`.
+- **FR-017**: The background retention worker MUST be disabled unless explicitly enabled by configuration and MUST log cutoff, deleted run count, deleted item count, and excluded run count.
+- **FR-018**: Production configuration SHOULD enable retention with a default 30-day retention period and a daily cleanup interval.
 
 ### Key Entities
 
@@ -142,8 +150,8 @@ The system prevents deletion of sync runs that are still active, and it clearly 
 
 ## Assumptions
 
-- Sync runs have terminal states such as completed, completed with errors, or failed, and non-terminal states such as queued or running.
+- Sync runs have terminal states such as completed, completed with errors, failed, or canceled, and non-terminal states such as queued or running.
 - Sync run history is useful for recent troubleshooting but becomes less valuable as it ages.
 - Administrators are already authenticated through the existing protected admin surface.
-- Bulk deletion is manually initiated in the first version; automatic scheduled retention can be added later if needed.
+- Bulk deletion can be manually initiated by administrators and automatically initiated by configured production retention.
 - Deleting sync run history is acceptable because package catalog state and operational logs remain the source for current catalog behavior and cleanup accountability.

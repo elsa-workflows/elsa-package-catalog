@@ -84,6 +84,7 @@ Expected behavior:
 - `400 Bad Request` when `completedBefore` is missing or invalid.
 - `400 Bad Request` when `completedBefore` is later than the current server time.
 - Non-terminal runs are excluded even if their timestamps otherwise match.
+- Terminal runs include `Completed`, `CompletedWithErrors`, `Failed`, and `Canceled`.
 - Result counts reflect committed deletion and may differ from a prior preview if history changed concurrently.
 
 Response shape:
@@ -109,3 +110,16 @@ Sync Runs page behavior:
 - Bulk cleanup confirmation displays eligible run count and item count from the server preview.
 - After successful cleanup, sync run list queries are invalidated and refetched.
 - Cleanup failures preserve the current list and show the server-provided error.
+
+## Retention Worker Contract
+
+The API host may run a configured retention worker using `Sync:Retention`.
+
+- `Enabled`: Enables automatic retention when true.
+- `RetentionDays`: Number of days of completed terminal sync run history to preserve.
+- `Interval`: Period between retention attempts.
+- `RunOnStartup`: Runs one cleanup pass immediately after startup when true.
+
+Retention cleanup computes `completedBefore` as current UTC time minus
+`RetentionDays`, then applies the same bulk cleanup rules used by
+`DELETE /api/admin/sync-runs`.

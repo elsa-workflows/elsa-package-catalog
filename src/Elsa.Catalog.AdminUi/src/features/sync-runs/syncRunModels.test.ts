@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeSyncRun, packagesScanned, packagesUpdated, syncFailures, syncRunItemStatusLabel, syncRunSourceLabel } from "@/features/sync-runs/syncRunModels";
+import { isTerminalSyncRun, normalizeSyncRun, packagesScanned, packagesUpdated, syncFailures, syncRunItemStatusLabel, syncRunSourceLabel } from "@/features/sync-runs/syncRunModels";
 
 const baseRun = {
   id: "sync-123",
@@ -68,5 +68,11 @@ describe("sync run models", () => {
     expect(packagesScanned(run)).toBe(52);
     expect(packagesUpdated(run)).toBe(4);
     expect(syncFailures(run)).toBe(1);
+  });
+
+  it("treats canceled runs as terminal history", () => {
+    const run = normalizeSyncRun({ ...baseRun, status: "Canceled" });
+
+    expect(isTerminalSyncRun(run)).toBe(true);
   });
 });

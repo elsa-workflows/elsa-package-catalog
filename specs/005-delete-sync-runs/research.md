@@ -1,14 +1,14 @@
 # Research: Delete Sync Runs
 
-## Decision: Manual cleanup first, with explicit UTC cutoff
+## Decision: Manual cleanup plus opt-in retention
 
-**Rationale**: The feature request is about avoiding excessive growth from stale information, but the safest first capability is administrator-initiated cleanup. Requiring an explicit cutoff preserves recent troubleshooting history by default and avoids surprising retention behavior.
+**Rationale**: The feature request is about avoiding excessive growth from stale information. Manual cleanup with an explicit cutoff gives administrators a safe emergency control, while a configured retention worker prevents production sync history from growing without bound. Retention stays opt-in outside production defaults and uses the same terminal-state rules as manual cleanup.
 
 **Alternatives considered**:
 
-- **Automatic scheduled retention**: Deferred because it introduces policy, configuration, and operational surprise beyond the requested first capability.
 - **Hard-coded retention period**: Rejected because operators may need different troubleshooting windows across environments.
 - **Delete all history button**: Rejected because it is too easy to erase useful recent diagnostics.
+- **Separate retention deletion path**: Rejected because it could drift from manual cleanup eligibility and safety rules.
 
 ## Decision: Only terminal sync runs are eligible
 
@@ -18,6 +18,7 @@
 
 - **Allow deletion of running runs**: Rejected because active sync diagnostics could disappear while the sync service still references them.
 - **Block deletion of failed runs**: Rejected because failed historical runs can be the largest source of stale diagnostics; they are safe to delete once obsolete.
+- **Retain canceled runs indefinitely**: Rejected because operator-canceled runs are terminal operational history and age out like completed or failed runs.
 
 ## Decision: Delete sync run headers and item diagnostics only
 

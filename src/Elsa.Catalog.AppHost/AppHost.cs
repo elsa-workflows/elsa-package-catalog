@@ -36,17 +36,13 @@ if (builder.ExecutionContext.IsPublishMode)
             var sqlDatabase = infrastructure.GetProvisionableResources().OfType<SqlDatabase>().Single();
             sqlDatabase.Sku = new SqlSku
             {
-                Name = "GP_S_Gen5",
-                Tier = "GeneralPurpose",
-                Family = "Gen5",
-                Capacity = 1
+                Name = "Basic",
+                Tier = "Basic",
+                Capacity = 5
             };
-            sqlDatabase.MinCapacity = 0.5;
-            sqlDatabase.AutoPauseDelay = 60;
+            sqlDatabase.MaxSizeBytes = 2L * 1024 * 1024 * 1024;
             sqlDatabase.RequestedBackupStorageRedundancy = SqlBackupStorageRedundancy.Local;
             sqlDatabase.IsZoneRedundant = false;
-            sqlDatabase.UseFreeLimit = true;
-            sqlDatabase.FreeLimitExhaustionBehavior = FreeLimitExhaustionBehavior.AutoPause;
         });
     var database = sql.AddDatabase("Catalog");
 
